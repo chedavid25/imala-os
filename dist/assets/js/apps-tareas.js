@@ -773,10 +773,15 @@ document.addEventListener('DOMContentLoaded', function () {
     // 8. Google Calendar Sync
     // ==========================================
     // PLACEHOLDERS - USER MUST REPLACE THESE
-    const CLIENT_ID = '372907112845-1hohbj74kis1at51rf92jgqu28e1hn80.apps.googleusercontent.com';
-    const API_KEY = 'AIzaSyBhBOa13mCm8mucVU-ugvMSpkxkj77U5qE';
-    const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
-    const SCOPES = 'https://www.googleapis.com/auth/calendar';
+    // ==========================================
+    // 8. Google Calendar Sync
+    // ==========================================
+    const gconf = window.ImalaConfig ? window.ImalaConfig.googleCalendar : {};
+    
+    const CLIENT_ID = gconf.clientId || 'MISSING_CLIENT_ID';
+    const API_KEY = gconf.apiKey || 'MISSING_API_KEY';
+    const DISCOVERY_DOC = gconf.discoveryDocs ? gconf.discoveryDocs[0] : 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
+    const SCOPES = gconf.scopes || 'https://www.googleapis.com/auth/calendar';
 
     let tokenClient;
     let gapiInited = false;

@@ -14,7 +14,15 @@ Para desplegar tu sistema en Hostinger, sigue estos pasos:
 
 > **Importante**: Si usas Firebase, asegúrate de que tu dominio de Hostinger (ej: imalaos.com) esté autorizado en la consola de Firebase -> Authentication -> Sign-in method -> Dominios autorizados.
 
-## 2. Aplicación Móvil (PWA)
+## 2. Configuración de Seguridad (Google/Firebase)
+
+Hemos mejorado la seguridad para ocultar tus claves del repositorio público.
+
+1.  En tu carpeta local `dist/assets/js/` verás un archivo `config.example.js`.
+2.  También verás un archivo `config.js` (que contiene tus claves reales). **Este archivo NO se sube a GitHub** para protegerte.
+3.  **Al subir a Hostinger**: Asegúrate de subir manualmente el archivo `config.js` a la carpeta `assets/js/` en tu hosting. Sin este archivo, la web no conectará.
+
+## 3. Aplicación Móvil (PWA)
 
 El sistema ahora está configurado como una **Progressive Web App (PWA)**. Esto permite instalarlo como una "App" nativa en celulares.
 

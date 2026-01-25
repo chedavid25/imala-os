@@ -1,14 +1,20 @@
 // Imalá OS - Firebase Configuration
 // WARNING: Do not expose these keys in a public repository
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDBf6gRyjGcmhjSzQjfSRK3iny2Qz2Stdk",
-  authDomain: "imala-os.firebaseapp.com",
-  projectId: "imala-os",
-  storageBucket: "imala-os.firebasestorage.app",
-  messagingSenderId: "867131157710",
-  appId: "1:867131157710:web:db634d17c3230694da349f"
+// Load from window.ImalaConfig (defined in config.js)
+const firebaseConfig = window.ImalaConfig ? window.ImalaConfig.firebase : {
+    // Fallback or Error
+    apiKey: "MISSING_CONFIG",
+    authDomain: "MISSING.firebaseapp.com",
+    projectId: "missing",
+    storageBucket: "missing.firebasestorage.app",
+    messagingSenderId: "0000000000",
+    appId: "1:0000000000:web:00000000000000"
 };
+
+if(firebaseConfig.apiKey === "MISSING_CONFIG") {
+    console.error("CRITICAL: C:\Users\David Pc\OneDrive\Escritorio\Imalá OS\dist\assets\js\config.js not loaded or missing keys.");
+}
 
 // Initialize Firebase Global Instances
 // This script assumes that the Firebase SDK scripts (app, auth, firestore, etc.) 
