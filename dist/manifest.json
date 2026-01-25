@@ -1,0 +1,20 @@
+{
+  "name": "Imalá OS",
+  "short_name": "Imalá",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#556ee6",
+  "icons": [
+    {
+      "src": "assets/images/logo-icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/images/logo-icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
