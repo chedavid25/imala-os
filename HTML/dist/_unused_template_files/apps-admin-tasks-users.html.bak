@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="es">
+
+    <head>
+        
+        <meta charset="utf-8" />
+        <title>Tareas a Usuarios | Imalá OS</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta content="Panel de Asignación de Tareas" name="description" />
+        <meta content="Imalá" name="author" />
+        <!-- App favicon -->
+        <link rel="shortcut icon" href="assets/images/favicon.ico">
+
+        <!-- Flatpickr css -->
+        <link href="assets/libs/flatpickr/flatpickr.min.css" rel="stylesheet" type="text/css">
+
+        <!-- DataTables -->
+        <link href="assets/libs/datatables.net-bs4/css/dataTables.bootstrap4.min.css" rel="stylesheet" type="text/css" />
+        <link href="assets/libs/datatables.net-buttons-bs4/css/buttons.bootstrap4.min.css" rel="stylesheet" type="text/css" />
+        <link href="assets/libs/datatables.net-responsive-bs4/css/responsive.bootstrap4.min.css" rel="stylesheet" type="text/css" />
+
+        <!-- Bootstrap Css -->
+        <link href="assets/css/bootstrap.min.css" id="bootstrap-style" rel="stylesheet" type="text/css" />
+        <!-- Icons Css -->
+        <link href="assets/css/icons.min.css" rel="stylesheet" type="text/css" />
+        <!-- App Css-->
+        <link href="assets/css/app.min.css" id="app-style" rel="stylesheet" type="text/css" />
+        
+    </head>
+
+    <body>
+
+        <!-- Begin page -->
+        <div id="layout-wrapper">
+
+            <header id="page-topbar">
+                <div class="navbar-header">
+                    <div class="d-flex">
+                        <!-- LOGO -->
+                        <div class="navbar-brand-box">
+                            <a href="index.html" class="logo logo-dark">
+                                <span class="logo-sm">
+                                    <img src="assets/images/logo-icon.png" alt="" height="30">
+                                </span>
+                                <span class="logo-lg">
+                                    <img src="assets/images/logo-full-dark.png" alt="" height="30">
+                                </span>
+                            </a>
+                        </div>
+
+                        <button type="button" class="btn btn-sm px-3 font-size-16 header-item" id="vertical-menu-btn">
+                            <i class="fa fa-fw fa-bars"></i>
+                        </button>
+                    </div>
+
+                    <div class="d-flex">
+                        <!-- Notifications Dropdown -->
+                        <div class="dropdown d-inline-block">
+                            <button type="button" class="btn header-item noti-icon position-relative" id="page-header-notifications-dropdown"
+                            data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <i data-feather="bell" class="icon-lg"></i>
+                                <span class="badge bg-danger rounded-pill" id="noti-badge" style="display:none">0</span>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end p-0"
+                                aria-labelledby="page-header-notifications-dropdown">
+                                <div class="p-3">
+                                    <div class="row align-items-center">
+                                        <div class="col">
+                                            <h6 class="m-0"> Notificaciones </h6>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div data-simplebar style="max-height: 230px;" id="noti-list">
+                                    <div class="text-center p-3 text-muted">No hay notificaciones nuevas.</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="dropdown d-inline-block">
+                            <button type="button" class="btn header-item bg-light-subtle border-start border-end" id="page-header-user-dropdown"
+                            data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <img class="rounded-circle header-profile-user" src="assets/images/users/avatar-1.jpg"
+                                    alt="Header Avatar" id="header-user-avatar">
+                                <span class="d-none d-xl-inline-block ms-1 fw-medium" id="header-user-name">Admin</span>
+                                <i class="mdi mdi-chevron-down d-none d-xl-inline-block"></i>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end">
+                                <a class="dropdown-item" href="#" onclick="window.Imala.auth.signOut(); window.location.href='auth-login.html';"><i class="mdi mdi-logout font-size-16 align-middle me-1"></i> Cerrar Sesión</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- ========== Left Sidebar Start ========== -->
+            <div class="vertical-menu">
+                <div data-simplebar class="h-100">
+                    <div id="sidebar-menu">
+                        <!-- Left Menu Start -->
+                        <ul class="metismenu list-unstyled" id="side-menu">
+                            <li class="menu-title" data-key="t-menu">Principal</li>
+                            <li>
+                                <a href="index.html">
+                                    <i data-feather="home"></i>
+                                    <span data-key="t-dashboard">Dashboard</span>
+                                </a>
+                            </li>
+                            <li class="menu-title" data-key="t-modules">Módulos</li>
+                            <li>
+                                <a href="apps-tareas.html">
+                                    <i data-feather="grid"></i>
+                                    <span data-key="t-tasks">Gestión Tareas</span>
+                                </a>
+                            </li>
+                             <li class="menu-title" data-key="t-admin">Administración</li>
+                            <li>
+                                <a href="apps-admin-config.html">
+                                    <i data-feather="users"></i>
+                                    <span data-key="t-admin-users">Gestión Usuarios</span>
+                                </a>
+                            </li>
+                            <li class="mm-active">
+                                <a href="apps-admin-tasks-users.html" class="active">
+                                    <i data-feather="check-square"></i>
+                                    <span data-key="t-admin-tasks">Tareas a Usuarios</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <!-- Left Sidebar End -->
+
+            <div class="main-content">
+
+                <div class="page-content">
+                    <div class="container-fluid">
+
+                        <!-- start page title -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+                                    <h4 class="mb-sm-0 font-size-18">Asignación de Tareas</h4>
+                                    <div class="page-title-right">
+                                        <button class="btn btn-primary" id="btn-new-task"><i class="mdi mdi-plus me-1"></i> Nueva Tarea</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- end page title -->
+
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h4 class="card-title mb-4">Tareas Asignadas</h4>
+                                        
+                                        <!-- Filters Row 1: Context -->
+                                        <div class="row mb-3">
+                                            <div class="col-md-4">
+                                                <label class="form-label">Buscar Usuario</label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text"><i class="mdi mdi-magnify"></i></span>
+                                                    <input type="text" class="form-control" id="filter-user-search" placeholder="Nombre del usuario...">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Filtrar por Equipo</label>
+                                                <select class="form-select" id="filter-team">
+                                                    <option value="ALL">Todos los Equipos</option>
+                                                    <!-- Dynamic -->
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Filtrar por Oficina</label>
+                                                <select class="form-select" id="filter-office">
+                                                    <option value="ALL">Todas las Oficinas</option>
+                                                    <!-- Dynamic -->
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <!-- Filters Row 2: Status & Time -->
+                                        <div class="row mb-4">
+                                            <div class="col-md-3">
+                                                <label class="form-label">Mes</label>
+                                                <input type="month" class="form-control" id="filter-month">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">Prioridad</label>
+                                                <select class="form-select" id="filter-priority">
+                                                    <option value="ALL">Todas</option>
+                                                    <option value="HIGH">Alta</option>
+                                                    <option value="MEDIUM">Media</option>
+                                                    <option value="LOW">Baja</option>
+                                                </select>
+                                            </div>
+                                             <div class="col-md-3">
+                                                <label class="form-label">Estado</label>
+                                                <select class="form-select" id="filter-status">
+                                                    <option value="ALL">Todos</option>
+                                                    <option value="PENDING">Pendiente</option>
+                                                    <option value="COMPLETED">Completado</option>
+                                                    <option value="LATE">Atrasado</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3 align-self-end">
+                                                <button class="btn btn-light w-100" id="btn-clear-filters">Limpiar Filtros</button>
+                                            </div>
+                                        </div>
+
+                                        <div class="table-responsive">
+                                            <table id="datatable-tasks" class="table table-bordered dt-responsive nowrap w-100 align-middle">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Tarea</th>
+                                                        <th>Prioridad</th>
+                                                        <th>Asignado A</th>
+                                                        <th>Vencimiento</th>
+                                                        <th>Estado</th>
+                                                        <th>Creado</th>
+                                                        <th style="width: 120px;">Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <!-- Dynamic Content -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div> 
+                </div>
+
+                <!-- Create Task Modal -->
+                <div class="modal fade" id="task-modal" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Nueva Tarea Global</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-hidden="true"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="form-task">
+                                    
+                                    <div class="row">
+                                        <div class="col-md-8 mb-3">
+                                            <label class="form-label">Título de la Tarea</label>
+                                            <input type="text" class="form-control" id="task-title" required placeholder="Ej. Subir documentación mensual">
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label">Prioridad</label>
+                                            <select class="form-select" id="task-priority">
+                                                <option value="HIGH">Alta 🔴</option>
+                                                <option value="MEDIUM" selected>Media 🟡</option>
+                                                <option value="LOW">Baja 🟢</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Descripción</label>
+                                        <textarea class="form-control" id="task-desc" rows="3" placeholder="Detalles de la tarea..."></textarea>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Fecha de Vencimiento</label>
+                                            <input type="date" class="form-control flatpickr-input" id="task-date">
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Adjuntar Archivo</label>
+                                            <input type="file" class="form-control" id="task-file">
+                                            <small class="text-muted">PDF, Imágenes o Doc (Max 5MB)</small>
+                                        </div>
+                                    </div>
+
+                                    <hr>
+                                    <h5 class="font-size-14 text-primary mb-3">Destinatarios</h5>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Asignar a:</label>
+                                        <div class="btn-group w-100 mb-2" role="group">
+                                            <input type="radio" class="btn-check" name="assign-type" id="type-user" value="USER" checked>
+                                            <label class="btn btn-outline-secondary" for="type-user">Usuario</label>
+
+                                            <input type="radio" class="btn-check" name="assign-type" id="type-team" value="TEAM">
+                                            <label class="btn btn-outline-secondary" for="type-team">Equipo</label>
+
+                                            <input type="radio" class="btn-check" name="assign-type" id="type-office" value="OFFICE">
+                                            <label class="btn btn-outline-secondary" for="type-office">Oficina</label>
+
+                                            <input type="radio" class="btn-check" name="assign-type" id="type-role" value="ROLE">
+                                            <label class="btn btn-outline-secondary" for="type-role">Rol</label>
+
+                                            <input type="radio" class="btn-check" name="assign-type" id="type-all" value="ALL">
+                                            <label class="btn btn-outline-secondary" for="type-all">Todos</label>
+                                        </div>
+
+                                        <select class="form-select" id="assign-target">
+                                            <!-- Dynamic options based on radio -->
+                                        </select>
+                                    </div>
+
+                                    <div class="text-end mt-4">
+                                        <button type="button" class="btn btn-light me-1" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="submit" class="btn btn-primary">Crear Tarea</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin Chat Modal -->
+                <div class="modal fade" id="admin-chat-modal" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Bitácora de Tarea</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-hidden="true"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="chat-conversation p-3" style="background: #f8f8fb; border-radius: 5px;">
+                                    <ul class="list-unstyled mb-0" id="admin-chat-history" style="height: 350px; overflow-y: auto;">
+                                        <!-- Messages -->
+                                    </ul>
+                                </div>
+                                <div class="p-3 chat-input-section mt-2">
+                                    <div class="row">
+                                        <div class="col">
+                                            <input type="text" class="form-control chat-input" id="admin-chat-input" placeholder="Escribe al usuario...">
+                                        </div>
+                                        <div class="col-auto">
+                                            <button type="button" class="btn btn-primary" id="btn-admin-send">
+                                                <i class="mdi mdi-send"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <footer class="footer">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <script>document.write(new Date().getFullYear())</script> © Imalá.
+                            </div>
+                        </div>
+                    </div>
+                </footer>
+            </div>
+        </div>
+        
+        <!-- Right Sidebar -->
+        <div class="right-bar">
+            <div data-simplebar class="h-100">
+                <div class="rightbar-title d-flex align-items-center p-3">
+                    <h5 class="m-0 me-2">Theme Customizer</h5>
+                    <a href="javascript:void(0);" class="right-bar-toggle ms-auto">
+                        <i class="mdi mdi-close noti-icon"></i>
+                    </a>
+                </div>
+                <hr class="m-0" />
+                <div class="p-4">
+                    <h6 class="mb-3">Layout</h6>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="layout" id="layout-vertical" value="vertical">
+                        <label class="form-check-label" for="layout-vertical">Vertical</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="layout" id="layout-horizontal" value="horizontal">
+                        <label class="form-check-label" for="layout-horizontal">Horizontal</label>
+                    </div>
+                     <h6 class="mt-4 mb-3 pt-2">Sidebar Color</h6>
+                    <div class="form-check sidebar-setting">
+                        <input class="form-check-input" type="radio" name="sidebar-color" id="sidebar-color-light" value="light">
+                        <label class="form-check-label" for="sidebar-color-light">Light</label>
+                    </div>
+                    <div class="form-check sidebar-setting">
+                        <input class="form-check-input" type="radio" name="sidebar-color" id="sidebar-color-dark" value="dark">
+                        <label class="form-check-label" for="sidebar-color-dark">Dark</label>
+                    </div>
+                    <div class="form-check sidebar-setting">
+                        <input class="form-check-input" type="radio" name="sidebar-color" id="sidebar-color-brand" value="brand">
+                        <label class="form-check-label" for="sidebar-color-brand">Brand</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="rightbar-overlay"></div>
+
+        <!-- JAVASCRIPT -->
+        <script src="assets/libs/jquery/jquery.min.js"></script>
+        <script src="assets/libs/bootstrap/js/bootstrap.bundle.min.js"></script>
+        <script src="assets/libs/metismenu/metisMenu.min.js"></script>
+        <script src="assets/libs/simplebar/simplebar.min.js"></script>
+        <script src="assets/libs/node-waves/waves.min.js"></script>
+        <script src="assets/libs/feather-icons/feather.min.js"></script>
+        <script src="assets/libs/pace-js/pace.min.js"></script>
+
+        <!-- Flatpickr -->
+        <script src="assets/libs/flatpickr/flatpickr.min.js"></script>
+
+        <!-- DataTables -->
+        <script src="assets/libs/datatables.net/js/jquery.dataTables.min.js"></script>
+        <script src="assets/libs/datatables.net-bs4/js/dataTables.bootstrap4.min.js"></script>
+        <script src="assets/libs/datatables.net-responsive/js/dataTables.responsive.min.js"></script>
+        <script src="assets/libs/datatables.net-responsive-bs4/js/responsive.bootstrap4.min.js"></script>
+
+        <!-- Firebase CDNs -->
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-storage-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-functions-compat.js"></script>
+
+        <!-- SweetAlert2 -->
+        <link href="assets/libs/sweetalert2/sweetalert2.min.css" rel="stylesheet" type="text/css" />
+        <script src="assets/libs/sweetalert2/sweetalert2.min.js"></script>
+
+        <!-- Imala Config -->
+        <script src="assets/js/firebase-config.js"></script>
+        
+        <!-- Main JS Bundle -->
+        <script src="assets/js/app.js"></script>
+
+        <!-- Admin Tasks Logic -->
+        <script src="assets/js/apps-admin-tasks-users.js"></script>
+
+    </body>
+</html>

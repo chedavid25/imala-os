@@ -1,0 +1,821 @@
+<!doctype html>
+<html lang="es">
+
+    <head>
+        
+        <meta charset="utf-8" />
+        <title>Cashflow & Finanzas | Imalá OS</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta content="Panel Financiero" name="description" />
+        <meta content="Imalá" name="author" />
+        <!-- App favicon -->
+        <link rel="shortcut icon" href="assets/images/favicon.ico">
+
+        <!-- Flatpickr css -->
+        <link href="assets/libs/flatpickr/flatpickr.min.css" rel="stylesheet" type="text/css">
+
+        <!-- DataTables -->
+        <link href="assets/libs/datatables.net-bs4/css/dataTables.bootstrap4.min.css" rel="stylesheet" type="text/css" />
+        <link href="assets/libs/datatables.net-buttons-bs4/css/buttons.bootstrap4.min.css" rel="stylesheet" type="text/css" />
+        <link href="assets/libs/datatables.net-responsive-bs4/css/responsive.bootstrap4.min.css" rel="stylesheet" type="text/css" />
+
+        <!-- Bootstrap Css -->
+        <link href="assets/css/bootstrap.min.css" id="bootstrap-style" rel="stylesheet" type="text/css" />
+        <!-- Icons Css -->
+        <link href="assets/css/icons.min.css" rel="stylesheet" type="text/css" />
+        <!-- App Css-->
+        <link href="assets/css/app.min.css" id="app-style" rel="stylesheet" type="text/css" />
+        
+        <style>
+            .swal2-container {
+                z-index: 20000 !important;
+            }
+            .swal2-shown { 
+                padding-right: 0 !important; 
+            }
+        </style>
+    </head>
+
+    <body>
+
+        <!-- Begin page -->
+        <div id="layout-wrapper">
+
+            <header id="page-topbar">
+                <div class="navbar-header">
+                    <div class="d-flex">
+                        <!-- LOGO -->
+                        <div class="navbar-brand-box">
+                            <a href="index.html" class="logo logo-dark">
+                                <span class="logo-sm">
+                                    <img src="assets/images/logo-icon.png" alt="" height="30">
+                                </span>
+                                <span class="logo-lg">
+                                    <img src="assets/images/logo-full-dark.png" alt="" height="30">
+                                </span>
+                            </a>
+                        </div>
+
+                        <button type="button" class="btn btn-sm px-3 font-size-16 header-item" id="vertical-menu-btn">
+                            <i class="fa fa-fw fa-bars"></i>
+                        </button>
+                    </div>
+
+                    <div class="d-flex">
+                        <!-- Notifications Dropdown -->
+                        <div class="dropdown d-inline-block">
+                            <button type="button" class="btn header-item noti-icon position-relative" id="page-header-notifications-dropdown"
+                            data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <i data-feather="bell" class="icon-lg"></i>
+                                <span class="badge bg-danger rounded-pill" id="noti-badge" style="display:none">0</span>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end p-0"
+                                aria-labelledby="page-header-notifications-dropdown">
+                                <div class="p-3">
+                                    <div class="row align-items-center">
+                                        <div class="col">
+                                            <h6 class="m-0"> Notificaciones </h6>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div data-simplebar style="max-height: 230px;" id="noti-list">
+                                    <div class="text-center p-3 text-muted">No hay notificaciones nuevas.</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="dropdown d-inline-block">
+                            <button type="button" class="btn header-item bg-light-subtle border-start border-end" id="page-header-user-dropdown"
+                            data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <img class="rounded-circle header-profile-user" src="assets/images/users/avatar-1.jpg"
+                                    alt="Header Avatar" id="header-user-avatar">
+                                <span class="d-none d-xl-inline-block ms-1 fw-medium" id="header-user-name">Admin</span>
+                                <i class="mdi mdi-chevron-down d-none d-xl-inline-block"></i>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end">
+                                <a class="dropdown-item" href="#" onclick="window.Imala.auth.signOut(); window.location.href='auth-login.html';"><i class="mdi mdi-logout font-size-16 align-middle me-1"></i> Cerrar Sesión</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- ========== Left Sidebar Start ========== -->
+            <div class="vertical-menu">
+                <div data-simplebar class="h-100">
+                    <div id="sidebar-menu">
+                        <!-- Left Menu Start -->
+                        <ul class="metismenu list-unstyled" id="side-menu">
+                            <li class="menu-title" data-key="t-menu">Principal</li>
+                            <li>
+                                <a href="index.html">
+                                    <i data-feather="home"></i>
+                                    <span data-key="t-dashboard">Dashboard</span>
+                                </a>
+                            </li>
+                            <li class="menu-title" data-key="t-modules">Módulos</li>
+                            <li>
+                                <a href="apps-tareas.html">
+                                    <i data-feather="grid"></i>
+                                    <span data-key="t-tasks">Gestión Tareas</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="apps-clients.html">
+                                    <i data-feather="users"></i>
+                                    <span data-key="t-clients">Gestión Clientes</span>
+                                </a>
+                            </li>
+
+                            <li class="mm-active">
+                                <a href="apps-cashflow.html" class="active">
+                                    <i data-feather="dollar-sign"></i>
+                                    <span data-key="t-cashflow">Cashflow</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="apps-analytics.html">
+                                    <i data-feather="pie-chart"></i>
+                                    <span data-key="t-analytics">Gráficos de Gestión</span>
+                                </a>
+                            </li>
+                            
+                            <li class="menu-title" data-key="t-settings">Configuración</li>
+                            <li>
+                                <a href="javascript: void(0);" class="has-arrow">
+                                    <i data-feather="settings"></i>
+                                    <span data-key="t-settings">Mi Cuenta</span>
+                                </a>
+                                <ul class="sub-menu" aria-expanded="false">
+                                    <li><a href="pages-profile.html" data-key="t-profile">Mi Perfil</a></li>
+                                    <li><a href="#" onclick="window.Imala.auth.signOut(); window.location.href='auth-login.html';" data-key="t-logout">Cerrar Sesión</a></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <!-- Left Sidebar End -->
+
+            <div class="main-content">
+
+                <div class="page-content">
+                    <div class="container-fluid">
+
+                        <!-- start page title -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+                                    <h4 class="mb-sm-0 font-size-18">Cashflow Financiero</h4>
+                                    <div class="page-title-right">
+                                        <button class="btn btn-success" id="btn-new-income"><i class="mdi mdi-arrow-up-thin-circle-outline me-1"></i> Nuevo Ingreso</button>
+                                        <button class="btn btn-danger ms-2" id="btn-new-expense"><i class="mdi mdi-arrow-down-thin-circle-outline me-1"></i> Nuevo Gasto</button>
+                                        <button class="btn btn-primary ms-2" id="btn-new-saving"><i class="mdi mdi-piggy-bank-outline me-1"></i> Nuevo Ahorro</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- end page title -->
+
+                        <!-- KPIs Cards Row -->
+                        <div class="row">
+                            <!-- Balance Card Split -->
+                            <div class="col-md-6 mb-4">
+                                <div class="card bg-primary text-white shadow-lg h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center mb-3">
+                                            <div class="avatar-xs me-3">
+                                                <span class="avatar-title rounded-circle bg-white bg-opacity-25 text-white font-size-18">
+                                                    <i class="mdi mdi-currency-usd"></i>
+                                                </span>
+                                            </div>
+                                            <h5 class="font-size-14 text-white mb-0">Balance PESOS (ARS)</h5>
+                                        </div>
+                                        <div class="text-center">
+                                            <h2 class="text-white mb-0 display-6">
+                                                <span id="kpi-balance-ars">0</span> <small class="font-size-14">ARS</small>
+                                            </h2>
+                                        </div>
+                                        <div class="mt-4 border-top border-white-50 pt-2 text-center">
+                                            <p class="text-white-50 mb-0 font-size-12"><i class="mdi mdi-piggy-bank-outline me-1"></i> Ahorros: <span class="text-white fw-bold" id="kpi-savings-ars">0</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-4">
+                                <div class="card bg-success text-white shadow-lg h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center mb-3">
+                                            <div class="avatar-xs me-3">
+                                                <span class="avatar-title rounded-circle bg-white bg-opacity-25 text-white font-size-18">
+                                                    <i class="mdi mdi-currency-usd"></i>
+                                                </span>
+                                            </div>
+                                            <h5 class="font-size-14 text-white mb-0">Balance DÓLARES (USD)</h5>
+                                        </div>
+                                        <div class="text-center">
+                                            <h2 class="text-white mb-0 display-6">
+                                                <span id="kpi-balance-usd">0</span> <small class="font-size-14">USD</small>
+                                            </h2>
+                                        </div>
+                                        <div class="mt-4 border-top border-white-50 pt-2 text-center">
+                                             <p class="text-white-50 mb-0 font-size-12"><i class="mdi mdi-piggy-bank-outline me-1"></i> Ahorros: <span class="text-white fw-bold" id="kpi-savings-usd">0</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+
+                        <!-- KPIs Cards Row -->
+                        <div class="row">
+                            <div class="col-xl-3 col-md-6">
+                                <div class="card card-h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-grow-1">
+                                                <span class="text-muted mb-3 lh-1 d-block text-truncate">Facturación Esperada</span>
+                                                <h4 class="mb-3">
+                                                    <span class="counter-value" data-target="0" id="kpi-income-expected-ars">0</span> <small class="text-muted font-size-14">ARS</small>
+                                                </h4>
+                                                <h5 class="mb-0 text-muted">
+                                                    <span class="counter-value" data-target="0" id="kpi-income-expected-usd">0</span> <small class="font-size-12">USD</small>
+                                                </h5>
+                                            </div>
+                                            <div class="flex-shrink-0 text-end dash-widget">
+                                                <div id="mini-chart1" data-colors='["#34c38f"]' class="apex-charts"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-xl-3 col-md-6">
+                                <div class="card card-h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-grow-1">
+                                                <span class="text-muted mb-3 lh-1 d-block text-truncate">Pendiente de Cobro</span>
+                                                <h4 class="mb-3 text-warning">
+                                                    <span class="counter-value" data-target="0" id="kpi-income-pending-ars">0</span> <small class="text-muted font-size-14">ARS</small>
+                                                </h4>
+                                                 <h5 class="mb-0 text-muted">
+                                                    <span class="counter-value" data-target="0" id="kpi-income-pending-usd">0</span> <small class="font-size-12">USD</small>
+                                                </h5>
+                                            </div>
+                                            <div class="flex-shrink-0 text-end dash-widget">
+                                                 <i data-feather="alert-circle" class="text-warning icon-lg"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-xl-3 col-md-6">
+                                <div class="card card-h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-grow-1">
+                                                <span class="text-muted mb-3 lh-1 d-block text-truncate">Gastos Esperados</span>
+                                                <h4 class="mb-3">
+                                                    <span class="counter-value" data-target="0" id="kpi-expense-expected-ars">0</span> <small class="text-muted font-size-14">ARS</small>
+                                                </h4>
+                                                 <h5 class="mb-0 text-muted">
+                                                    <span class="counter-value" data-target="0" id="kpi-expense-expected-usd">0</span> <small class="font-size-12">USD</small>
+                                                </h5>
+                                            </div>
+                                            <div class="flex-shrink-0 text-end dash-widget">
+                                                <i data-feather="trending-down" class="text-danger icon-lg"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-xl-3 col-md-6">
+                                <div class="card card-h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-grow-1">
+                                                <span class="text-muted mb-3 lh-1 d-block text-truncate">Gastos Pendientes</span>
+                                                <h4 class="mb-3 text-danger">
+                                                    <span class="counter-value" data-target="0" id="kpi-expense-pending-ars">0</span> <small class="text-muted font-size-14">ARS</small>
+                                                </h4>
+                                                <h5 class="mb-0 text-muted">
+                                                    <span class="counter-value" data-target="0" id="kpi-expense-pending-usd">0</span> <small class="font-size-12">USD</small>
+                                                </h5>
+                                            </div>
+                                            <div class="flex-shrink-0 text-end dash-widget">
+                                                <i data-feather="alert-triangle" class="text-danger icon-lg"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- end row -->
+                        
+                        <!-- Filters -->
+                         <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-body p-3">
+                                        <div class="row align-items-end">
+                                            <div class="col-md-2">
+                                                <label class="form-label">Año</label>
+                                                <select class="form-select" id="filter-year">
+                                                    <option value="2026">2026</option>
+                                                    <option value="2025" selected>2025</option>
+                                                    <option value="2024">2024</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">Periodo</label>
+                                                <select class="form-select" id="filter-period">
+                                                    <option value="ALL">Todo el Año</option>
+                                                    <option value="YTD">Acumulado a Hoy (Resultados)</option>
+                                                    <option value="Q1">Q1 (Ene-Mar)</option>
+                                                    <option value="Q2">Q2 (Abr-Jun)</option>
+                                                    <option value="Q3">Q3 (Jul-Sep)</option>
+                                                    <option value="Q4">Q4 (Oct-Dic)</option>
+                                                    <option value="S1">Semestre 1</option>
+                                                    <option value="S2">Semestre 2</option>
+                                                    <optgroup label="Meses">
+                                                        <option value="01">Enero</option>
+                                                        <option value="02" selected>Febrero</option>
+                                                        <option value="03">Marzo</option>
+                                                        <option value="04">Abril</option>
+                                                        <option value="05">Mayo</option>
+                                                        <option value="06">Junio</option>
+                                                        <option value="07">Julio</option>
+                                                        <option value="08">Agosto</option>
+                                                        <option value="09">Septiembre</option>
+                                                        <option value="10">Octubre</option>
+                                                        <option value="11">Noviembre</option>
+                                                        <option value="12">Diciembre</option>
+                                                    </optgroup>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">Entidad / Usuario</label>
+                                                <input type="text" class="form-control" id="filter-search" placeholder="Buscar por nombre...">
+                                            </div>
+                                            <div class="col-md-2">
+                                                 <label class="form-label">Categoría</label>
+                                                 <select class="form-select" id="filter-category">
+                                                     <option value="ALL">Todas</option>
+                                                     <!-- Dynamic -->
+                                                 </select>
+                                            </div>
+                                             <div class="col-md-2">
+                                                <button class="btn btn-primary w-100" id="btn-apply-filters">Aplicar</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tabs & Tables -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-body">
+
+                                        <!-- Nav tabs -->
+                                        <ul class="nav nav-tabs nav-tabs-custom card-header-tabs border-bottom-0 mb-3" role="tablist">
+                                            <li class="nav-item">
+                                                <a class="nav-link active" data-bs-toggle="tab" href="#tab-income" role="tab">
+                                                    <span class="d-block d-sm-none"><i class="mdi mdi-arrow-up-thick"></i></span>
+                                                    <span class="d-none d-sm-block">Ingresos</span>
+                                                </a>
+                                            </li>
+                                            <li class="nav-item">
+                                                <a class="nav-link" data-bs-toggle="tab" href="#tab-expense" role="tab">
+                                                    <span class="d-block d-sm-none"><i class="mdi mdi-arrow-down-thick"></i></span>
+                                                    <span class="d-none d-sm-block">Gastos</span>
+                                                </a>
+                                            </li>
+                                            <li class="nav-item">
+                                                <a class="nav-link" data-bs-toggle="tab" href="#tab-saving" role="tab">
+                                                    <span class="d-block d-sm-none"><i class="mdi mdi-piggy-bank"></i></span>
+                                                    <span class="d-none d-sm-block">Ahorros</span>
+                                                </a>
+                                            </li>
+                                             <li class="nav-item">
+                                                <a class="nav-link" data-bs-toggle="tab" href="#tab-agreements" role="tab">
+                                                    <span class="d-block d-sm-none"><i class="mdi mdi-handshake"></i></span>
+                                                    <span class="d-none d-sm-block">Acuerdos</span>
+                                                </a>
+                                            </li>
+                                        </ul>
+
+                                        <!-- Tab panes -->
+                                        <div class="tab-content text-muted">
+                                            
+                                            <!-- INCOMES -->
+                                            <div class="tab-pane active" id="tab-income" role="tabpanel">
+                                                <div class="table-responsive">
+                                                    <table id="table-income" class="table table-bordered dt-responsive nowrap w-100 align-middle">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Fecha</th>
+                                                                <th>Entidad / CUIT</th>
+                                                                <th>Categoría</th>
+                                                                <th>Descripción</th>
+                                                                <th>ARS</th>
+                                                                <th>USD</th>
+                                                                <th>Recurrente</th>
+                                                                <th>Estado</th>
+                                                                <th>Acciones</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <!-- Dynamic -->
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+
+                                            <!-- EXPENSES -->
+                                            <div class="tab-pane" id="tab-expense" role="tabpanel">
+                                                 <div class="table-responsive">
+                                                    <table id="table-expense" class="table table-bordered dt-responsive nowrap w-100 align-middle">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Fecha</th>
+                                                                <th>Proveedor / CUIT</th>
+                                                                <th>Categoría</th>
+                                                                <th>Descripción</th>
+                                                                <th>ARS</th>
+                                                                <th>USD</th>
+                                                                <th>Recurrente</th>
+                                                                <th>Estado</th>
+                                                                <th>Acciones</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <!-- Dynamic -->
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+
+
+                                            <!-- SAVINGS -->
+                                            <div class="tab-pane" id="tab-saving" role="tabpanel">
+                                                 <div class="table-responsive">
+                                                    <table id="table-saving" class="table table-bordered dt-responsive nowrap w-100 align-middle">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Fecha</th>
+                                                                <th>Nombre / Meta</th>
+                                                                <th>Categoría</th>
+                                                                <th>Descripción</th>
+                                                                <th>ARS</th>
+                                                                <th>USD</th>
+                                                                <th>Estado</th>
+                                                                <th>Acciones</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <!-- Dynamic -->
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+
+                                            <!-- AGREEMENTS (Acuerdos) -->
+                                            <div class="tab-pane" id="tab-agreements" role="tabpanel">
+                                                
+                                                <!-- Monthly Control Section (Invoiced Only) -->
+                                                <div class="card border border-primary border-opacity-25 mb-4 shadow-none bg-primary-subtle" id="card-monthly-control">
+                                                    <div class="card-body">
+                                                        <h5 class="card-title text-primary mb-3">
+                                                            <i class="mdi mdi-playlist-check me-1"></i> Control de Facturación
+                                                        </h5>
+                                                        <p class="text-muted mb-4 font-size-13">Gestión de facturas para clientes recurrentes. (Solo clientes con "Lleva Factura" activado)</p>
+                                                        
+                                                        <div class="table-responsive bg-white rounded p-1">
+                                                            <table class="table table-nowrap table-hover mb-0 align-middle">
+                                                                <thead class="table-light">
+                                                                    <tr>
+                                                                        <th>Cliente / Oficina</th>
+                                                                        <th>Monto</th>
+                                                                        <th>Facturador</th>
+                                                                        <th>Estado Factura</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody id="monthly-control-list">
+                                                                    <tr><td colspan="4" class="text-center text-muted">Cargando control...</td></tr>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                                    <h5 class="font-size-15 mb-0" id="agreements-table-title">Listado de Acuerdos</h5>
+                                                    <button class="btn btn-primary btn-sm" id="btn-new-agreement">
+                                                        <i class="mdi mdi-plus me-1"></i> Nuevo Acuerdo
+                                                    </button>
+                                                </div>
+
+                                                 <div class="table-responsive">
+                                                    <table id="table-agreements" class="table table-bordered dt-responsive nowrap w-100 align-middle">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Cliente / Oficina</th>
+                                                                <th class="d-none d-lg-table-cell">Desc. / CUIT</th>
+                                                                <th>Monto</th>
+                                                                <th>Facturador</th>
+                                                                <th>Estado / Historial</th>
+                                                                <th>Acciones</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <!-- Dynamic -->
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div> 
+                </div>
+
+                <!-- Transaction Modal -->
+                <div class="modal fade" id="transaction-modal" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="transactionModalLabel">Nuevo Movimiento</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-hidden="true"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="form-transaction">
+                                    <input type="hidden" id="tx-type" value="INCOME"> <!-- INCOME or EXPENSE -->
+                                    <input type="hidden" id="tx-id">
+
+                                    <div class="row">
+                                        <div class="col-md-8 mb-3">
+                                            <label class="form-label" id="label-entity">Cliente / Entidad</label>
+                                            <input type="text" class="form-control" id="tx-entity-name" list="list-entities" required placeholder="Nombre de quien paga o cobra">
+                                            <datalist id="list-entities">
+                                                <!-- Dynamic Entities -->
+                                            </datalist>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label">CUIT / ID</label>
+                                            <input type="text" class="form-control" id="tx-cuit" placeholder="Opcional">
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Dirección / Detalle</label>
+                                        <input type="text" class="form-control" id="tx-address" placeholder="Ej. Calle Falsa 123 - Oficina 4">
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Categoría</label>
+                                            <div class="input-group">
+                                                <select class="form-select" id="tx-category" required>
+                                                    <option value="">Seleccione...</option>
+                                                </select>
+                                                <button class="btn btn-outline-secondary" type="button" id="btn-add-category" title="Nueva Categoría"><i class="mdi mdi-plus"></i></button>
+                                                <button class="btn btn-outline-secondary" type="button" id="btn-manage-categories" title="Gestionar Categorías"><i class="mdi mdi-cog"></i></button>
+                                            </div>
+                                            <!-- Inline New Category Input (Hidden by default) -->
+                                            <div id="container-new-category" style="display:none;" class="mt-2">
+                                                <div class="input-group">
+                                                    <input type="text" class="form-control" id="input-new-category" placeholder="Nombre de nueva categoría">
+                                                    <button class="btn btn-success" type="button" id="btn-save-new-cat"><i class="mdi mdi-check"></i></button>
+                                                    <button class="btn btn-danger" type="button" id="btn-cancel-new-cat"><i class="mdi mdi-close"></i></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                             <label class="form-label">Estado Inicial</label>
+                                             <select class="form-select" id="tx-status">
+                                                 <option value="PENDING" selected>Pendiente</option>
+                                                 <option value="PAID">Pagado / Cobrado</option>
+                                             </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label">Moneda</label>
+                                            <select class="form-select" id="tx-currency">
+                                                <option value="ARS">Pesos Argentinos (ARS)</option>
+                                                <option value="USD">Dólares (USD)</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label">Monto</label>
+                                            <input type="number" class="form-control" id="tx-amount" min="0" step="0.01" required>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label">Fecha</label>
+                                            <input type="date" class="form-control" id="tx-date" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <hr>
+                                    
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox" id="tx-recurring">
+                                        <label class="form-check-label fw-bold" for="tx-recurring">¿Es un Pago Recurrente (Mensual)?</label>
+                                        <p class="text-muted font-size-12">Si activas esto, se generará una copia Pendiente el día 1 de cada mes automáticamente.</p>
+                                    </div>
+
+                                    <div class="text-end mt-4">
+                                        <button type="button" class="btn btn-light me-1" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="submit" class="btn btn-primary" id="btn-save-tx">Guardar</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Manage Categories Modal -->
+                <div class="modal fade" id="modal-manage-categories" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Gestionar Categorías</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-hidden="true"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="text-muted font-size-12">Elimina categorías del selector. Las transacciones pasadas NO se verán afectadas.</p>
+                                <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                                    <table class="table table-sm table-centered table-nowrap mb-0" id="table-manage-categories">
+                                        <tbody>
+                                            <!-- Dynamic -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Agreement Modal -->
+                <div class="modal fade" id="agreement-modal" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="agreement-modal-title">Nuevo Acuerdo</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-hidden="true"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="form-agreement">
+                                    <input type="hidden" id="agreement-id">
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Cliente / Oficina</label>
+                                        <input type="text" class="form-control" id="agr-name" required placeholder="Ej. Oficina Central">
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">CUIT (Opcional)</label>
+                                                <input type="text" class="form-control" id="agr-cuit" placeholder="20-...">
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">¿Lleva Factura?</label>
+                                                <select class="form-select" id="agr-hasInvoice">
+                                                    <option value="true">Sí</option>
+                                                    <option value="false">No</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3" id="div-biller">
+                                        <label class="form-label">Facturador</label>
+                                        <select class="form-select" id="agr-biller">
+                                            <option value="Lucre">Lucre</option>
+                                            <option value="David">David</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Descripción del Acuerdo</label>
+                                        <textarea class="form-control" id="agr-desc" rows="2" placeholder="Detalle del servicio..."></textarea>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Frecuencia de Cobro</label>
+                                                <select class="form-select" id="agr-frequency">
+                                                    <option value="MONTHLY">Mensual (Recurrente)</option>
+                                                    <option value="ONE_OFF">Único</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                             <div class="mb-3">
+                                                <label class="form-label">Moneda</label>
+                                                <select class="form-select" id="agr-currency">
+                                                    <option value="ARS">ARS</option>
+                                                    <option value="USD">USD</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 p-3 bg-light rounded">
+                                        <label class="form-label fw-bold">Gestión de Precio</label>
+                                        <div class="input-group mb-2">
+                                            <span class="input-group-text">$</span>
+                                            <input type="number" class="form-control text-end font-size-16 fw-bold" id="agr-amount" required placeholder="0.00">
+                                        </div>
+                                        
+                                        <div class="row align-items-center g-2 mt-2">
+                                            <div class="col-auto">
+                                                <span class="text-muted font-size-12">Calculadora Aumento:</span>
+                                            </div>
+                                            <div class="col">
+                                                <div class="input-group input-group-sm">
+                                                    <input type="number" class="form-control" id="agr-calc-percent" placeholder="%">
+                                                    <button class="btn btn-outline-secondary" type="button" id="btn-calc-update">Aplicar %</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <small class="text-muted d-block mt-2">Última actualización: <span id="agr-last-update">-</span></small>
+                                    </div>
+
+                                    <div class="text-end mt-4">
+                                        <button type="button" class="btn btn-light me-1" data-bs-dismiss="modal">Cerrar</button>
+                                        <button type="button" class="btn btn-danger me-auto float-start d-none" id="btn-delete-agreement">Eliminar</button>
+                                        <button type="submit" class="btn btn-success" id="btn-save-agreement">Guardar Acuerdo</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <footer class="footer">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <script>document.write(new Date().getFullYear())</script> © Imalá.
+                            </div>
+                        </div>
+                    </div>
+                </footer>
+            </div>
+        </div>
+        
+        <!-- JAVASCRIPT -->
+        <script src="assets/libs/jquery/jquery.min.js"></script>
+        <script src="assets/libs/bootstrap/js/bootstrap.bundle.min.js"></script>
+        <script src="assets/libs/metismenu/metisMenu.min.js"></script>
+        <script src="assets/libs/simplebar/simplebar.min.js"></script>
+        <script src="assets/libs/node-waves/waves.min.js"></script>
+        <script src="assets/libs/feather-icons/feather.min.js"></script>
+        <script src="assets/libs/pace-js/pace.min.js"></script>
+
+        <!-- Flatpickr -->
+        <script src="assets/libs/flatpickr/flatpickr.min.js"></script>
+
+        <!-- DataTables -->
+        <script src="assets/libs/datatables.net/js/jquery.dataTables.min.js"></script>
+        <script src="assets/libs/datatables.net-bs4/js/dataTables.bootstrap4.min.js"></script>
+        <script src="assets/libs/datatables.net-responsive/js/dataTables.responsive.min.js"></script>
+        <script src="assets/libs/datatables.net-responsive-bs4/js/responsive.bootstrap4.min.js"></script>
+
+        <!-- Firebase CDNs -->
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-storage-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-functions-compat.js"></script>
+
+        <!-- SweetAlert2 -->
+        <link href="assets/libs/sweetalert2/sweetalert2.min.css" rel="stylesheet" type="text/css" />
+        <script src="assets/libs/sweetalert2/sweetalert2.min.js"></script>
+
+        <!-- Imala Config -->
+        <script src="assets/js/firebase-config.js"></script>
+        
+        <!-- Main JS Bundle -->
+        <script src="assets/js/app.js"></script>
+
+        <!-- Cashflow Logic -->
+        <script src="assets/js/apps-cashflow.js?v=2"></script>
+
+    </body>
+</html>

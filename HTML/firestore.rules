@@ -1,0 +1,136 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- Helper Functions ---
+
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Get the user's role from their custom claims (preferred) or Firestore document
+    // For this implementation, we will assume role is stored in firestore 'users' collection 
+    // to allow easy editing without Admin SDK for now.
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function hasRole(role) {
+      return isAuthenticated() && getUserData().role == role;
+    }
+
+    // Check hierarchy permissions
+    function isBrokerOf(targetUserUid) {
+       // A user can be viewed by their assigned broker
+       // We need to check if the targetUser has 'assignedBrokerId' == request.auth.uid
+       let targetUser = get(/databases/$(database)/documents/users/$(targetUserUid)).data;
+       return targetUser.assignedBrokerId == request.auth.uid;
+    }
+    
+    function isLeaderOf(targetUserUid) {
+       // Check if the target user lists the requester as their leader
+       let targetUser = get(/databases/$(database)/documents/users/$(targetUserUid)).data;
+       // We use teamLeaderId now
+       return targetUser.teamLeaderId == request.auth.uid;
+    }
+
+    function isAssistantOf(targetUserUid) {
+       // Check if the requester is an assistant assigned to the target user
+       let assistantData = getUserData();
+       return assistantData.role == 'ASSISTANT' && assistantData.assignedToUid == targetUserUid;
+    }
+    
+    // --- Collection Rules ---
+
+    // USERS Collection
+    match /users/{userId} {
+      // Users can read their own profile
+      // Admins can read all
+      // Brokers/Leaders/Assistants can read profiles of people they manage/assist
+      allow read: if request.auth.uid == userId 
+                  || hasRole('ADMIN')
+                  || isBrokerOf(userId)
+                  || isLeaderOf(userId)
+                  || isAssistantOf(userId); // Assistant reads boss's profile
+      
+      // Only Admin or the user themselves (for basic info) can write
+      // Ideally roles should only be written by Admin
+      allow write: if request.auth.uid == userId || hasRole('ADMIN');
+    }
+
+    // TASKS Collection
+    match /tasks/{taskId} {
+      // Read:
+      // - Admins: All
+      // - Owner (assignedTo): Yes
+      // - Creator (createdBy): Yes
+      // - Broker: If assignedTo is in their office (simplified: check if assignedTo user lists them as broker) - *For query performance, it's better to store officeId on task*
+      // Let's rely on data fields on the task for easier validation: 'officeId', 'teamId', 'projectId'
+      
+      allow read: if isAuthenticated() && (
+        resource.data.assignedTo == request.auth.uid ||
+        resource.data.createdBy == request.auth.uid ||
+        hasRole('ADMIN') ||
+        // Check "Supervision" Logic
+        // Complex joins are expensive/impossible in rules. 
+        // Strategy: Store 'officeId' and 'teamId' on the Task document.
+        // Broker reads if task.officeId == broker.officeId
+        (hasRole('BROKER') && resource.data.officeId == getUserData().officeId) ||
+        // Leader reads if task.teamId == leader.teamId
+        (hasRole('TEAM_LEADER') && resource.data.teamId == getUserData().teamId) ||
+        // Assistant reads if task.assignedTo == assistant.assignedToUid
+        (hasRole('ASSISTANT') && resource.data.assignedTo == getUserData().assignedToUid)
+      );
+
+      allow write: if isAuthenticated(); // Refine later to allow creation only, update with same perms
+    }
+
+    // OFFICES Collection
+    match /offices/{officeId} {
+      allow read: if isAuthenticated();
+      allow write: if hasRole('ADMIN');
+    }
+    
+    // TEAMS Collection
+    match /teams/{teamId} {
+        allow read: if isAuthenticated();
+        allow write: if hasRole('ADMIN') || hasRole('BROKER');
+    }
+
+    // MEETINGS Collection
+    match /meetings/{meetingId} {
+        // Similar to tasks
+        allow read: if isAuthenticated() && (
+             resource.data.attendees.hasAny([request.auth.uid]) ||
+             hasRole('ADMIN') ||
+             (hasRole('ASSISTANT') && resource.data.attendees.hasAny([getUserData().assignedToUid]))
+        );
+        allow write: if isAuthenticated();
+    }
+    
+    // CASHFLOW / CLIENTS (Finance)
+    match /clients/{clientId} {
+        allow read, write: if hasRole('ADMIN') || hasRole('BROKER');
+    }
+    
+    match /transactions/{txnId} {
+        allow read, write: if hasRole('ADMIN') || hasRole('BROKER');
+    }
+
+    // INVITATION CODES
+    match /invitationCodes/{codeId} {
+        // Allow public read to validate code before registration
+        allow read: if true; 
+        // Only Admin/Broker can create/delete
+        allow create, delete: if hasRole('ADMIN') || hasRole('BROKER');
+        // Authenticated users can update (to increment usedCount)
+        allow update: if isAuthenticated();
+    }
+
+    // SETTINGS (For dynamic categories etc)
+    match /settings/{docId} {
+        allow read, write: if isAuthenticated();
+    }
+  }
+}

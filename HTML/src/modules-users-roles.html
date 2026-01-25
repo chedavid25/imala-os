@@ -1,0 +1,192 @@
+@@include("partials/main.html")
+
+    <head>
+        
+        @@include("partials/title-meta.html", {"title": "Gestión de Usuarios"})
+
+        <!-- DataTables -->
+        <link href="assets/libs/datatables.net-bs4/css/dataTables.bootstrap4.min.css" rel="stylesheet" type="text/css" />
+        <link href="assets/libs/datatables.net-buttons-bs4/css/buttons.bootstrap4.min.css" rel="stylesheet" type="text/css" />
+
+        <!-- Responsive datatable examples -->
+        <link href="assets/libs/datatables.net-responsive-bs4/css/responsive.bootstrap4.min.css" rel="stylesheet" type="text/css" />
+
+        @@include("partials/head-css.html")
+
+    </head>
+
+    @@include("partials/body.html")
+
+        <!-- Begin page -->
+        <div id="layout-wrapper">
+
+            @@include("partials/menu.html")
+
+            <!-- ============================================================== -->
+            <!-- Start right Content here -->
+            <!-- ============================================================== -->
+            <div class="main-content">
+
+                <div class="page-content">
+                    <div class="container-fluid">
+
+                        @@include("partials/page-title.html", {"pagetitle": "Administración", "title": "Gestión de Usuarios y Roles"})
+
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="row mb-2">
+                                            <div class="col-sm-4">
+                                                <div class="search-box me-2 mb-2 d-inline-block">
+                                                    <div class="position-relative">
+                                                        <input type="text" class="form-control" placeholder="Buscar usuarios...">
+                                                        <i class="bx bx-search-alt search-icon"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <div class="text-sm-end">
+                                                    <button type="button" class="btn btn-success btn-rounded waves-effect waves-light mb-2 me-2" onclick="location.reload();"><i class="mdi mdi-refresh me-1"></i> Actualizar Lista</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                
+                                        <div class="table-responsive">
+                                            <table class="table align-middle table-nowrap table-check">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th style="width: 20px;" class="align-middle">
+                                                            <div class="form-check font-size-16">
+                                                                <input class="form-check-input" type="checkbox" id="checkAll">
+                                                                <label class="form-check-label" for="checkAll"></label>
+                                                            </div>
+                                                        </th>
+                                                        <th class="align-middle">Usuario</th>
+                                                        <th class="align-middle">Email</th>
+                                                        <th class="align-middle">Rol Actual</th>
+                                                        <th class="align-middle">Cambiar Rol</th>
+                                                        <th class="align-middle">Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="users-table-body">
+                                                    <!-- Loaded via JS -->
+                                                    <tr>
+                                                        <td colspan="6" class="text-center">Cargando usuarios...</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- end row -->
+                        
+                    </div> <!-- container-fluid -->
+                </div>
+                <!-- End Page-content -->
+
+                @@include("partials/footer.html")
+            </div>
+            <!-- end main content-->
+
+        </div>
+        <!-- END layout-wrapper -->
+
+        @@include("partials/right-sidebar.html")
+
+        @@include("partials/vendor-scripts.html")
+
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+        <script src="assets/js/firebase-config.js"></script>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                // Check Admin Access
+                if (window.Imala && window.Imala.auth) {
+                    window.Imala.auth.onAuthStateChanged(user => {
+                        if (user) {
+                            window.Imala.db.collection('users').doc(user.uid).get().then(doc => {
+                                if (doc.exists && doc.data().role === 'ADMIN') {
+                                    loadUsers();
+                                } else {
+                                    alert("Acceso denegado. Solo administradores.");
+                                    window.location.href = 'index.html';
+                                }
+                            });
+                        } else {
+                            window.location.href = 'auth-login.html';
+                        }
+                    });
+                }
+
+                function loadUsers() {
+                    const tbody = document.getElementById('users-table-body');
+                    window.Imala.db.collection('users').orderBy('createdAt', 'desc').get().then(snapshot => {
+                        tbody.innerHTML = '';
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            const uid = doc.id;
+                            
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td>
+                                    <div class="form-check font-size-16">
+                                        <input class="form-check-input" type="checkbox" id="usercheck-${uid}">
+                                        <label class="form-check-label" for="usercheck-${uid}"></label>
+                                    </div>
+                                </td>
+                                <td>
+                                    <a href="#" class="text-body fw-medium">${data.displayName || 'Sin Nombre'}</a>
+                                </td>
+                                <td>${data.email}</td>
+                                <td><span class="badge badge-pill badge-soft-primary font-size-11">${data.role || 'MEMBER'}</span></td>
+                                <td>
+                                    <select class="form-select form-select-sm role-select" data-uid="${uid}">
+                                        <option value="MEMBER" ${data.role === 'MEMBER' ? 'selected' : ''}>Member</option>
+                                        <option value="BROKER" ${data.role === 'BROKER' ? 'selected' : ''}>Broker</option>
+                                        <option value="leader" ${data.role === 'TEAM_LEADER' ? 'selected' : ''}>Team Leader</option>
+                                        <option value="ASSISTANT" ${data.role === 'ASSISTANT' ? 'selected' : ''}>Assistant</option>
+                                        <option value="ADMIN" ${data.role === 'ADMIN' ? 'selected' : ''}>Admin</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <button class="btn btn-primary btn-sm btn-save-role" data-uid="${uid}"><i class="bx bx-save font-size-16 align-middle me-1"></i> Guardar</button>
+                                </td>
+                            `;
+                            tbody.appendChild(tr);
+                        });
+
+                        // Attach Event Listeners
+                        document.querySelectorAll('.btn-save-role').forEach(btn => {
+                            btn.addEventListener('click', (e) => {
+                                const uid = e.target.closest('button').dataset.uid;
+                                const select = document.querySelector(`.role-select[data-uid="${uid}"]`);
+                                const newRole = select.value;
+
+                                if(confirm(`¿Estás seguro de cambiar el rol de este usuario a ${newRole}?`)) {
+                                    window.Imala.db.collection('users').doc(uid).update({
+                                        role: newRole
+                                    }).then(() => {
+                                        alert("Rol actualizado correctamente.");
+                                        loadUsers(); // Reload to show updated badge
+                                    }).catch(err => {
+                                        console.error(err);
+                                        alert("Error al actualizar: " + err.message);
+                                    });
+                                }
+                            });
+                        });
+                    });
+                }
+            });
+        </script>
+
+        <script src="assets/js/app.js"></script>
+
+    </body>
+</html>

@@ -1,0 +1,112 @@
+@@include("partials/main.html")
+
+    <head>
+        
+        @@include("partials/title-meta.html", {"title": "Miembros del Equipo"})
+
+        @@include("partials/head-css.html")
+
+    </head>
+
+    @@include("partials/body.html")
+
+        <!-- Begin page -->
+        <div id="layout-wrapper">
+
+            @@include("partials/menu.html")
+
+            <div class="main-content">
+
+                <div class="page-content">
+                    <div class="container-fluid">
+
+                        @@include("partials/page-title.html", {"pagetitle": "Equipos", "title": "Miembros"})
+
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <h5 class="card-title">Listado de Agentes <span class="text-muted fw-normal ms-2" id="total-members">(0)</span></h5>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="d-flex flex-wrap align-items-center justify-content-end gap-2 mb-3">
+                                    <div id="admin-actions" style="display:none;">
+                                        <button class="btn btn-light" data-bs-toggle="modal" data-bs-target="#invite-modal"><i class="bx bx-plus me-1"></i> Invitar</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- end row -->
+
+                        <div class="row" id="team-grid">
+                            <!-- Cards injected via JS -->
+                             <div class="col-12 text-center p-5">
+                                 <div class="spinner-border text-primary m-1" role="status">
+                                    <span class="sr-only">Cargando...</span>
+                                </div>
+                             </div>
+                        </div>
+                        <!-- end row -->
+
+                    </div> <!-- container-fluid -->
+                </div>
+                <!-- End Page-content -->
+
+                <!-- Edit User Modal (Admin Only) -->
+                 <div class="modal fade" id="user-modal" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header border-bottom-0">
+                                <h5 class="modal-title">Editar Miembro</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-hidden="true"></button>
+                            </div>
+                            <div class="modal-body">
+                                <input type="hidden" id="edit-uid">
+                                <div class="mb-3">
+                                    <label class="form-label">Rol</label>
+                                    <select class="form-select" id="edit-role">
+                                        <option value="AGENTE">Agente</option>
+                                        <option value="TEAM_LEADER">Team Leader</option>
+                                        <option value="BROKER">Broker</option>
+                                        <option value="ASSISTANT">Asistente</option>
+                                        <option value="ADMIN">Admin</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Líder Asignado</label>
+                                    <select class="form-select" id="edit-leader">
+                                        <option value="">Sin Líder (Directo a Broker)</option>
+                                        <!-- Leaders populated via JS -->
+                                    </select>
+                                </div>
+                                <div class="text-end">
+                                    <button class="btn btn-primary" id="btn-save-user">Guardar Cambios</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @@include("partials/footer.html")
+            </div>
+            <!-- end main content-->
+
+        </div>
+        <!-- END layout-wrapper -->
+
+        @@include("partials/right-sidebar.html")
+
+        @@include("partials/vendor-scripts.html")
+
+        <!-- Firebase & App Logic -->
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+        <script src="assets/js/firebase-config.js"></script>
+        
+        <script src="assets/js/modules/teams-core.js"></script>
+        <script src="assets/js/app.js"></script>
+
+    </body>
+</html>

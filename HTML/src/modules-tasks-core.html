@@ -1,0 +1,428 @@
+@@include("partials/main.html")
+
+    <head>
+        
+        @@include("partials/title-meta.html", {"title": "Gestión de Tareas"})
+
+        <!-- FullCalendar -->
+        <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.10/locales/es.global.min.js"></script>
+
+        <!-- DataTables -->
+        <link href="assets/libs/datatables.net-bs4/css/dataTables.bootstrap4.min.css" rel="stylesheet" type="text/css" />
+        <link href="assets/libs/datatables.net-buttons-bs4/css/buttons.bootstrap4.min.css" rel="stylesheet" type="text/css" />
+        <link href="assets/libs/datatables.net-responsive-bs4/css/responsive.bootstrap4.min.css" rel="stylesheet" type="text/css" />
+
+        <!-- Dragula (for Kanban) -->
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.3/dragula.min.css" rel="stylesheet" />
+
+        @@include("partials/head-css.html")
+        
+        <style>
+            /* Kanban Styles */
+            .task-column {
+                border-radius: 5px;
+                padding: 1.0rem;
+                padding: 1.0rem;
+                min-height: 500px;
+            }
+            .task-list-items {
+                min-height: 400px; /* Ensure drop zone is always large enough */
+                padding-bottom: 50px;
+            }
+            .task-column-todo { background-color: #fef9e6; border-top: 3px solid #f1b44c; } /* Yellow - Pendiente */
+            .task-column-done { background-color: #eaf7ed; border-top: 3px solid #34c38f; } /* Green - Completado */
+            .task-column-late { background-color: #feecec; border-top: 3px solid #f46a6a; } /* Red - Atrasado */
+
+            .task-card {
+                cursor: grab;
+                transition: transform 0.2s;
+                border: 1px solid rgba(0,0,0,0.05);
+                position: relative;
+                overflow: hidden;
+                /* Critical for Dragula */
+                touch-action: none; 
+                user-select: none; 
+                -webkit-user-select: none;
+            }
+            .task-card.priority-HIGH { border-left: 4px solid #f46a6a; }
+            .task-card.priority-MEDIUM { border-left: 4px solid #f1b44c; }
+            .task-card.priority-LOW { border-left: 4px solid #34c38f; }
+
+            .task-card:active {
+                cursor: grabbing;
+                transform: scale(1.02);
+            }
+            .gu-mirror {
+                position: fixed !important;
+                margin: 0 !important;
+                z-index: 9999 !important;
+                opacity: 0.8;
+            }
+            .gu-hide { display: none !important; }
+            .gu-unselectable { user-select: none !important; }
+            .gu-transit { opacity: 0.2; }
+            
+            /* Filter Bar */
+            .filter-bar .btn.active {
+                background-color: #5156be;
+                color: #fff;
+                border-color: #5156be;
+            }
+
+            /* Avatar Fix */
+            .avatar-title {
+                width: 24px;
+                height: 24px;
+                line-height: 24px;
+                font-size: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%; /* Force circle */
+                aspect-ratio: 1 / 1; /* Force square ratio */
+            }
+
+            /* Calendar Strikethrough */
+            .fc-event.text-decoration-line-through .fc-event-title,
+            .fc-event.text-decoration-line-through .fc-event-time {
+                text-decoration: line-through !important;
+                opacity: 0.7;
+            }
+
+            /* Force Block Display in Month View */
+            .fc-daygrid-event {
+                display: block !important;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .fc-event-time {
+                display: inline-block;
+                margin-right: 4px;
+                font-weight: bold;
+            }
+
+            /* Fix for Week/Day View Titles */
+            .fc-timegrid-event {
+                min-height: 50px !important; /* FORCE BIGGER HEIGHT */
+                overflow: visible !important; /* Allow spillover */
+                opacity: 1 !important;
+            }
+            .fc-timegrid-event .fc-event-main {
+                overflow: visible !important;
+            }
+            .fc-event-title, .fc-event-time {
+                display: block !important;
+                visibility: visible !important;
+                font-size: 12px !important;
+                white-space: normal !important; /* Allow wrapping */
+                line-height: 1.2 !important;
+                color: inherit; 
+            }
+        </style>
+
+    </head>
+
+    @@include("partials/body.html")
+
+        <!-- Begin page -->
+        <div id="layout-wrapper">
+
+            @@include("partials/menu.html")
+
+            <div class="main-content">
+
+                <div class="page-content">
+                    <div class="container-fluid">
+
+                        @@include("partials/page-title.html", {"pagetitle": "Apps", "title": "Gestión de Tareas"})
+
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-body">
+                                        
+                                        <!-- FILTERS & ACTIONS -->
+                                        <div class="d-flex flex-wrap gap-2 mb-4 justify-content-between align-items-center">
+                                            <div class="btn-group filter-bar" role="group">
+                                                <button type="button" class="btn btn-outline-primary" data-filter="ALL">Todas</button>
+                                                <button type="button" class="btn btn-outline-primary active" data-filter="TODAY">Hoy</button>
+                                                <button type="button" class="btn btn-outline-primary" data-filter="WEEK">Esta Semana</button>
+                                                <button type="button" class="btn btn-outline-primary" data-filter="MONTH">Este Mes</button>
+                                                <button type="button" class="btn btn-outline-danger" data-filter="LATE">Atrasadas</button>
+                                                <button type="button" class="btn btn-outline-success" data-filter="COMPLETED">Completadas</button>
+                                            </div>
+
+                                            <!-- Month History Filter -->
+                                            <div class="d-flex align-items-center">
+                                                <input type="month" class="form-control" id="filter-month-history" style="max-width: 160px;">
+                                            </div>
+                                            
+                                            <div class="d-flex gap-2">
+                                                 <button class="btn btn-soft-secondary" id="btn-manage-categories">
+                                                    <i class="mdi mdi-tag-outline"></i> Categorías
+                                                </button>
+                                                <button class="btn btn-primary" id="btn-new-task-main">
+                                                    <i class="mdi mdi-plus"></i> Nueva Tarea
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Nav tabs -->
+                                        <ul class="nav nav-tabs nav-tabs-custom nav-justified" role="tablist">
+                                            <li class="nav-item">
+                                                <a class="nav-link active" data-bs-toggle="tab" href="#tab-kanban" role="tab">
+                                                    <span class="d-block d-sm-none"><i class="fas fa-columns"></i></span>
+                                                    <span class="d-none d-sm-block">📋 Tablero</span> 
+                                                </a>
+                                            </li>
+                                             <li class="nav-item">
+                                                <a class="nav-link" data-bs-toggle="tab" href="#tab-list" role="tab">
+                                                    <span class="d-block d-sm-none"><i class="fas fa-list"></i></span>
+                                                    <span class="d-none d-sm-block">📝 Lista</span> 
+                                                </a>
+                                            </li>
+                                            <li class="nav-item">
+                                                <a class="nav-link" data-bs-toggle="tab" href="#tab-calendar" role="tab">
+                                                    <span class="d-block d-sm-none"><i class="fas fa-calendar-alt"></i></span>
+                                                    <span class="d-none d-sm-block">📅 Calendario</span> 
+                                                </a>
+                                            </li>
+                                        </ul>
+        
+                                        <!-- Tab panes -->
+                                        <div class="tab-content p-3 text-muted">
+                                            
+                                            <!-- KANBAN TAB (Default) -->
+                                            <div class="tab-pane active" id="tab-kanban" role="tabpanel">
+                                                <div class="row">
+                                                    <!-- PENDIENTE (Yellow) -->
+                                                    <div class="col-lg-4">
+                                                        <div class="card task-column task-column-todo h-100">
+                                                            <div class="card-body">
+                                                                <h4 class="card-title mb-4 text-warning">Pendiente</h4>
+                                                                <div id="kanban-todo" class="task-list-items" data-status="TODO"></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- COMPLETADO (Green) - Reordered as requested -->
+                                                    <div class="col-lg-4">
+                                                        <div class="card task-column task-column-done h-100">
+                                                            <div class="card-body">
+                                                                <h4 class="card-title mb-4 text-success">Completado</h4>
+                                                                <div id="kanban-completed" class="task-list-items" data-status="COMPLETED"></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <!-- ATRASADO (Red) -->
+                                                    <div class="col-lg-4">
+                                                        <div class="card task-column task-column-late h-100">
+                                                            <div class="card-body">
+                                                                <h4 class="card-title mb-4 text-danger">Atrasado</h4>
+                                                                <div id="kanban-late" class="task-list-items" data-status="LATE"></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+
+                                            <!-- LIST TAB -->
+                                            <div class="tab-pane" id="tab-list" role="tabpanel">
+                                                <div class="table-responsive">
+                                                    <table id="datatable-tasks" class="table table-bordered dt-responsive nowrap w-100">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Tarea</th>
+                                                                <th>Vencimiento</th>
+                                                                <th>Prioridad</th>
+                                                                <th>Estado</th>
+                                                                <th>Asignado A</th>
+                                                                <th>Acciones</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody></tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+
+                                            <!-- CALENDAR TAB -->
+                                            <div class="tab-pane" id="tab-calendar" role="tabpanel">
+                                                <div class="row">
+                                                    <div class="col-12">
+                                                        <div id="calendar"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div> 
+                </div>
+
+                <!-- Tarea Modal -->
+                <div class="modal fade" id="event-modal" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header py-3 px-4 border-bottom-0">
+                                <h5 class="modal-title" id="modal-title">Tarea</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-hidden="true"></button>
+                            </div>
+                            <div class="modal-body p-4">
+                                <form class="needs-validation" name="event-form" id="form-event" novalidate>
+                                    <input type="hidden" id="task-id">
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <div class="mb-3">
+                                                <label class="form-label">Título</label>
+                                                <input class="form-control" placeholder="Ej. Pagar Impuestos" type="text" name="title" id="event-title" required />
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12">
+                                            <div class="mb-3">
+                                                <label class="form-label">Descripción</label>
+                                                <textarea class="form-control" placeholder="Detalles de la tarea..." name="description" id="event-description" rows="3"></textarea>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Assignment & Priority -->
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Asignar a</label>
+                                                <select class="form-control form-select" name="assignedTo" id="event-assignedTo">
+                                                    <option value="David">David</option>
+                                                    <option value="Lucre">Lucre</option>
+                                                    <option value="Ambos">Ambos</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Prioridad</label>
+                                                <select class="form-control form-select" name="priority" id="event-priority">
+                                                    <option value="LOW" class="text-success">Baja (Verde)</option>
+                                                    <option value="MEDIUM" class="text-warning">Media (Amarillo)</option>
+                                                    <option value="HIGH" class="text-danger">Alta (Rojo)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <!-- Date & Time (Argentina Defaults managed in JS) -->
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                 <label class="form-label">Fecha Vencimiento</label>
+                                                 <input class="form-control" type="date" id="event-dueDate" required>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                 <label class="form-label">Hora (Opcional)</label>
+                                                 <input class="form-control" type="time" id="event-dueTime">
+                                            </div>
+                                        </div>
+
+                                        <!-- Category & Recurrence -->
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Categoría</label>
+                                                <div class="input-group">
+                                                    <select class="form-control form-select" name="category" id="event-category">
+                                                        <!-- Filled dynamically -->
+                                                        <option value="General">General</option>
+                                                        <option value="Ventas">Ventas</option>
+                                                        <option value="Marketing">Marketing</option>
+                                                    </select>
+                                                    <button class="btn btn-outline-secondary" type="button" id="btn-edit-cats-modal"><i class="mdi mdi-pencil"></i></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                         <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Repetir</label>
+                                                <select class="form-control form-select" name="recurrence" id="event-recurrence">
+                                                    <option value="NONE">No repetir</option>
+                                                    <option value="WEEKLY">Semanalmente</option>
+                                                    <option value="MONTHLY">Mensualmente</option>
+                                                    <option value="YEARLY">Anualmente</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <!-- Status (Less prominent in Create, mostly for Edit) -->
+                                        <div class="col-12">
+                                            <div class="mb-3">
+                                                <label class="form-label">Estado</label>
+                                                <select class="form-control form-select" name="status" id="event-status">
+                                                    <option value="TODO">Pendiente</option>
+                                                    <option value="COMPLETED">Completado</option>
+                                                    <option value="LATE">Atrasado</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-6">
+                                            <button type="button" class="btn btn-danger" id="btn-delete-event">Eliminar</button>
+                                        </div>
+                                        <div class="col-6 text-end">
+                                            <button type="button" class="btn btn-light me-1" data-bs-dismiss="modal">Cerrar</button>
+                                            <button type="submit" class="btn btn-success" id="btn-save-event">Guardar</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Categories Manager Modal -->
+                <div class="modal fade" id="categories-modal" tabindex="-1">
+                    <div class="modal-dialog modal-sm modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header border-bottom-0">
+                                <h5 class="modal-title">Categorías</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-hidden="true"></button>
+                            </div>
+                            <div class="modal-body">
+                                <ul class="list-group mb-3" id="categories-list">
+                                    <!-- Injected -->
+                                </ul>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" placeholder="Nueva..." id="new-cat-name">
+                                    <button class="btn btn-primary" id="btn-add-cat"><i class="mdi mdi-plus"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @@include("partials/footer.html")
+            </div>
+
+        </div>
+
+        @@include("partials/right-sidebar.html")
+        @@include("partials/vendor-scripts.html")
+
+        <script src="assets/libs/datatables.net/js/jquery.dataTables.min.js"></script>
+        <script src="assets/libs/datatables.net-bs4/js/dataTables.bootstrap4.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.3/dragula.min.js"></script>
+
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+        <script src="assets/js/firebase-config.js"></script>
+        
+        <script src="assets/js/modules/tasks-core.js"></script>
+        <script src="assets/js/app.js"></script>
+
+    </body>
+</html>

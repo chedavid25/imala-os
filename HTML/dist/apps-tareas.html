@@ -1,0 +1,849 @@
+<!doctype html>
+<html lang="es">
+
+    <head>
+        
+        <meta charset="utf-8" />
+        <title>Gestión de Tareas | Imalá OS</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta content="Gestión de Tareas Inteligente - Imalá OS" name="description" />
+        <meta content="Imalá" name="author" />
+        <!-- App favicon -->
+        <link rel="shortcut icon" href="assets/images/favicon.ico">
+
+        <!-- FullCalendar -->
+        <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.10/locales/es.global.min.js"></script>
+
+        <!-- Google API -->
+        <script src="https://accounts.google.com/gsi/client" async defer></script>
+        <script src="https://apis.google.com/js/api.js"></script>
+
+        <!-- DataTables -->
+        <link href="assets/libs/datatables.net-bs4/css/dataTables.bootstrap4.min.css" rel="stylesheet" type="text/css" />
+        <link href="assets/libs/datatables.net-buttons-bs4/css/buttons.bootstrap4.min.css" rel="stylesheet" type="text/css" />
+        <link href="assets/libs/datatables.net-responsive-bs4/css/responsive.bootstrap4.min.css" rel="stylesheet" type="text/css" />
+
+        <!-- Dragula (for Kanban) -->
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.3/dragula.min.css" rel="stylesheet" />
+
+        <!-- preloader css -->
+        <link rel="stylesheet" href="assets/css/preloader.min.css" type="text/css" />
+
+        <!-- Bootstrap Css -->
+        <link href="assets/css/bootstrap.min.css" id="bootstrap-style" rel="stylesheet" type="text/css" />
+        <!-- Icons Css -->
+        <link href="assets/css/icons.min.css" rel="stylesheet" type="text/css" />
+        <!-- App Css-->
+        <link href="assets/css/app.min.css" id="app-style" rel="stylesheet" type="text/css" />
+        
+        <style>
+            /* Kanban Styles */
+            .task-column {
+                border-radius: 5px;
+                padding: 1.0rem;
+                padding: 1.0rem;
+                min-height: 500px;
+            }
+            .task-list-items {
+                min-height: 400px; /* Ensure drop zone is always large enough */
+                padding-bottom: 50px;
+            }
+            .task-column-todo { background-color: #fef9e6; border-top: 3px solid #f1b44c; } /* Yellow - Pendiente */
+            .task-column-done { background-color: #eaf7ed; border-top: 3px solid #34c38f; } /* Green - Completado */
+            .task-column-late { background-color: #feecec; border-top: 3px solid #f46a6a; } /* Red - Atrasado */
+
+            .task-card {
+                cursor: grab;
+                transition: transform 0.2s;
+                border: 1px solid rgba(0,0,0,0.05);
+                position: relative;
+                overflow: hidden;
+                /* Critical for Dragula */
+                touch-action: none; 
+                user-select: none; 
+                -webkit-user-select: none;
+            }
+            .task-card.priority-HIGH { border-left: 4px solid #f46a6a; }
+            .task-card.priority-MEDIUM { border-left: 4px solid #f1b44c; }
+            .task-card.priority-LOW { border-left: 4px solid #34c38f; }
+
+            .task-card:active {
+                cursor: grabbing;
+                transform: scale(1.02);
+            }
+            .gu-mirror {
+                position: fixed !important;
+                margin: 0 !important;
+                z-index: 9999 !important;
+                opacity: 0.8;
+            }
+            .gu-hide { display: none !important; }
+            .gu-unselectable { user-select: none !important; }
+            .gu-transit { opacity: 0.2; }
+            
+            /* Filter Bar */
+            .filter-bar .btn.active {
+                background-color: #5156be;
+                color: #fff;
+                border-color: #5156be;
+            }
+
+            /* Avatar Fix */
+            .avatar-title {
+                width: 24px;
+                height: 24px;
+                line-height: 24px;
+                font-size: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%; /* Force circle */
+                aspect-ratio: 1 / 1; /* Force square ratio */
+            }
+
+            /* Calendar Strikethrough */
+            .fc-event.text-decoration-line-through .fc-event-title,
+            .fc-event.text-decoration-line-through .fc-event-time {
+                text-decoration: line-through !important;
+                opacity: 0.7;
+            }
+
+            /* Force Block Display in Month View */
+            .fc-daygrid-event {
+                display: block !important;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .fc-event-time {
+                display: inline-block;
+                margin-right: 4px;
+                font-weight: bold;
+            }
+
+            /* Fix for Week/Day View Titles */
+            .fc-timegrid-event {
+                min-height: 50px !important; /* FORCE BIGGER HEIGHT */
+                overflow: visible !important; /* Allow spillover */
+                opacity: 1 !important;
+            }
+            .fc-timegrid-event .fc-event-main {
+                overflow: visible !important;
+            }
+            .fc-event-title, .fc-event-time {
+                display: block !important;
+                visibility: visible !important;
+                font-size: 12px !important;
+                white-space: normal !important; /* Allow wrapping */
+                line-height: 1.2 !important;
+                color: inherit; 
+            }
+        </style>
+
+    </head>
+
+    <body>
+
+    <!-- <body data-layout="horizontal"> -->
+
+        <!-- Begin page -->
+        <div id="layout-wrapper">
+
+            
+            <header id="page-topbar">
+                <div class="navbar-header">
+                    <div class="d-flex">
+                        <!-- LOGO -->
+                        <div class="navbar-brand-box">
+                            <a href="index.html" class="logo logo-dark">
+                                <span class="logo-sm">
+                                    <img src="assets/images/logo-icon.png" alt="" height="30">
+                                </span>
+                                <span class="logo-lg">
+                                    <img src="assets/images/logo-full-dark.png" alt="" height="30">
+                                </span>
+                            </a>
+
+                            <a href="index.html" class="logo logo-light">
+                                <span class="logo-sm">
+                                    <img src="assets/images/logo-icon.png" alt="" height="30">
+                                </span>
+                                <span class="logo-lg">
+                                    <img src="assets/images/logo-full-light.png" alt="" height="30">
+                                </span>
+                            </a>
+                        </div>
+
+                        <button type="button" class="btn btn-sm px-3 font-size-16 header-item" id="vertical-menu-btn">
+                            <i class="fa fa-fw fa-bars"></i>
+                        </button>
+
+                        <!-- App Search-->
+                        <form class="app-search d-none d-lg-block">
+                            <div class="position-relative">
+                                <input type="text" class="form-control" placeholder="Buscar..." id="top-search-input">
+                                <button class="btn btn-primary" type="button"><i class="bx bx-search-alt align-middle"></i></button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="d-flex">
+
+                        <div class="dropdown d-inline-block d-lg-none ms-2">
+                            <button type="button" class="btn header-item" id="page-header-search-dropdown"
+                            data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <i data-feather="search" class="icon-lg"></i>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end p-0"
+                                aria-labelledby="page-header-search-dropdown">
+        
+                                <form class="p-3">
+                                    <div class="form-group m-0">
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" placeholder="Search ..." aria-label="Search Result">
+
+                                            <button class="btn btn-primary" type="submit"><i class="mdi mdi-magnify"></i></button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="dropdown d-none d-sm-inline-block">
+                            <button type="button" class="btn header-item" id="mode-setting-btn">
+                                <i data-feather="moon" class="icon-lg layout-mode-dark"></i>
+                                <i data-feather="sun" class="icon-lg layout-mode-light"></i>
+                            </button>
+                        </div>
+
+                        <div class="dropdown d-inline-block">
+                            <button type="button" class="btn header-item noti-icon position-relative" id="page-header-notifications-dropdown"
+                            data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <i data-feather="bell" class="icon-lg"></i>
+                                <!-- <span class="badge bg-danger rounded-pill">5</span> -->
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end p-0"
+                                aria-labelledby="page-header-notifications-dropdown">
+                                <div class="p-3">
+                                    <div class="row align-items-center">
+                                        <div class="col">
+                                            <h6 class="m-0"> Notificaciones </h6>
+                                        </div>
+                                        <div class="col-auto">
+                                            <a href="#!" class="small text-reset text-decoration-underline"> No leídas (0)</a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div data-simplebar style="max-height: 230px;">
+                        
+                                    <!-- Empty State por ahora -->
+                                    <div class="p-3 text-center">
+                                        <p class="text-muted">No tienes notificaciones nuevas</p>
+                                    </div>
+
+                                </div>
+                                <div class="p-2 border-top d-grid">
+                                    <a class="btn btn-sm btn-link font-size-14 text-center" href="javascript:void(0)">
+                                        <i class="mdi mdi-arrow-right-circle me-1"></i> <span>Ver más..</span> 
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="dropdown d-inline-block">
+                            <!-- User Profile handled by Main JS -->
+                            <button type="button" class="btn header-item bg-light-subtle border-start border-end" id="page-header-user-dropdown"
+                            data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <img class="rounded-circle header-profile-user" src="assets/images/users/avatar-1.jpg"
+                                    alt="Header Avatar" id="header-user-avatar">
+                                <span class="d-none d-xl-inline-block ms-1 fw-medium" id="header-user-name">Usuario</span>
+                                <i class="mdi mdi-chevron-down d-none d-xl-inline-block"></i>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end">
+                                <!-- item-->
+                                <a class="dropdown-item" href="pages-profile.html"><i class="mdi mdi mdi-face-man font-size-16 align-middle me-1"></i> Perfil</a>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item" href="#" onclick="window.Imala.auth.signOut(); window.location.href='auth-login.html';"><i class="mdi mdi-logout font-size-16 align-middle me-1"></i> Cerrar Sesión</a>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </header>
+
+            <!-- ========== Left Sidebar Start ========== -->
+            <div class="vertical-menu">
+
+                <div data-simplebar class="h-100">
+
+                    <!--- Sidemenu -->
+                    <div id="sidebar-menu">
+                        <!-- Left Menu Start -->
+                        <ul class="metismenu list-unstyled" id="side-menu">
+                            <li class="menu-title" data-key="t-menu">Principal</li>
+                            <li>
+                                <a href="index.html">
+                                    <i data-feather="home"></i>
+                                    <span data-key="t-dashboard">Dashboard</span>
+                                </a>
+                            </li>
+                            <li class="menu-title" data-key="t-modules">Módulos</li>
+                            <li class="mm-active">
+                                <a href="apps-tareas.html" class="active">
+                                    <i data-feather="grid"></i>
+                                    <span data-key="t-tasks">Gestión Tareas</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="apps-clients.html">
+                                    <i data-feather="users"></i>
+                                    <span data-key="t-clients">Gestión Clientes</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="apps-cashflow.html">
+                                    <i data-feather="dollar-sign"></i>
+                                    <span data-key="t-cashflow">Cashflow</span>
+                                </a>
+                            </li>
+                             <li>
+                                <a href="apps-analytics.html">
+                                    <i data-feather="pie-chart"></i>
+                                    <span data-key="t-analytics">Gráficos de Gestión</span>
+                                </a>
+                            </li>
+                            
+                            <li class="menu-title" data-key="t-settings">Configuración</li>
+                            <li>
+                                <a href="javascript: void(0);" class="has-arrow">
+                                    <i data-feather="settings"></i>
+                                    <span data-key="t-settings">Mi Cuenta</span>
+                                </a>
+                                <ul class="sub-menu" aria-expanded="false">
+                                    <li><a href="pages-profile.html" data-key="t-profile">Mi Perfil</a></li>
+                                    <li><a href="#" onclick="window.Imala.auth.signOut(); window.location.href='auth-login.html';" data-key="t-logout">Cerrar Sesión</a></li>
+                                </ul>
+                            </li>
+
+
+                    </div>
+                    <!-- Sidebar -->
+                </div>
+            </div>
+            <!-- Left Sidebar End -->
+
+            
+
+            <div class="main-content">
+
+                <div class="page-content">
+                    <div class="container-fluid">
+
+                        <!-- start page title -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+                                    <h4 class="mb-sm-0 font-size-18">Gestión de Tareas</h4>
+
+                                    <div class="page-title-right">
+                                        <ol class="breadcrumb m-0">
+                                            <li class="breadcrumb-item"><a href="javascript: void(0);">Apps</a></li>
+                                            <li class="breadcrumb-item active">Gestión de Tareas</li>
+                                        </ol>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                        <!-- end page title -->
+
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-body">
+                                        
+                                        <!-- FILTERS & ACTIONS -->
+                                        <div class="d-flex flex-wrap gap-2 mb-4 justify-content-between align-items-center">
+                                            <div class="btn-group filter-bar" role="group">
+                                                <button type="button" class="btn btn-outline-primary" data-filter="ALL">Todas</button>
+                                                <button type="button" class="btn btn-outline-primary active" data-filter="TODAY">Hoy</button>
+                                                <button type="button" class="btn btn-outline-primary" data-filter="WEEK">Esta Semana</button>
+                                                <button type="button" class="btn btn-outline-primary" data-filter="MONTH">Este Mes</button>
+                                                <button type="button" class="btn btn-outline-danger" data-filter="LATE">Atrasadas</button>
+                                                <button type="button" class="btn btn-outline-success" data-filter="COMPLETED">Completadas</button>
+                                            </div>
+
+                                            <!-- Month History Filter -->
+                                            <div class="d-flex align-items-center">
+                                                <input type="month" class="form-control" id="filter-month-history" style="max-width: 160px;">
+                                            </div>
+
+                                            <!-- Generation Stats -->
+                                            <div class="d-none d-xl-flex gap-3 align-items-center bg-light rounded p-2" id="task-gen-stats" style="font-size: 0.8rem;">
+                                                <div class="d-flex flex-column text-center border-end pe-3" title="Tareas nuevas esta semana">
+                                                    <span class="text-muted text-uppercase" style="font-size: 10px;">Semana</span>
+                                                    <span class="fw-bold text-primary" id="stat-gen-week">0</span>
+                                                </div>
+                                                <div class="d-flex flex-column text-center border-end pe-3" title="Tareas nuevas este mes">
+                                                    <span class="text-muted text-uppercase" style="font-size: 10px;">Mes</span>
+                                                    <span class="fw-bold text-primary" id="stat-gen-month">0</span>
+                                                </div>
+                                                <div class="d-flex flex-column text-center" title="Comparación con mes anterior">
+                                                    <span class="text-muted text-uppercase" style="font-size: 10px;">Vs. Prev</span>
+                                                    <span class="fw-bold" id="stat-gen-trend">--</span>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="d-flex gap-2">
+                                                <button class="btn btn-soft-danger" id="btn-sync-gcal">
+                                                    <i class="mdi mdi-google"></i> Sync
+                                                </button>
+                                                 <button class="btn btn-soft-secondary" id="btn-manage-categories">
+                                                    <i class="mdi mdi-tag-outline"></i> Categorías
+                                                </button>
+                                                <button class="btn btn-primary" id="btn-new-task-main">
+                                                    <i class="mdi mdi-plus"></i> Nueva Tarea
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Nav tabs -->
+                                        <ul class="nav nav-tabs nav-tabs-custom nav-justified" role="tablist">
+                                            <li class="nav-item">
+                                                <a class="nav-link active" data-bs-toggle="tab" href="#tab-kanban" role="tab">
+                                                    <span class="d-block d-sm-none"><i class="fas fa-columns"></i></span>
+                                                    <span class="d-none d-sm-block">📋 Tablero</span> 
+                                                </a>
+                                            </li>
+                                             <li class="nav-item">
+                                                <a class="nav-link" data-bs-toggle="tab" href="#tab-list" role="tab">
+                                                    <span class="d-block d-sm-none"><i class="fas fa-list"></i></span>
+                                                    <span class="d-none d-sm-block">📝 Lista</span> 
+                                                </a>
+                                            </li>
+                                            <li class="nav-item">
+                                                <a class="nav-link" data-bs-toggle="tab" href="#tab-calendar" role="tab">
+                                                    <span class="d-block d-sm-none"><i class="fas fa-calendar-alt"></i></span>
+                                                    <span class="d-none d-sm-block">📅 Calendario</span> 
+                                                </a>
+                                            </li>
+                                        </ul>
+        
+                                        <!-- Tab panes -->
+                                        <div class="tab-content p-3 text-muted">
+                                            
+                                            <!-- KANBAN TAB (Default) -->
+                                            <div class="tab-pane active" id="tab-kanban" role="tabpanel">
+                                                <div class="row">
+                                                    <!-- PENDIENTE (Yellow) -->
+                                                    <div class="col-lg-4">
+                                                        <div class="card task-column task-column-todo h-100">
+                                                            <div class="card-body">
+                                                                <h4 class="card-title mb-4 text-warning">Pendiente</h4>
+                                                                <div id="kanban-todo" class="task-list-items" data-status="TODO"></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- COMPLETADO (Green) - Reordered as requested -->
+                                                    <div class="col-lg-4">
+                                                        <div class="card task-column task-column-done h-100">
+                                                            <div class="card-body">
+                                                                <h4 class="card-title mb-4 text-success">Completado</h4>
+                                                                <div id="kanban-completed" class="task-list-items" data-status="COMPLETED"></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <!-- ATRASADO (Red) -->
+                                                    <div class="col-lg-4">
+                                                        <div class="card task-column task-column-late h-100">
+                                                            <div class="card-body">
+                                                                <h4 class="card-title mb-4 text-danger">Atrasado</h4>
+                                                                <div id="kanban-late" class="task-list-items" data-status="LATE"></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+
+                                            <!-- LIST TAB -->
+                                            <div class="tab-pane" id="tab-list" role="tabpanel">
+                                                <div class="table-responsive">
+                                                    <table id="datatable-tasks" class="table table-bordered dt-responsive nowrap w-100">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Tarea</th>
+                                                                <th>Vencimiento</th>
+                                                                <th>Prioridad</th>
+                                                                <th>Estado</th>
+                                                                <th>Asignado A</th>
+                                                                <th>Acciones</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody></tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+
+                                            <!-- CALENDAR TAB -->
+                                            <div class="tab-pane" id="tab-calendar" role="tabpanel">
+                                                <div class="row">
+                                                    <div class="col-12">
+                                                        <div id="calendar"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div> 
+                </div>
+
+                <!-- Tarea Modal -->
+                <div class="modal fade" id="event-modal" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header py-3 px-4 border-bottom-0">
+                                <h5 class="modal-title" id="modal-title">Tarea</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-hidden="true"></button>
+                            </div>
+                            <div class="modal-body p-4">
+                                <form class="needs-validation" name="event-form" id="form-event" novalidate>
+                                    <input type="hidden" id="task-id">
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <div class="mb-3">
+                                                <label class="form-label">Título</label>
+                                                <input class="form-control" placeholder="Ej. Pagar Impuestos" type="text" name="title" id="event-title" required />
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12">
+                                            <div class="mb-3">
+                                                <label class="form-label">Descripción</label>
+                                                <textarea class="form-control" placeholder="Detalles de la tarea..." name="description" id="event-description" rows="3"></textarea>
+                                            </div>
+                                        </div>
+                                         <!-- Client Assignment -->
+                                         <div class="col-12">
+                                            <div class="mb-3">
+                                                <label class="form-label">Cliente Asociado (Opcional)</label>
+                                                <select class="form-control form-select" id="event-client-id">
+                                                    <option value="">- Ninguno -</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Assignment & Priority -->
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Asignar a</label>
+                                                <select class="form-control form-select" name="assignedTo" id="event-assignedTo">
+                                                    <option value="David">David</option>
+                                                    <option value="Lucre">Lucre</option>
+                                                    <option value="Ambos">Ambos</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Prioridad</label>
+                                                <select class="form-control form-select" name="priority" id="event-priority">
+                                                    <option value="LOW" class="text-success">Baja (Verde)</option>
+                                                    <option value="MEDIUM" class="text-warning">Media (Amarillo)</option>
+                                                    <option value="HIGH" class="text-danger">Alta (Rojo)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <!-- Date & Time (Argentina Defaults managed in JS) -->
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                 <label class="form-label">Fecha Vencimiento</label>
+                                                 <input class="form-control" type="date" id="event-dueDate" required>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                 <label class="form-label">Hora (Opcional)</label>
+                                                 <input class="form-control" type="time" id="event-dueTime">
+                                            </div>
+                                        </div>
+
+                                        <!-- Category & Recurrence -->
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Categoría</label>
+                                                <div class="input-group">
+                                                    <select class="form-control form-select" name="category" id="event-category">
+                                                        <!-- Filled dynamically -->
+                                                        <option value="General">General</option>
+                                                        <option value="Ventas">Ventas</option>
+                                                        <option value="Marketing">Marketing</option>
+                                                    </select>
+                                                    <button class="btn btn-outline-secondary" type="button" id="btn-edit-cats-modal"><i class="mdi mdi-pencil"></i></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                         <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Repetir</label>
+                                                <select class="form-control form-select" name="recurrence" id="event-recurrence">
+                                                    <option value="NONE">No repetir</option>
+                                                    <option value="WEEKLY">Semanalmente</option>
+                                                    <option value="MONTHLY">Mensualmente</option>
+                                                    <option value="YEARLY">Anualmente</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <!-- Status (Less prominent in Create, mostly for Edit) -->
+                                        <div class="col-12">
+                                            <div class="mb-3">
+                                                <label class="form-label">Estado</label>
+                                                <select class="form-control form-select" name="status" id="event-status">
+                                                    <option value="TODO">Pendiente</option>
+                                                    <option value="COMPLETED">Completado</option>
+                                                    <option value="LATE">Atrasado</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-6">
+                                            <button type="button" class="btn btn-danger" id="btn-delete-event">Eliminar</button>
+                                        </div>
+                                        <div class="col-6 text-end">
+                                            <button type="button" class="btn btn-light me-1" data-bs-dismiss="modal">Cerrar</button>
+                                            <button type="submit" class="btn btn-success" id="btn-save-event">Guardar</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Categories Manager Modal -->
+                <div class="modal fade" id="categories-modal" tabindex="-1">
+                    <div class="modal-dialog modal-sm modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header border-bottom-0">
+                                <h5 class="modal-title">Categorías</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-hidden="true"></button>
+                            </div>
+                            <div class="modal-body">
+                                <ul class="list-group mb-3" id="categories-list">
+                                    <!-- Injected -->
+                                </ul>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" placeholder="Nueva..." id="new-cat-name">
+                                    <button class="btn btn-primary" id="btn-add-cat"><i class="mdi mdi-plus"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <footer class="footer">
+                    <div class="container-fluid">
+                        <div class="row">
+                                <script>document.write(new Date().getFullYear())</script> © Imalá.
+                            </div>
+                            <div class="col-sm-6">
+                                    Design & Develop by <a href="#!" class="text-decoration-underline">Imalá Team</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </footer>
+            </div>
+
+        </div>
+
+        
+        <!-- Right Sidebar -->
+        <div class="right-bar">
+            <div data-simplebar class="h-100">
+                <div class="rightbar-title d-flex align-items-center p-3">
+
+                    <h5 class="m-0 me-2">Theme Customizer</h5>
+
+                    <a href="javascript:void(0);" class="right-bar-toggle ms-auto">
+                        <i class="mdi mdi-close noti-icon"></i>
+                    </a>
+                </div>
+
+                <!-- Settings -->
+                <hr class="m-0" />
+
+                <div class="p-4">
+                    <h6 class="mb-3">Layout</h6>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="layout"
+                            id="layout-vertical" value="vertical">
+                        <label class="form-check-label" for="layout-vertical">Vertical</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="layout"
+                            id="layout-horizontal" value="horizontal">
+                        <label class="form-check-label" for="layout-horizontal">Horizontal</label>
+                    </div>
+
+                    <h6 class="mt-4 mb-3 pt-2">Layout Mode</h6>
+
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="layout-mode"
+                            id="layout-mode-light" value="light">
+                        <label class="form-check-label" for="layout-mode-light">Light</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="layout-mode"
+                            id="layout-mode-dark" value="dark">
+                        <label class="form-check-label" for="layout-mode-dark">Dark</label>
+                    </div>
+
+                    <h6 class="mt-4 mb-3 pt-2">Layout Width</h6>
+
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="layout-width"
+                            id="layout-width-fuild" value="fuild" onchange="document.body.setAttribute('data-layout-size', 'fluid')">
+                        <label class="form-check-label" for="layout-width-fuild">Fluid</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="layout-width"
+                            id="layout-width-boxed" value="boxed" onchange="document.body.setAttribute('data-layout-size', 'boxed')">
+                        <label class="form-check-label" for="layout-width-boxed">Boxed</label>
+                    </div>
+
+                    <h6 class="mt-4 mb-3 pt-2">Layout Position</h6>
+
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="layout-position"
+                            id="layout-position-fixed" value="fixed" onchange="document.body.setAttribute('data-layout-scrollable', 'false')">
+                        <label class="form-check-label" for="layout-position-fixed">Fixed</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="layout-position"
+                            id="layout-position-scrollable" value="scrollable" onchange="document.body.setAttribute('data-layout-scrollable', 'true')">
+                        <label class="form-check-label" for="layout-position-scrollable">Scrollable</label>
+                    </div>
+
+                    <h6 class="mt-4 mb-3 pt-2">Topbar Color</h6>
+
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="topbar-color"
+                            id="topbar-color-light" value="light" onchange="document.body.setAttribute('data-topbar', 'light')">
+                        <label class="form-check-label" for="topbar-color-light">Light</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="topbar-color"
+                            id="topbar-color-dark" value="dark" onchange="document.body.setAttribute('data-topbar', 'dark')">
+                        <label class="form-check-label" for="topbar-color-dark">Dark</label>
+                    </div>
+
+                    <h6 class="mt-4 mb-3 pt-2 sidebar-setting">Sidebar Size</h6>
+
+                    <div class="form-check sidebar-setting">
+                        <input class="form-check-input" type="radio" name="sidebar-size"
+                            id="sidebar-size-default" value="default" onchange="document.body.setAttribute('data-sidebar-size', 'lg')">
+                        <label class="form-check-label" for="sidebar-size-default">Default</label>
+                    </div>
+                    <div class="form-check sidebar-setting">
+                        <input class="form-check-input" type="radio" name="sidebar-size"
+                            id="sidebar-size-compact" value="compact" onchange="document.body.setAttribute('data-sidebar-size', 'md')">
+                        <label class="form-check-label" for="sidebar-size-compact">Compact</label>
+                    </div>
+                    <div class="form-check sidebar-setting">
+                        <input class="form-check-input" type="radio" name="sidebar-size"
+                            id="sidebar-size-small" value="small" onchange="document.body.setAttribute('data-sidebar-size', 'sm')">
+                        <label class="form-check-label" for="sidebar-size-small">Small (Icon View)</label>
+                    </div>
+
+                    <h6 class="mt-4 mb-3 pt-2 sidebar-setting">Sidebar Color</h6>
+
+                    <div class="form-check sidebar-setting">
+                        <input class="form-check-input" type="radio" name="sidebar-color"
+                            id="sidebar-color-light" value="light" onchange="document.body.setAttribute('data-sidebar', 'light')">
+                        <label class="form-check-label" for="sidebar-color-light">Light</label>
+                    </div>
+                    <div class="form-check sidebar-setting">
+                        <input class="form-check-input" type="radio" name="sidebar-color"
+                            id="sidebar-color-dark" value="dark" onchange="document.body.setAttribute('data-sidebar', 'dark')">
+                        <label class="form-check-label" for="sidebar-color-dark">Dark</label>
+                    </div>
+                    <div class="form-check sidebar-setting">
+                        <input class="form-check-input" type="radio" name="sidebar-color"
+                            id="sidebar-color-brand" value="brand" onchange="document.body.setAttribute('data-sidebar', 'brand')">
+                        <label class="form-check-label" for="sidebar-color-brand">Brand</label>
+                    </div>
+
+                    <h6 class="mt-4 mb-3 pt-2">Direction</h6>
+
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="layout-direction"
+                            id="layout-direction-ltr" value="ltr">
+                        <label class="form-check-label" for="layout-direction-ltr">LTR</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="layout-direction"
+                            id="layout-direction-rtl" value="rtl">
+                        <label class="form-check-label" for="layout-direction-rtl">RTL</label>
+                    </div>
+
+                </div>
+
+            </div> <!-- end slimscroll-menu-->
+        </div>
+        <!-- /Right-bar -->
+
+        <!-- Right bar overlay-->
+        <div class="rightbar-overlay"></div>
+
+        <!-- JAVASCRIPT -->
+        <script src="assets/libs/jquery/jquery.min.js"></script>
+        <script src="assets/libs/bootstrap/js/bootstrap.bundle.min.js"></script>
+        <script src="assets/libs/metismenu/metisMenu.min.js"></script>
+        <script src="assets/libs/simplebar/simplebar.min.js"></script>
+        <script src="assets/libs/node-waves/waves.min.js"></script>
+        <script src="assets/libs/feather-icons/feather.min.js"></script>
+        <!-- pace js -->
+        <script src="assets/libs/pace-js/pace.min.js"></script>
+
+        <!-- Dragula -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.3/dragula.min.js"></script>
+        
+        <!-- SweetAlert2 -->
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        
+        <!-- DataTables -->
+        <script src="assets/libs/datatables.net/js/jquery.dataTables.min.js"></script>
+        <script src="assets/libs/datatables.net-bs4/js/dataTables.bootstrap4.min.js"></script>
+        <script src="assets/libs/datatables.net-responsive/js/dataTables.responsive.min.js"></script>
+        <script src="assets/libs/datatables.net-responsive-bs4/js/responsive.bootstrap4.min.js"></script>
+
+        <!-- Firebase CDNs -->
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-storage-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-functions-compat.js"></script>
+
+        <!-- Imala Config & Logic -->
+        <script src="assets/js/firebase-config.js"></script>
+        
+        <!-- Main JS Bundle (Sidebar, etc) -->
+        <script src="assets/js/app.js"></script>
+
+        <!-- Module Logic -->
+        <script src="assets/js/apps-tareas.js"></script>
+
+    </body>
+</html>

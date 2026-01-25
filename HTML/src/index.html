@@ -1,0 +1,114 @@
+@@include("partials/main.html")
+
+    <head>
+
+        @@include("partials/title-meta.html", {"title": "Dashboard"})
+
+        <!-- plugin css -->
+        <link href="assets/libs/admin-resources/jquery.vectormap/jquery-jvectormap-1.2.2.css" rel="stylesheet" type="text/css" />
+
+        @@include("partials/head-css.html")
+
+    </head>
+
+    @@include("partials/body.html")
+
+        <!-- Begin page -->
+        <div id="layout-wrapper">
+
+            @@include("partials/menu.html")
+
+            <!-- ============================================================== -->
+            <!-- Start right Content here -->
+            <!-- ============================================================== -->
+            <div class="main-content">
+
+                <div class="page-content">
+                    <div class="container-fluid">
+
+                        @@include("partials/page-title.html", {"pagetitle": "Dashboard", "title": "Bienvenido a Imalá OS"})
+
+                        <div class="row">
+                            <div class="col-xl-12">
+                                <div class="card overflow-hidden">
+                                    <div class="bg-primary-subtle">
+                                        <div class="row">
+                                            <div class="col-7">
+                                                <div class="text-primary p-3">
+                                                    <h5 class="text-primary">¡Hola de nuevo!</h5>
+                                                    <p>Bienvenido a tu panel de control de Imalá.</p>
+                                                </div>
+                                            </div>
+                                            <div class="col-5 align-self-end">
+                                                <img src="assets/images/profile-img.png" alt="" class="img-fluid">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-body pt-0">
+                                        
+                                        <div class="row">
+                                            <div class="col-sm-4">
+                                                <div class="avatar-md profile-user-wid mb-4">
+                                                    <img src="assets/images/users/avatar-1.jpg" alt="" class="img-thumbnail rounded-circle" id="dashboard-user-avatar">
+                                                </div>
+                                                <h5 class="font-size-15 text-truncate" id="dashboard-user-name">Cargando...</h5>
+                                                <p class="text-muted mb-0 text-truncate" id="dashboard-user-role">...</p>
+                                            </div>
+
+                                            <div class="col-sm-8">
+                                                <div class="pt-4">
+                                                   <div class="row">
+                                                        <div class="col-6">
+                                                            <h5 class="font-size-15">0</h5>
+                                                            <p class="text-muted mb-0">Tareas Pendientes</p>
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <h5 class="font-size-15">0</h5>
+                                                            <p class="text-muted mb-0">Reuniones Hoy</p>
+                                                        </div>
+                                                   </div>
+                                                   <div class="mt-4">
+                                                        <a href="apps-tasks.html" class="btn btn-primary waves-effect waves-light btn-sm">Ver mis Tareas <i class="mdi mdi-arrow-right ms-1"></i></a>
+                                                   </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- end row -->
+
+                    </div>
+                    <!-- container-fluid -->
+                </div>
+                <!-- End Page-content -->
+
+                @@include("partials/footer.html")
+            </div>
+            <!-- end main content-->
+
+        </div>
+        <!-- END layout-wrapper -->
+
+        @@include("partials/right-sidebar.html")
+
+        @@include("partials/vendor-scripts.html")
+
+        <!-- App js -->
+        <script src="assets/js/app.js"></script>
+
+        <!-- Firebase CDNs -->
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-storage-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-functions-compat.js"></script>
+
+        <!-- Imala Config & Logic -->
+        <script src="src/js/firebase-config.js"></script>
+        <script src="src/js/index.js"></script>
+
+    </body>
+
+</html>
