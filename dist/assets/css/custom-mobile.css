@@ -1,0 +1,202 @@
+/* Custom Mobile Optimization for Tareas */
+@media screen and (max-width: 768px) {
+    
+    /* GLOBAL MOBILE SPACING OVERRIDES */
+    .page-content > .container-fluid {
+        padding-left: 5px !important;
+        padding-right: 5px !important;
+    }
+    
+    .main-content .page-content .card .card-body {
+        padding: 0.5rem !important; /* Reduce internal card spacing */
+    }
+
+    /* Force Table to behave like a List of Cards */
+    #datatable-tasks, 
+    #datatable-tasks tbody, 
+    #datatable-tasks tr, 
+    #datatable-tasks td {
+        display: block;
+        width: 100%;
+    }
+
+    /* Hide Table Header */
+    #datatable-tasks thead {
+        display: none;
+    }
+
+    /* Card Style for Rows */
+    #datatable-tasks tr {
+        background: #fff;
+        margin-bottom: 20px; /* Spacing between cards */
+        border: 1px solid #e1e1e1; /* Subtle border */
+        border-radius: 12px; /* Rounded corners */
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05); /* Float effect */
+        padding: 15px;
+        position: relative;
+    }
+
+    /* Individual Cells Styling */
+    #datatable-tasks td {
+        padding: 10px 0;
+        border-bottom: 1px solid #f0f0f0;
+        text-align: center; /* Center everything */
+        display: flex;
+        flex-direction: column; /* Stack Label and Value */
+        justify-content: center;
+        align-items: center;
+        min-height: 40px;
+    }
+
+    #datatable-tasks td:last-child {
+        border-bottom: none;
+        padding-top: 15px;
+        margin-top: 5px;
+    }
+
+    /* Labels generated from data-label attribute */
+    #datatable-tasks td::before {
+        content: attr(data-label);
+        font-weight: 700;
+        color: #99a1b7; /* Lighter color for label above */
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        margin-right: 0;
+        margin-bottom: 5px; /* Space between label and value */
+        text-align: center;
+        display: block;
+    }
+
+    /* Specific Tweaks */
+    
+    /* Make Title Big and prominent */
+    #datatable-tasks td[data-label="Tarea"] {
+        display: block;
+        text-align: center;
+        background-color: #f8f9fa; /* Light header background for title */
+        margin: -15px -15px 10px -15px; /* Bleed to edges */
+        padding: 15px;
+        border-bottom: 1px solid #eee;
+        border-radius: 12px 12px 0 0;
+    }
+    
+    #datatable-tasks td[data-label="Tarea"]::before {
+        display: none; /* Hide 'Tarea' label, title is self-explanatory */
+    }
+
+    #datatable-tasks td[data-label="Tarea"] div.fw-bold {
+        font-size: 1.1rem;
+        color: #2c302e;
+        /* Line Break Fix */
+        white-space: normal;
+        word-wrap: break-word;
+        word-break: break-word; /* Ensures breaking even without spaces if super long */
+        line-height: 1.4;
+    }
+
+    /* Actions Button sizing */
+    #datatable-tasks .btn {
+        padding: 10px 20px; /* Bigger touch targets */
+        font-size: 1rem;
+    }
+
+    #datatable-tasks .d-flex.gap-2 {
+        width: 100%;
+        justify-content: space-evenly;
+    }
+
+    /* Status and Priority Badges bigger */
+    #datatable-tasks .badge {
+        font-size: 0.9rem;
+        padding: 8px 12px;
+    }
+    
+    /* Highlight "Asignado a" */
+    #datatable-tasks td[data-label="Asignado a"] {
+        background-color: #fefffa;
+        color: #5156be; /* Brand color */
+    }
+
+    /* === FILTER BAR & SEARCH RESPONSIVE FIXES === */
+    
+    /* Filter Bar Responsive Chips */
+    .filter-bar {
+        display: flex;
+        overflow-x: auto;
+        white-space: nowrap;
+        padding-bottom: 10px;
+        width: 100%;
+        margin-bottom: 15px;
+        -webkit-overflow-scrolling: touch; /* Smooth scroll iOS */
+        /* Make sure it doesn't wrap */
+        flex-wrap: nowrap !important;
+    }
+    
+    .filter-bar::-webkit-scrollbar {
+        height: 4px;
+    }
+    
+    .filter-bar::-webkit-scrollbar-thumb {
+        background: #ccc; 
+        border-radius: 4px;
+    }
+
+    .filter-bar .btn {
+        flex: 0 0 auto;
+        border-radius: 50px !important; /* Chip style */
+        margin-right: 8px;
+        margin-left: 0 !important; /* Fix btn-group overlap */
+        font-size: 0.85rem;
+        padding: 6px 16px;
+    }
+    
+    /* Stack controls container */
+    .card-body > .d-flex.flex-wrap.gap-2.mb-4 {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 15px !important;
+    }
+    
+    /* Fix Month Input width */
+    #filter-month-history {
+        max-width: 100% !important;
+        width: 100%;
+    }
+
+    /* Action buttons container (New Task, Sync) */
+    .card-body > .d-flex.flex-wrap.gap-2.mb-4 > .d-flex.gap-2 {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr; /* 2 columns grid */
+        gap: 10px !important;
+    }
+    
+    #btn-new-task-main {
+        grid-column: 1 / -1; /* Full width */
+        width: 100%;
+    }
+
+    /* === CASHFLOW MOBILE APPS === */
+    /* Stack Action Buttons in Header */
+    .page-title-right {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+        margin-top: 15px;
+    }
+    
+    .page-title-right .btn {
+        width: 100%;
+        margin-left: 0 !important; /* Remove ms-2 override */
+        margin-right: 0 !important;
+        margin-bottom: 5px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    /* Adjust KPI Cards Font Sizes if needed */
+    .card .display-6 {
+        font-size: 2rem; /* Slighly smaller for mobile */
+    }
+}

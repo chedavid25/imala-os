@@ -37,6 +37,21 @@ document.addEventListener('DOMContentLoaded', function () {
     const topSearchInput = document.getElementById('top-search-input');
     const monthFilterInput = document.getElementById('filter-month-history');
 
+    // MOBILE OPTIMIZATION: Default to List View on small screens
+    if (window.innerWidth < 768) {
+        const kanbanTab = document.querySelector('a[href="#tab-kanban"]');
+        const listTab = document.querySelector('a[href="#tab-list"]');
+        const kanbanPane = document.getElementById('tab-kanban');
+        const listPane = document.getElementById('tab-list');
+        
+        if (kanbanTab && listTab && kanbanPane && listPane) {
+            kanbanTab.classList.remove('active');
+            listTab.classList.add('active');
+            kanbanPane.classList.remove('active');
+            listPane.classList.add('active');
+        }
+    }
+
     // ==========================================
     // 2. Load Data & Filters
     // ==========================================
@@ -380,20 +395,22 @@ document.addEventListener('DOMContentLoaded', function () {
             let titlePrefix = t.source === 'google' ? '<i class="mdi mdi-google text-danger me-1"></i> ' : '';
 
             tr.innerHTML = `
-                <td>
+                <td data-label="Tarea">
                     <div class="fw-bold">${titlePrefix}${t.title} ${clientBadge}</div>
                     <small class="text-muted">${t.description ? t.description.substring(0,30) + '...' : ''}</small>
                 </td>
-                <td>
+                <td data-label="Vencimiento">
                     ${formatDate(t.dueDate)} ${t.dueTime || ''}
                 </td>
-                <td><span class="badge ${getPriorityBadge(t.priority)}">${getPriorityLabel(t.priority)}</span></td>
-                <td><span class="badge ${getStatusBadge(t.status)}">${getStatusLabel(t.status)}</span></td>
-                <td>${t.assignedTo || 'David'}</td>
-                <td>
-                    ${actionBtn}
-                    ${t.source !== 'google' ? `<button class="btn btn-sm btn-soft-primary edit-btn" data-id="${t.id}"><i class="mdi mdi-pencil"></i></button>` : ''}
-                    ${t.source !== 'google' ? `<button class="btn btn-sm btn-soft-danger delete-btn" data-id="${t.id}"><i class="mdi mdi-trash-can"></i></button>` : ''}
+                <td data-label="Prioridad"><span class="badge ${getPriorityBadge(t.priority)}">${getPriorityLabel(t.priority)}</span></td>
+                <td data-label="Estado"><span class="badge ${getStatusBadge(t.status)}">${getStatusLabel(t.status)}</span></td>
+                <td data-label="Asignado a" class="fw-bold text-primary">${t.assignedTo || 'David'}</td>
+                <td data-label="Acciones">
+                    <div class="d-flex gap-2">
+                        ${actionBtn}
+                        ${t.source !== 'google' ? `<button class="btn btn-sm btn-soft-primary edit-btn" data-id="${t.id}"><i class="mdi mdi-pencil"></i></button>` : ''}
+                        ${t.source !== 'google' ? `<button class="btn btn-sm btn-soft-danger delete-btn" data-id="${t.id}"><i class="mdi mdi-trash-can"></i></button>` : ''}
+                    </div>
                 </td>
             `;
             tbody.appendChild(tr);

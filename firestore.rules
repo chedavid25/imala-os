@@ -112,6 +112,14 @@ service cloud.firestore {
     // CASHFLOW / CLIENTS (Finance)
     match /clients/{clientId} {
         allow read, write: if hasRole('ADMIN') || hasRole('BROKER');
+        
+        // Permitir acceso a subcolecciones de clientes (adjuntos, bitácora)
+        match /attachments/{docId} {
+            allow read, write: if hasRole('ADMIN') || hasRole('BROKER');
+        }
+        match /bitacora/{docId} {
+            allow read, write: if hasRole('ADMIN') || hasRole('BROKER');
+        }
     }
     
     match /transactions/{txnId} {
@@ -126,6 +134,17 @@ service cloud.firestore {
         allow create, delete: if hasRole('ADMIN') || hasRole('BROKER');
         // Authenticated users can update (to increment usedCount)
         allow update: if isAuthenticated();
+    }
+
+    // CASHFLOW EXTENSIONS
+    match /cashflow_categories/{docId} {
+        allow read, write: if isAuthenticated();
+    }
+    match /cashflow_entities/{docId} {
+        allow read, write: if isAuthenticated();
+    }
+    match /cashflow_agreements/{docId} {
+         allow read, write: if hasRole('ADMIN') || hasRole('BROKER');
     }
 
     // SETTINGS (For dynamic categories etc)

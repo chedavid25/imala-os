@@ -9,7 +9,12 @@
         <meta content="Panel Financiero" name="description" />
         <meta content="Imalá" name="author" />
         <!-- App favicon -->
-        <link rel="shortcut icon" href="assets/images/favicon.ico">
+        <!-- PWA / IOS -->
+        <link rel="manifest" href="manifest.json">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <meta name="apple-mobile-web-app-title" content="Imalá">
+        <link rel="apple-touch-icon" href="assets/images/icono-imala.png">
 
         <!-- Flatpickr css -->
         <link href="assets/libs/flatpickr/flatpickr.min.css" rel="stylesheet" type="text/css">
@@ -25,6 +30,7 @@
         <link href="assets/css/icons.min.css" rel="stylesheet" type="text/css" />
         <!-- App Css-->
         <link href="assets/css/app.min.css" id="app-style" rel="stylesheet" type="text/css" />
+        <link href="assets/css/custom-mobile.css" rel="stylesheet" type="text/css" />
         
         <style>
             .swal2-container {
