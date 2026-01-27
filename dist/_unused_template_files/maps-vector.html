@@ -9,7 +9,8 @@
         <meta content="Premium Multipurpose Admin & Dashboard Template" name="description" />
         <meta content="Themesbrand" name="author" />
         <!-- App favicon -->
-        <link rel="shortcut icon" href="assets/images/favicon.ico">
+        <link rel="shortcut icon" href="assets/images/favicon-imala.ico?v=2">
+        <link rel="icon" type="image/x-icon" href="assets/images/favicon-imala.ico?v=2">
 
         <!-- jquery.vectormap css -->
         <link href="assets/libs/admin-resources/jquery.vectormap/jquery-jvectormap-1.2.2.css" rel="stylesheet" type="text/css" />
@@ -145,7 +146,7 @@
                             </button>
                             <div class="dropdown-menu dropdown-menu-end">
                                 <!-- item-->
-                                <a class="dropdown-item" href="pages-profile.html"><i class="mdi mdi mdi-face-man font-size-16 align-middle me-1"></i> Perfil</a>
+                                <a class="dropdown-item" href="apps-perfil.html"><i class="mdi mdi mdi-face-man font-size-16 align-middle me-1"></i> Perfil</a>
                                 <div class="dropdown-divider"></div>
                                 <a class="dropdown-item" href="#" onclick="window.Imala.auth.signOut(); window.location.href='auth-login.html';"><i class="mdi mdi-logout font-size-16 align-middle me-1"></i> Cerrar Sesión</a>
                             </div>
@@ -165,86 +166,53 @@
                         <!-- Left Menu Start -->
                         <ul class="metismenu list-unstyled" id="side-menu">
                             <li class="menu-title" data-key="t-menu">Principal</li>
-
                             <li>
                                 <a href="index.html">
                                     <i data-feather="home"></i>
                                     <span data-key="t-dashboard">Dashboard</span>
                                 </a>
                             </li>
-
                             <li class="menu-title" data-key="t-modules">Módulos</li>
-
-                            <!-- Tareas Unificadas -->
                             <li>
-                                <a href="modules-tasks-core.html">
+                                <a href="apps-tareas.html">
                                     <i data-feather="grid"></i>
                                     <span data-key="t-tasks">Gestión Tareas</span>
                                 </a>
                             </li>
-                
-                            <!-- Chat -->
                             <li>
-                                <a href="apps-chat.html">
-                                    <i data-feather="message-square"></i>
-                                    <span data-key="t-chat">Chat</span>
-                                </a>
-                            </li>
-
-                            <!-- Equipos (Roles: Broker, Leader, Admin) -->
-                            <li>
-                                <a href="javascript: void(0);" class="has-arrow">
+                                <a href="apps-clients.html">
                                     <i data-feather="users"></i>
-                                    <span data-key="t-teams">Equipos</span>
-                                </a>
-                                <ul class="sub-menu" aria-expanded="false">
-                                    <li><a href="modules-teams-overview.html" data-key="t-team-overview">Mi Equipo</a></li>
-                                    <li><a href="modules-teams-members.html" data-key="t-team-members">Miembros</a></li>
-                                </ul>
-                            </li>
-
-                            <!-- Reuniones & Bitácora -->
-                            <li>
-                                <a href="modules-meetings.html">
-                                    <i data-feather="mic"></i>
-                                    <span data-key="t-meetings">Bitácora IA</span>
+                                    <span data-key="t-clients">Gestión Clientes</span>
                                 </a>
                             </li>
-
-                            <!-- Finanzas (Admin/Broker) -->
                             <li>
-                                <a href="javascript: void(0);" class="has-arrow">
+                                <a href="apps-cashflow.html">
                                     <i data-feather="dollar-sign"></i>
-                                    <span data-key="t-finance">Cashflow</span>
-                                </a>
-                                <ul class="sub-menu" aria-expanded="false">
-                                    <li><a href="modules-finance-dashboard.html" data-key="t-finance-dash">Tablero Financiero</a></li>
-                                    <li><a href="modules-finance-clients.html" data-key="t-finance-clients">Clientes</a></li>
-                                    <li><a href="modules-finance-expenses.html" data-key="t-finance-expenses">Gastos</a></li>
-                                </ul>
-                            </li>
-
-                             <li class="menu-title" data-key="t-resources">Recursos</li>
-
-                             <!-- Academia -->
-                             <li>
-                                <a href="modules-academy.html">
-                                    <i data-feather="book-open"></i>
-                                    <span data-key="t-academy">Academia</span>
+                                    <span data-key="t-cashflow">Cashflow</span>
                                 </a>
                             </li>
-
-                            <!-- Settings -->
                              <li>
+                                <a href="apps-analytics.html">
+                                    <i data-feather="pie-chart"></i>
+                                    <span data-key="t-analytics">Gráficos de Gestión</span>
+                                </a>
+                            </li>
+                
+                            <li class="menu-title" data-key="t-settings">Configuración</li>
+                            <li>
                                 <a href="javascript: void(0);" class="has-arrow">
                                     <i data-feather="settings"></i>
-                                    <span data-key="t-settings">Configuración</span>
+                                    <span data-key="t-settings">Mi Cuenta</span>
                                 </a>
                                 <ul class="sub-menu" aria-expanded="false">
-                                    <li><a href="pages-profile.html" data-key="t-profile">Mi Perfil</a></li>
-                                    <!-- Admin Only Link (Protected by JS logic on page enter, but visible here for now) -->
-                                    <li><a href="modules-users-roles.html" data-key="t-user-management">Gestión Usuarios</a></li>
-                                    <li><a href="auth-logout.html" data-key="t-logout">Cerrar Sesión</a></li>
+                                    <li><a href="apps-perfil.html" data-key="t-profile">Mi Perfil</a></li>
+                        
+                                    <!-- Admin Link -->
+                                    <li>
+                                        <a href="apps-config-members.html" data-key="t-admin-members">Admin. Miembros</a>
+                                    </li>
+
+                                    <li><a href="#" onclick="window.Imala.auth.signOut(); window.location.href='auth-login.html';" data-key="t-logout">Cerrar Sesión</a></li>
                                 </ul>
                             </li>
 

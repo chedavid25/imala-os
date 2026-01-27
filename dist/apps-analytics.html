@@ -86,7 +86,7 @@
                                 <form class="p-3">
                                     <div class="form-group m-0">
                                         <div class="input-group">
-                                            <input type="text" class="form-control" placeholder="Buscar ..." aria-label="Search Result">
+                                            <input type="text" class="form-control" placeholder="Search ..." aria-label="Search Result">
 
                                             <button class="btn btn-primary" type="submit"><i class="mdi mdi-magnify"></i></button>
                                         </div>
@@ -121,9 +121,12 @@
                                     </div>
                                 </div>
                                 <div data-simplebar style="max-height: 230px;">
+                        
+                                    <!-- Empty State por ahora -->
                                     <div class="p-3 text-center">
                                         <p class="text-muted">No tienes notificaciones nuevas</p>
                                     </div>
+
                                 </div>
                                 <div class="p-2 border-top d-grid">
                                     <a class="btn btn-sm btn-link font-size-14 text-center" href="javascript:void(0)">
@@ -134,6 +137,7 @@
                         </div>
 
                         <div class="dropdown d-inline-block">
+                            <!-- User Profile handled by Main JS -->
                             <button type="button" class="btn header-item bg-light-subtle border-start border-end" id="page-header-user-dropdown"
                             data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <img class="rounded-circle header-profile-user" src="assets/images/users/avatar-1.jpg"
@@ -142,7 +146,8 @@
                                 <i class="mdi mdi-chevron-down d-none d-xl-inline-block"></i>
                             </button>
                             <div class="dropdown-menu dropdown-menu-end">
-                                <a class="dropdown-item" href="pages-profile.html"><i class="mdi mdi mdi-face-man font-size-16 align-middle me-1"></i> Mi Perfil</a>
+                                <!-- item-->
+                                <a class="dropdown-item" href="apps-perfil.html"><i class="mdi mdi mdi-face-man font-size-16 align-middle me-1"></i> Perfil</a>
                                 <div class="dropdown-divider"></div>
                                 <a class="dropdown-item" href="#" onclick="window.Imala.auth.signOut(); window.location.href='auth-login.html';"><i class="mdi mdi-logout font-size-16 align-middle me-1"></i> Cerrar Sesión</a>
                             </div>
@@ -187,13 +192,13 @@
                                     <span data-key="t-cashflow">Cashflow</span>
                                 </a>
                             </li>
-                             <li class="mm-active">
-                                <a href="apps-analytics.html" class="active">
+                             <li>
+                                <a href="apps-analytics.html">
                                     <i data-feather="pie-chart"></i>
                                     <span data-key="t-analytics">Gráficos de Gestión</span>
                                 </a>
                             </li>
-                            
+                
                             <li class="menu-title" data-key="t-settings">Configuración</li>
                             <li>
                                 <a href="javascript: void(0);" class="has-arrow">
@@ -201,12 +206,22 @@
                                     <span data-key="t-settings">Mi Cuenta</span>
                                 </a>
                                 <ul class="sub-menu" aria-expanded="false">
-                                    <li><a href="pages-profile.html" data-key="t-profile">Mi Perfil</a></li>
+                                    <li><a href="apps-perfil.html" data-key="t-profile">Mi Perfil</a></li>
+                        
+                                    <!-- Admin Link -->
+                                    <li>
+                                        <a href="apps-config-members.html" data-key="t-admin-members">Admin. Miembros</a>
+                                    </li>
+
                                     <li><a href="#" onclick="window.Imala.auth.signOut(); window.location.href='auth-login.html';" data-key="t-logout">Cerrar Sesión</a></li>
                                 </ul>
                             </li>
+
                         </ul>
+
+
                     </div>
+                    <!-- Sidebar -->
                 </div>
             </div>
             <!-- Left Sidebar End -->
@@ -584,14 +599,17 @@
         <script src="assets/libs/pace-js/pace.min.js"></script>
 
         <!-- Chart JS -->
-        <script src="assets/libs/chart.js/chart.umd.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
         <!-- Firebase -->
-        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
         
         <!-- App Logic -->
+        <script src="assets/js/config.js"></script>
         <script src="assets/js/firebase-config.js"></script>
         <script src="assets/js/imala-auth.js"></script>
         <script src="assets/js/apps-analytics.js"></script> <!-- Main Logic -->

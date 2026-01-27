@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="es">
+
+    <head>
+        
+        <meta charset="utf-8" />
+        <title>Administración | Imalá OS</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta content="Panel de Administración - Gestión de Roles y Estructura" name="description" />
+        <meta content="Imalá" name="author" />
+        <!-- App favicon -->
+        <link rel="shortcut icon" href="assets/images/favicon-imala.ico">
+
+        <!-- DataTables -->
+        <link href="assets/libs/datatables.net-bs4/css/dataTables.bootstrap4.min.css" rel="stylesheet" type="text/css" />
+        <link href="assets/libs/datatables.net-buttons-bs4/css/buttons.bootstrap4.min.css" rel="stylesheet" type="text/css" />
+        <link href="assets/libs/datatables.net-responsive-bs4/css/responsive.bootstrap4.min.css" rel="stylesheet" type="text/css" />
+
+        <!-- Bootstrap Css -->
+        <link href="assets/css/bootstrap.min.css" id="bootstrap-style" rel="stylesheet" type="text/css" />
+        <!-- Icons Css -->
+        <link href="assets/css/icons.min.css" rel="stylesheet" type="text/css" />
+        <!-- App Css-->
+        <link href="assets/css/app.min.css" id="app-style" rel="stylesheet" type="text/css" />
+        
+    </head>
+
+    <body>
+
+        <!-- Begin page -->
+        <div id="layout-wrapper">
+
+            <header id="page-topbar">
+                <div class="navbar-header">
+                    <div class="d-flex">
+                        <!-- LOGO -->
+                        <div class="navbar-brand-box">
+                            <a href="index.html" class="logo logo-dark">
+                                <span class="logo-sm">
+                                    <img src="assets/images/logo-icon.png" alt="" height="30">
+                                </span>
+                                <span class="logo-lg">
+                                    <img src="assets/images/logo-full-dark.png" alt="" height="30">
+                                </span>
+                            </a>
+                            <a href="index.html" class="logo logo-light">
+                                <span class="logo-sm">
+                                    <img src="assets/images/logo-icon.png" alt="" height="30">
+                                </span>
+                                <span class="logo-lg">
+                                    <img src="assets/images/logo-full-light.png" alt="" height="30">
+                                </span>
+                            </a>
+                        </div>
+
+                        <button type="button" class="btn btn-sm px-3 font-size-16 header-item" id="vertical-menu-btn">
+                            <i class="fa fa-fw fa-bars"></i>
+                        </button>
+                    </div>
+
+                    <div class="d-flex">
+                        <div class="dropdown d-inline-block">
+                            <button type="button" class="btn header-item bg-light-subtle border-start border-end" id="page-header-user-dropdown"
+                            data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <img class="rounded-circle header-profile-user" src="assets/images/users/avatar-1.jpg"
+                                    alt="Header Avatar" id="header-user-avatar">
+                                <span class="d-none d-xl-inline-block ms-1 fw-medium" id="header-user-name">Admin</span>
+                                <i class="mdi mdi-chevron-down d-none d-xl-inline-block"></i>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end">
+                                <a class="dropdown-item" href="#" onclick="window.Imala.auth.signOut(); window.location.href='auth-login.html';"><i class="mdi mdi-logout font-size-16 align-middle me-1"></i> Cerrar Sesión</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- ========== Left Sidebar Start ========== -->
+            <div class="vertical-menu">
+                <div data-simplebar class="h-100">
+                    <div id="sidebar-menu">
+                        <!-- Left Menu Start -->
+                        <ul class="metismenu list-unstyled" id="side-menu">
+                            <li class="menu-title" data-key="t-menu">Principal</li>
+                            <li>
+                                <a href="index.html">
+                                    <i data-feather="home"></i>
+                                    <span data-key="t-dashboard">Dashboard</span>
+                                </a>
+                            </li>
+                            <li class="menu-title" data-key="t-modules">Módulos</li>
+                            <li>
+                                <a href="apps-tareas.html">
+                                    <i data-feather="grid"></i>
+                                    <span data-key="t-tasks">Gestión Tareas</span>
+                                </a>
+                            </li>
+                             <li class="menu-title" data-key="t-admin">Administración</li>
+                            <li class="mm-active">
+                                <a href="apps-admin-config.html" class="active">
+                                    <i data-feather="users"></i>
+                                    <span data-key="t-admin-users">Gestión Usuarios</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <!-- Left Sidebar End -->
+
+            <div class="main-content">
+
+                <div class="page-content">
+                    <div class="container-fluid">
+
+                        <!-- start page title -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+                                    <h4 class="mb-sm-0 font-size-18">Panel de Administración</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- end page title -->
+
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-body">
+                                        
+                                        <!-- Nav tabs -->
+                                        <ul class="nav nav-tabs nav-tabs-custom nav-justified" role="tablist">
+                                            <li class="nav-item">
+                                                <a class="nav-link active" data-bs-toggle="tab" href="#tab-users" role="tab">
+                                                    <span class="d-block d-sm-none"><i class="fas fa-user"></i></span>
+                                                    <span class="d-none d-sm-block">👥 Usuarios y Roles</span> 
+                                                </a>
+                                            </li>
+                                             <li class="nav-item">
+                                                <a class="nav-link" data-bs-toggle="tab" href="#tab-structure" role="tab">
+                                                    <span class="d-block d-sm-none"><i class="fas fa-building"></i></span>
+                                                    <span class="d-none d-sm-block">🏢 Estructura (Oficinas/Equipos)</span> 
+                                                </a>
+                                            </li>
+                                        </ul>
+        
+                                        <!-- Tab panes -->
+                                        <div class="tab-content p-3 text-muted">
+                                            
+                                            <!-- USERS TAB -->
+                                            <div class="tab-pane active" id="tab-users" role="tabpanel">
+                                                <div class="d-flex justify-content-end mb-3">
+                                                    <!-- Optional: Button to invite user / create manual user -->
+                                                </div>
+                                                <div class="table-responsive">
+                                                    <table id="datatable-users" class="table table-bordered dt-responsive nowrap w-100 align-middle">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Usuario</th>
+                                                                <th>Email</th>
+                                                                <th>Rol</th>
+                                                                <th>Oficina / Equipo</th>
+                                                                <th>Asignado a</th>
+                                                                <th>Acciones</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody></tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+
+                                            <!-- STRUCTURE TAB -->
+                                            <div class="tab-pane" id="tab-structure" role="tabpanel">
+                                                <div class="row">
+                                                    <!-- Offices Column -->
+                                                    <div class="col-lg-4 mb-4">
+                                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                                            <h5 class="font-size-15 text-primary">Oficinas</h5>
+                                                            <button class="btn btn-sm btn-primary" id="btn-add-office"><i class="mdi mdi-plus"></i></button>
+                                                        </div>
+                                                        <div id="office-list" class="vstack gap-2" style="min-height: 200px;">
+                                                            <!-- Dynamic List -->
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <!-- Teams Column -->
+                                                    <div class="col-lg-4 mb-4">
+                                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                                            <h5 class="font-size-15 text-info">Equipos</h5>
+                                                            <button class="btn btn-sm btn-info" id="btn-add-team"><i class="mdi mdi-plus"></i></button>
+                                                        </div>
+                                                        <div id="team-list" class="vstack gap-2" style="min-height: 200px;">
+                                                            <!-- Dynamic List -->
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Independent Users Column -->
+                                                    <div class="col-lg-4 mb-4">
+                                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                                            <h5 class="font-size-15 text-warning">Independientes / Sin Asignar</h5>
+                                                            <button class="btn btn-sm btn-warning" id="btn-add-user-struct"><i class="mdi mdi-plus"></i></button>
+                                                        </div>
+                                                        <div id="independent-list" class="vstack gap-2" style="min-height: 200px;">
+                                                            <!-- Dynamic List -->
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div> 
+                </div>
+
+                <!-- User Edit Modal -->
+                <div class="modal fade" id="user-modal" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="user-modal-title">Editar Usuario</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-hidden="true"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="form-user">
+                                    <input type="hidden" id="edit-user-id">
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Nombre</label>
+                                        <input type="text" class="form-control" id="edit-user-name" required placeholder="Nombre Completo">
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Email</label>
+                                        <input type="email" class="form-control" id="edit-user-email" required placeholder="usuario@email.com">
+                                        <small class="text-muted d-none" id="email-warning">* El email no se puede cambiar aquí.</small>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Rol</label>
+                                        <select class="form-select" id="edit-user-role">
+                                            <option value="MEMBER">Member (Miembro)</option>
+                                            <option value="ADMIN">Admin (Superusuario)</option>
+                                            <option value="BROKER">Broker (Jefe de Oficina)</option>
+                                            <option value="TEAM_LEADER">Team Leader (Jefe de Equipo)</option>
+                                            <option value="ASSISTANT">Assistant (Asistente)</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Context Fields (Shown via JS based on Role) -->
+                                    <div id="context-fields" class="p-3 bg-light rounded bg-opacity-50">
+                                        
+                                        <!-- Office Selection -->
+                                        <div class="mb-3 context-field" data-visible-for="BROKER MEMBER TEAM_LEADER ASSISTANT">
+                                            <label class="form-label">Oficina</label>
+                                            <select class="form-select" id="edit-user-office">
+                                                <option value="">Sin Oficina</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- Team Selection -->
+                                        <div class="mb-3 context-field" data-visible-for="MEMBER TEAM_LEADER ASSISTANT">
+                                            <label class="form-label">Equipo</label>
+                                            <select class="form-select" id="edit-user-team">
+                                                <option value="">Sin Equipo</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- Assistant Specific -->
+                                        <div class="mb-3 context-field" data-visible-for="ASSISTANT">
+                                            <hr>
+                                            <label class="form-label fw-bold text-primary">¿Asistente de quién?</label>
+                                            <div class="btn-group w-100 mb-2" role="group">
+                                                <input type="radio" class="btn-check" name="assist-type" id="assist-user" value="USER" checked>
+                                                <label class="btn btn-outline-primary" for="assist-user">Usuario</label>
+
+                                                <input type="radio" class="btn-check" name="assist-type" id="assist-team" value="TEAM">
+                                                <label class="btn btn-outline-primary" for="assist-team">Equipo</label>
+
+                                                <input type="radio" class="btn-check" name="assist-type" id="assist-office" value="OFFICE">
+                                                <label class="btn btn-outline-primary" for="assist-office">Oficina</label>
+                                            </div>
+                                            
+                                            <!-- Dynamic Selector for Assistant Target -->
+                                            <select class="form-select" id="edit-assist-target">
+                                                <!-- Filled dynamically -->
+                                            </select>
+                                        </div>
+
+                                    </div>
+
+                                    <div class="mt-4 text-end">
+                                        <button type="button" class="btn btn-light me-1" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Office/Team Modal -->
+                <div class="modal fade" id="structure-modal" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="structure-modal-title">Nueva Estructura</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-hidden="true"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="form-structure">
+                                    <input type="hidden" id="struct-type"> <!-- OFFICE or TEAM -->
+                                    <input type="hidden" id="struct-id">
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Nombre</label>
+                                        <input type="text" class="form-control" id="struct-name" required placeholder="Ej. Oficina Central o Equipo Alpha">
+                                    </div>
+
+                                    <!-- If Team, select parent Office -->
+                                    <div class="mb-3 d-none" id="struct-office-group">
+                                        <label class="form-label">Pertenece a la Oficina</label>
+                                        <select class="form-select" id="struct-parent-office">
+                                            <!-- Dynamic -->
+                                        </select>
+                                    </div>
+
+                                    <div class="text-end">
+                                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="submit" class="btn btn-success">Guardar</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <footer class="footer">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <script>document.write(new Date().getFullYear())</script> © Imalá.
+                            </div>
+                        </div>
+                    </div>
+                </footer>
+            </div>
+        </div>
+        
+        <!-- Right Sidebar (Added to prevent JS errors and allow Theme Customization) -->
+        <div class="right-bar">
+            <div data-simplebar class="h-100">
+                <div class="rightbar-title d-flex align-items-center p-3">
+                    <h5 class="m-0 me-2">Theme Customizer</h5>
+                    <a href="javascript:void(0);" class="right-bar-toggle ms-auto">
+                        <i class="mdi mdi-close noti-icon"></i>
+                    </a>
+                </div>
+                <hr class="m-0" />
+                <div class="p-4">
+                    <h6 class="mb-3">Layout</h6>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="layout" id="layout-vertical" value="vertical">
+                        <label class="form-check-label" for="layout-vertical">Vertical</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="layout" id="layout-horizontal" value="horizontal">
+                        <label class="form-check-label" for="layout-horizontal">Horizontal</label>
+                    </div>
+
+                    <h6 class="mt-4 mb-3 pt-2">Layout Mode</h6>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="layout-mode" id="layout-mode-light" value="light">
+                        <label class="form-check-label" for="layout-mode-light">Light</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="layout-mode" id="layout-mode-dark" value="dark">
+                        <label class="form-check-label" for="layout-mode-dark">Dark</label>
+                    </div>
+
+                     <!-- Simplified Sidebar Settings for Admin Panel -->
+                     <h6 class="mt-4 mb-3 pt-2">Sidebar Color</h6>
+                    <div class="form-check sidebar-setting">
+                        <input class="form-check-input" type="radio" name="sidebar-color" id="sidebar-color-light" value="light">
+                        <label class="form-check-label" for="sidebar-color-light">Light</label>
+                    </div>
+                    <div class="form-check sidebar-setting">
+                        <input class="form-check-input" type="radio" name="sidebar-color" id="sidebar-color-dark" value="dark">
+                        <label class="form-check-label" for="sidebar-color-dark">Dark</label>
+                    </div>
+                    <div class="form-check sidebar-setting">
+                        <input class="form-check-input" type="radio" name="sidebar-color" id="sidebar-color-brand" value="brand">
+                        <label class="form-check-label" for="sidebar-color-brand">Brand</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="rightbar-overlay"></div>
+
+        <!-- JAVASCRIPT -->
+        <script src="assets/libs/jquery/jquery.min.js"></script>
+        <script src="assets/libs/bootstrap/js/bootstrap.bundle.min.js"></script>
+        <script src="assets/libs/metismenu/metisMenu.min.js"></script>
+        <script src="assets/libs/simplebar/simplebar.min.js"></script>
+        <script src="assets/libs/node-waves/waves.min.js"></script>
+        <script src="assets/libs/feather-icons/feather.min.js"></script>
+        <!-- pace js -->
+        <script src="assets/libs/pace-js/pace.min.js"></script>
+
+        <!-- DataTables -->
+        <script src="assets/libs/datatables.net/js/jquery.dataTables.min.js"></script>
+        <script src="assets/libs/datatables.net-bs4/js/dataTables.bootstrap4.min.js"></script>
+        <script src="assets/libs/datatables.net-responsive/js/dataTables.responsive.min.js"></script>
+        <script src="assets/libs/datatables.net-responsive-bs4/js/responsive.bootstrap4.min.js"></script>
+
+        <!-- Firebase CDNs -->
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-storage-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-functions-compat.js"></script>
+
+        <!-- Imala Config -->
+        <script src="assets/js/firebase-config.js"></script>
+        
+        <!-- Main JS Bundle -->
+        <script src="assets/js/app.js"></script>
+
+        <!-- Admin Logic -->
+        <script src="assets/js/apps-admin-config.js"></script>
+
+    </body>
+</html>

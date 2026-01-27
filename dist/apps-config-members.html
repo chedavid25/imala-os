@@ -9,7 +9,8 @@
         <meta content="Premium Multipurpose Admin & Dashboard Template" name="description" />
         <meta content="Themesbrand" name="author" />
         <!-- App favicon -->
-        <link rel="shortcut icon" href="assets/images/favicon.ico">
+        <link rel="shortcut icon" href="assets/images/favicon-imala.ico?v=2">
+        <link rel="icon" type="image/x-icon" href="assets/images/favicon-imala.ico?v=2">
 
         <!-- preloader css -->
         <link rel="stylesheet" href="assets/css/preloader.min.css" type="text/css" />
@@ -142,7 +143,7 @@
                             </button>
                             <div class="dropdown-menu dropdown-menu-end">
                                 <!-- item-->
-                                <a class="dropdown-item" href="pages-profile.html"><i class="mdi mdi mdi-face-man font-size-16 align-middle me-1"></i> Perfil</a>
+                                <a class="dropdown-item" href="apps-perfil.html"><i class="mdi mdi mdi-face-man font-size-16 align-middle me-1"></i> Perfil</a>
                                 <div class="dropdown-divider"></div>
                                 <a class="dropdown-item" href="#" onclick="window.Imala.auth.signOut(); window.location.href='auth-login.html';"><i class="mdi mdi-logout font-size-16 align-middle me-1"></i> Cerrar Sesión</a>
                             </div>
@@ -523,11 +524,16 @@
         <!-- pace js -->
         <script src="assets/libs/pace-js/pace.min.js"></script>
 
-        <!-- Firebase & App Logic -->
-        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+        <!-- Firebase CDNs -->
+        <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+        
+        <script src="assets/js/config.js"></script>
         <script src="assets/js/firebase-config.js"></script>
+        <script src="assets/js/imala-auth.js"></script>
         
         <script src="assets/js/modules/teams-core.js"></script>
         <script src="assets/js/components/sidebar-menu.js"></script>

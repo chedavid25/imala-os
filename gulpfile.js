@@ -97,6 +97,7 @@ gulp.task('watch', function () {
     gulp.watch(paths.src.scss.files, gulp.series('scss', 'browsersyncReload'));
     gulp.watch([paths.src.js.dir], gulp.series('js', 'browsersyncReload'));
     gulp.watch([paths.src.js.pages], gulp.series('jsPages', 'browsersyncReload'));
+    gulp.watch(paths.src.css.files, gulp.series('css', 'browsersyncReload'));
     gulp.watch([paths.src.html.files, paths.src.partials.files], gulp.series('fileinclude', 'browsersyncReload'));
 });
 
@@ -105,6 +106,12 @@ gulp.task('js', function () {
         .src(paths.src.js.main)
         .pipe(uglify())
         .pipe(gulp.dest(paths.dist.js.dir));
+});
+
+gulp.task('css', function () {
+    return gulp
+        .src(paths.src.css.files)
+        .pipe(gulp.dest(paths.dist.css.dir));
 });
 
 gulp.task('jsPages', function () {
@@ -217,14 +224,13 @@ gulp.task('html', function () {
         .pipe(replace(/href="(.{0,10})node_modules/g, 'href="$1assets/libs'))
         .pipe(replace(/src="(.{0,10})node_modules/g, 'src="$1assets/libs'))
         .pipe(useref())
-        .pipe(cached())
         .pipe(gulpif('*.js', uglify()))
         .pipe(gulpif('*.css', cssnano({ svgo: false })))
         .pipe(gulp.dest(paths.dist.base.dir));
 });
 
 // gulp.task('build', gulp.series(gulp.parallel('clean:tmp', 'clean:packageLock', 'clean:dist', 'copy:all', 'copy:libs'), 'scss', 'html'));
-gulp.task('build', gulp.series(gulp.parallel('clean:packageLock', 'clean:dist', 'copy:all', 'copy:libs'), 'scss', 'html'));
+gulp.task('build', gulp.series(gulp.parallel('clean:packageLock', 'clean:dist', 'copy:all', 'copy:libs', 'css', 'js', 'jsPages'), 'scss', 'html'));
 
 // gulp.task('default', gulp.series(gulp.parallel('fileinclude', 'scss'), gulp.parallel('browsersync', 'watch')));
-gulp.task('default', gulp.series(gulp.parallel('clean:packageLock', 'clean:dist', 'copy:all', 'copy:libs', 'fileinclude', 'scss', 'js', 'jsPages', 'html'), gulp.parallel('browsersync', 'watch')));
+gulp.task('default', gulp.series(gulp.parallel('clean:packageLock', 'clean:dist', 'copy:all', 'copy:libs', 'fileinclude', 'scss', 'css', 'js', 'jsPages', 'html'), gulp.parallel('browsersync', 'watch')));
