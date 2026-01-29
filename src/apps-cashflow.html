@@ -14,7 +14,7 @@
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <meta name="apple-mobile-web-app-title" content="Imalá">
-        <link rel="apple-touch-icon" href="assets/images/icono-imala.png">
+        <link rel="apple-touch-icon" href="assets/images/icono-imala1.png">
 
         <!-- Flatpickr css -->
         <link href="assets/libs/flatpickr/flatpickr.min.css" rel="stylesheet" type="text/css">
@@ -65,58 +65,97 @@
                                         <button class="btn btn-success" id="btn-new-income"><i class="mdi mdi-arrow-up-thin-circle-outline me-1"></i> Nuevo Ingreso</button>
                                         <button class="btn btn-danger ms-2" id="btn-new-expense"><i class="mdi mdi-arrow-down-thin-circle-outline me-1"></i> Nuevo Gasto</button>
                                         <button class="btn btn-primary ms-2" id="btn-new-saving"><i class="mdi mdi-piggy-bank-outline me-1"></i> Nuevo Ahorro</button>
+                                        <button class="btn btn-soft-info ms-2" id="btn-transfer-saving"><i class="mdi mdi-swap-horizontal me-1"></i> Transferir</button>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <!-- end page title -->
 
-                        <!-- KPIs Cards Row -->
+                        <!-- KPIs Cards Row (Triple Balance Layout) -->
                         <div class="row">
-                            <!-- Balance Card Split -->
+                            <!-- PESOS (ARS) -->
                             <div class="col-md-6 mb-4">
                                 <div class="card bg-primary text-white shadow-lg h-100">
                                     <div class="card-body">
                                         <div class="d-flex align-items-center mb-3">
                                             <div class="avatar-xs me-3">
                                                 <span class="avatar-title rounded-circle bg-white bg-opacity-25 text-white font-size-18">
-                                                    <i class="mdi mdi-currency-usd"></i>
+                                                    <i class="mdi mdi-wallet-outline"></i>
                                                 </span>
                                             </div>
-                                            <h5 class="font-size-14 text-white mb-0">Balance PESOS (ARS)</h5>
+                                            <h5 class="font-size-14 text-white mb-0">Caja Disponible (ARS)</h5>
                                         </div>
                                         <div class="text-center">
                                             <h2 class="text-white mb-0 display-6">
                                                 <span id="kpi-balance-ars">0</span> <small class="font-size-14">ARS</small>
                                             </h2>
                                         </div>
-                                        <div class="mt-4 border-top border-white-50 pt-2 text-center">
-                                            <p class="text-white-50 mb-0 font-size-12"><i class="mdi mdi-piggy-bank-outline me-1"></i> Ahorros: <span class="text-white fw-bold" id="kpi-savings-ars">0</span></p>
+                                    </div>
+                                    <div class="card-footer bg-white bg-opacity-10 border-top-0 d-flex justify-content-around py-2">
+                                        <div class="text-center">
+                                            <p class="text-white-50 mb-0 font-size-11 text-uppercase ls-1">Reservas</p>
+                                            <span class="text-white fw-bold font-size-14" id="kpi-savings-ars">0</span>
+                                        </div>
+                                        <div class="text-center border-start border-white-50 ps-3">
+                                            <p class="text-white-50 mb-0 font-size-11 text-uppercase ls-1">Patrimonio Total</p>
+                                            <span class="text-white fw-bold font-size-14" id="kpi-total-ars">0</span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
+                            <!-- DÓLARES (USD) -->
                             <div class="col-md-6 mb-4">
                                 <div class="card bg-success text-white shadow-lg h-100">
                                     <div class="card-body">
                                         <div class="d-flex align-items-center mb-3">
                                             <div class="avatar-xs me-3">
                                                 <span class="avatar-title rounded-circle bg-white bg-opacity-25 text-white font-size-18">
-                                                    <i class="mdi mdi-currency-usd"></i>
+                                                    <i class="mdi mdi-cash-multiple"></i>
                                                 </span>
                                             </div>
-                                            <h5 class="font-size-14 text-white mb-0">Balance DÓLARES (USD)</h5>
+                                            <h5 class="font-size-14 text-white mb-0">Caja Disponible (USD)</h5>
                                         </div>
                                         <div class="text-center">
                                             <h2 class="text-white mb-0 display-6">
                                                 <span id="kpi-balance-usd">0</span> <small class="font-size-14">USD</small>
                                             </h2>
                                         </div>
-                                        <div class="mt-4 border-top border-white-50 pt-2 text-center">
-                                             <p class="text-white-50 mb-0 font-size-12"><i class="mdi mdi-piggy-bank-outline me-1"></i> Ahorros: <span class="text-white fw-bold" id="kpi-savings-usd">0</span></p>
+                                    </div>
+                                    <div class="card-footer bg-white bg-opacity-10 border-top-0 d-flex justify-content-around py-2">
+                                        <div class="text-center">
+                                            <p class="text-white-50 mb-0 font-size-11 text-uppercase ls-1">Reservas</p>
+                                            <span class="text-white fw-bold font-size-14" id="kpi-savings-usd">0</span>
+                                        </div>
+                                        <div class="text-center border-start border-white-50 ps-3">
+                                            <p class="text-white-50 mb-0 font-size-11 text-uppercase ls-1">Patrimonio Total</p>
+                                            <span class="text-white fw-bold font-size-14" id="kpi-total-usd">0</span>
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Surplus Assistant Placeholder -->
+                        <div id="surplus-assistant-container" class="row mb-3" style="display:none;">
+                            <div class="col-12">
+                                <div class="alert alert-info alert-dismissible fade show border-0 shadow-sm mb-0 d-flex align-items-center" role="alert">
+                                    <div class="flex-shrink-0 me-3">
+                                        <div class="avatar-sm">
+                                            <span class="avatar-title rounded-circle bg-info bg-opacity-25 text-info font-size-20">
+                                                <i class="mdi mdi-piggy-bank"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h5 class="font-size-15 mb-1 text-info">¡Asistente de Capitalización detectado!</h5>
+                                        <p class="mb-0" id="surplus-msg">Tienes excedentes pendientes de capitalizar en este periodo.</p>
+                                    </div>
+                                    <div class="flex-shrink-0 ms-2">
+                                        <button class="btn btn-info btn-sm px-3" onclick="openCapitalizeModal()">Capitalizar ahora</button>
+                                    </div>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                 </div>
                             </div>
                         </div>
@@ -444,62 +483,61 @@
                     </div> 
                 </div>
 
-                <!-- Transaction Modal -->
-                <div class="modal fade" id="transaction-modal" tabindex="-1">
+                <!-- Income Modal -->
+                <div class="modal fade" id="modal-income" tabindex="-1">
                     <div class="modal-dialog modal-dialog-centered modal-lg">
                         <div class="modal-content">
                             <div class="modal-header">
-                                <h5 class="modal-title" id="transactionModalLabel">Nuevo Movimiento</h5>
+                                <h5 class="modal-title" id="incomeModalLabel">Nuevo Ingreso</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-hidden="true"></button>
                             </div>
                             <div class="modal-body">
-                                <form id="form-transaction">
-                                    <input type="hidden" id="tx-type" value="INCOME"> <!-- INCOME or EXPENSE -->
-                                    <input type="hidden" id="tx-id">
+                                <form id="form-income">
+                                    <input type="hidden" id="in-id">
 
                                     <div class="row">
                                         <div class="col-md-8 mb-3">
-                                            <label class="form-label" id="label-entity">Cliente / Entidad</label>
-                                            <input type="text" class="form-control" id="tx-entity-name" list="list-entities" required placeholder="Nombre de quien paga o cobra">
-                                            <datalist id="list-entities">
+                                            <label class="form-label">Cliente / Entidad</label>
+                                            <input type="text" class="form-control" id="in-entity-name" list="list-entities-income" required placeholder="Nombre de quien paga">
+                                            <datalist id="list-entities-income">
                                                 <!-- Dynamic Entities -->
                                             </datalist>
                                         </div>
                                         <div class="col-md-4 mb-3">
                                             <label class="form-label">CUIT / ID</label>
-                                            <input type="text" class="form-control" id="tx-cuit" placeholder="Opcional">
+                                            <input type="text" class="form-control" id="in-cuit" placeholder="Opcional">
                                         </div>
                                     </div>
 
                                     <div class="mb-3">
                                         <label class="form-label">Dirección / Detalle</label>
-                                        <input type="text" class="form-control" id="tx-address" placeholder="Ej. Calle Falsa 123 - Oficina 4">
+                                        <input type="text" class="form-control" id="in-address" placeholder="Ej. Calle Falsa 123 - Oficina 4">
                                     </div>
 
                                     <div class="row">
                                         <div class="col-md-6 mb-3">
                                             <label class="form-label">Categoría</label>
                                             <div class="input-group">
-                                                <select class="form-select" id="tx-category" required>
+                                                <select class="form-select" id="in-category" required>
                                                     <option value="">Seleccione...</option>
                                                 </select>
-                                                <button class="btn btn-outline-secondary" type="button" id="btn-add-category" title="Nueva Categoría"><i class="mdi mdi-plus"></i></button>
-                                                <button class="btn btn-outline-secondary" type="button" id="btn-manage-categories" title="Gestionar Categorías"><i class="mdi mdi-cog"></i></button>
+                                                <button class="btn btn-outline-secondary btn-add-category" type="button" data-type="INCOME" title="Nueva Categoría"><i class="mdi mdi-plus"></i></button>
+                                                <button class="btn btn-outline-secondary btn-manage-categories" type="button" data-type="INCOME" title="Gestionar Categorías"><i class="mdi mdi-cog"></i></button>
                                             </div>
-                                            <!-- Inline New Category Input (Hidden by default) -->
-                                            <div id="container-new-category" style="display:none;" class="mt-2">
+                                            <!-- Inline New Category Input -->
+                                            <div id="container-new-category-in" style="display:none;" class="mt-2 container-new-cat">
                                                 <div class="input-group">
-                                                    <input type="text" class="form-control" id="input-new-category" placeholder="Nombre de nueva categoría">
-                                                    <button class="btn btn-success" type="button" id="btn-save-new-cat"><i class="mdi mdi-check"></i></button>
-                                                    <button class="btn btn-danger" type="button" id="btn-cancel-new-cat"><i class="mdi mdi-close"></i></button>
+                                                    <input type="text" class="form-control input-new-cat" placeholder="Nombre de nueva categoría">
+                                                    <button class="btn btn-success btn-save-new-cat" type="button" data-type="INCOME"><i class="mdi mdi-check"></i></button>
+                                                    <button class="btn btn-danger btn-cancel-new-cat" type="button"><i class="mdi mdi-close"></i></button>
                                                 </div>
                                             </div>
                                         </div>
                                         <div class="col-md-6 mb-3">
                                              <label class="form-label">Estado Inicial</label>
-                                             <select class="form-select" id="tx-status">
+                                             <select class="form-select" id="in-status">
                                                  <option value="PENDING" selected>Pendiente</option>
-                                                 <option value="PAID">Pagado / Cobrado</option>
+                                                 <option value="PAID">Cobrado</option>
                                              </select>
                                         </div>
                                     </div>
@@ -507,32 +545,270 @@
                                     <div class="row">
                                         <div class="col-md-4 mb-3">
                                             <label class="form-label">Moneda</label>
-                                            <select class="form-select" id="tx-currency">
-                                                <option value="ARS">Pesos Argentinos (ARS)</option>
+                                            <select class="form-select" id="in-currency">
+                                                <option value="ARS" selected>Pesos Argentinos (ARS)</option>
                                                 <option value="USD">Dólares (USD)</option>
                                             </select>
                                         </div>
                                         <div class="col-md-4 mb-3">
                                             <label class="form-label">Monto</label>
-                                            <input type="number" class="form-control" id="tx-amount" min="0" step="0.01" required>
+                                            <input type="number" class="form-control" id="in-amount" min="0" step="0.01" required>
                                         </div>
                                         <div class="col-md-4 mb-3">
                                             <label class="form-label">Fecha</label>
-                                            <input type="date" class="form-control" id="tx-date" required>
+                                            <input type="date" class="form-control" id="in-date" required>
                                         </div>
                                     </div>
                                     
                                     <hr>
                                     
                                     <div class="form-check form-switch mb-3">
-                                        <input class="form-check-input" type="checkbox" id="tx-recurring">
-                                        <label class="form-check-label fw-bold" for="tx-recurring">¿Es un Pago Recurrente (Mensual)?</label>
-                                        <p class="text-muted font-size-12">Si activas esto, se generará una copia Pendiente el día 1 de cada mes automáticamente.</p>
+                                        <input class="form-check-input" type="checkbox" id="in-recurring">
+                                        <label class="form-check-label fw-bold" for="in-recurring">¿Es un Ingreso Recurrente?</label>
                                     </div>
 
                                     <div class="text-end mt-4">
                                         <button type="button" class="btn btn-light me-1" data-bs-dismiss="modal">Cancelar</button>
-                                        <button type="submit" class="btn btn-primary" id="btn-save-tx">Guardar</button>
+                                        <button type="submit" class="btn btn-primary">Guardar Ingreso</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Expense Modal -->
+                <div class="modal fade" id="modal-expense" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Nuevo Gasto</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-hidden="true"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="form-expense">
+                                    <input type="hidden" id="ex-id">
+
+                                    <div class="row">
+                                        <div class="col-md-8 mb-3">
+                                            <label class="form-label">Proveedor / Entidad</label>
+                                            <input type="text" class="form-control" id="ex-entity-name" list="list-entities-expense" required placeholder="Nombre de quien cobra">
+                                            <datalist id="list-entities-expense">
+                                                <!-- Dynamic Entities -->
+                                            </datalist>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label">CUIT / ID</label>
+                                            <input type="text" class="form-control" id="ex-cuit" placeholder="Opcional">
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Dirección / Detalle</label>
+                                        <input type="text" class="form-control" id="ex-address" placeholder="Ej. Pago de Alquiler Jan 2026">
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Categoría</label>
+                                            <div class="input-group">
+                                                <select class="form-select" id="ex-category" required>
+                                                    <option value="">Seleccione...</option>
+                                                </select>
+                                                <button class="btn btn-outline-secondary btn-add-category" type="button" data-type="EXPENSE" title="Nueva Categoría"><i class="mdi mdi-plus"></i></button>
+                                                <button class="btn btn-outline-secondary btn-manage-categories" type="button" data-type="EXPENSE" title="Gestionar Categorías"><i class="mdi mdi-cog"></i></button>
+                                            </div>
+                                            <!-- Inline New Category Input -->
+                                            <div id="container-new-category-ex" style="display:none;" class="mt-2 container-new-cat">
+                                                <div class="input-group">
+                                                    <input type="text" class="form-control input-new-cat" placeholder="Nombre de nueva categoría">
+                                                    <button class="btn btn-success btn-save-new-cat" type="button" data-type="EXPENSE"><i class="mdi mdi-check"></i></button>
+                                                    <button class="btn btn-danger btn-cancel-new-cat" type="button"><i class="mdi mdi-close"></i></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                             <label class="form-label">Estado Inicial</label>
+                                             <select class="form-select" id="ex-status">
+                                                 <option value="PENDING" selected>Pendiente</option>
+                                                 <option value="PAID">Pagado</option>
+                                             </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label">Moneda</label>
+                                            <select class="form-select" id="ex-currency">
+                                                <option value="ARS" selected>Pesos Argentinos (ARS)</option>
+                                                <option value="USD">Dólares (USD)</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label">Monto</label>
+                                            <input type="number" class="form-control" id="ex-amount" min="0" step="0.01" required>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label">Fecha</label>
+                                            <input type="date" class="form-control" id="ex-date" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <hr>
+                                    
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox" id="ex-recurring">
+                                        <label class="form-check-label fw-bold" for="ex-recurring">¿Es un Gasto Recurrente?</label>
+                                    </div>
+
+                                    <div class="text-end mt-4">
+                                        <button type="button" class="btn btn-light me-1" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="submit" class="btn btn-primary">Guardar Gasto</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Specialized Saving Modal -->
+                <div class="modal fade" id="modal-saving" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="savingModalLabel">Nuevo Registro de Ahorro</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-hidden="true"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="form-saving">
+                                    <input type="hidden" id="sav-id">
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Nombre / Meta de Ahorro</label>
+                                        <input type="text" class="form-control" id="sav-name" required placeholder="Ej. Fondo de Emergencia, Viaje 2026, Inversión Meta">
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <div class="input-group">
+                                                <select class="form-select" id="sav-category" required>
+                                                    <option value="">Seleccione...</option>
+                                                </select>
+                                                <button class="btn btn-outline-secondary btn-add-category" type="button" data-type="SAVING" title="Nueva Categoría"><i class="mdi mdi-plus"></i></button>
+                                                <button class="btn btn-outline-secondary btn-manage-categories" type="button" data-type="SAVING" title="Gestionar Categorías"><i class="mdi mdi-cog"></i></button>
+                                            </div>
+                                            <!-- Inline New Category Input -->
+                                            <div id="container-new-category-sav" style="display:none;" class="mt-2 container-new-cat">
+                                                <div class="input-group">
+                                                    <input type="text" class="form-control input-new-cat" placeholder="Nombre de nueva categoría">
+                                                    <button class="btn btn-success btn-save-new-cat" type="button" data-type="SAVING"><i class="mdi mdi-check"></i></button>
+                                                    <button class="btn btn-danger btn-cancel-new-cat" type="button"><i class="mdi mdi-close"></i></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                             <label class="form-label">Estado</label>
+                                             <select class="form-select" id="sav-status">
+                                                 <option value="ACTIVE" selected>Activo (En Reserva)</option>
+                                                 <option value="USED">Ya Utilizado</option>
+                                             </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label">Moneda</label>
+                                            <select class="form-select" id="sav-currency">
+                                                <option value="ARS" selected>Pesos (ARS)</option>
+                                                <option value="USD">Dólares (USD)</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label">Monto Actual</label>
+                                            <input type="number" class="form-control" id="sav-amount" min="0" step="0.01" required>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label">Monto Objetivo</label>
+                                            <input type="number" class="form-control" id="sav-target-amount" min="0" step="0.01" placeholder="Opcional">
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <div class="form-check form-switch card-radio group-radio mb-2">
+                                            <input class="form-check-input" type="checkbox" id="sav-is-initial">
+                                            <label class="form-check-label" for="sav-is-initial">
+                                                <span class="d-block fw-bold text-primary">¿Es Saldo Inicial / Capital Pre-existente?</span>
+                                                <small class="text-muted">Si lo marcas, este monto se sumará a tus Reservas pero NO se restará de tu Caja Disponible.</small>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Fecha del Ahorro</label>
+                                        <input type="date" class="form-control" id="sav-date" required>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Comentarios / Notas</label>
+                                        <textarea class="form-control" id="sav-address" rows="2" placeholder="Opcional: Detalle sobre el origen o fin de este ahorro."></textarea>
+                                    </div>
+
+                                    <div class="text-end mt-4">
+                                        <button type="button" class="btn btn-light me-1" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="submit" class="btn btn-primary" id="btn-save-saving">Guardar Ahorro</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Internal Transfer Modal -->
+                <div class="modal fade" id="modal-saving-transfer" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content border-info shadow-lg">
+                            <div class="modal-header bg-info bg-opacity-10">
+                                <h5 class="modal-title font-size-16 text-info"><i class="mdi mdi-swap-horizontal me-1"></i> Transferencia entre Ahorros</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-hidden="true"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="form-transfer-saving">
+                                    <div class="alert alert-info py-2 font-size-12 mb-3">
+                                        <i class="mdi mdi-information-outline me-1"></i> Esta acción no afecta tu caja disponible, solo mueve capital entre tus reservas.
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Desde (Origen)</label>
+                                        <select class="form-select" id="trans-source" required>
+                                            <!-- Dynamic Savings List -->
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-3 text-center">
+                                        <i class="mdi mdi-arrow-down-bold font-size-24 text-muted"></i>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Hacia (Destino)</label>
+                                        <select class="form-select" id="trans-dest" required>
+                                            <!-- Dynamic Savings List / Categories -->
+                                        </select>
+                                    </div>
+
+                                    <div class="row mt-4">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label font-size-13 text-muted uppercase">Moneda</label>
+                                            <input type="text" class="form-control bg-light" id="trans-currency" readonly>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label fw-bold font-size-13 text-muted uppercase">Monto a Mover</label>
+                                            <input type="number" class="form-control border-info" id="trans-amount" min="0.01" step="0.01" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="text-end mt-3 border-top pt-3">
+                                        <button type="button" class="btn btn-light me-1" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="submit" class="btn btn-info w-md" id="btn-do-transfer">Confirmar Transferencia</button>
                                     </div>
                                 </form>
                             </div>
@@ -848,7 +1124,7 @@
         <script src="assets/js/app.js"></script>
 
         <!-- Cashflow Logic -->
-        <script src="assets/js/apps-cashflow.js?v=2"></script>
+        <script src="assets/js/apps-cashflow.js?v=3"></script>
 
     </body>
 </html>

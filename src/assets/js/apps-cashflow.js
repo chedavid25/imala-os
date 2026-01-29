@@ -17,10 +17,14 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    const txModal = new bootstrap.Modal(document.getElementById('transaction-modal'));
+    const incomeModal = new bootstrap.Modal(document.getElementById('modal-income'));
+    const expenseModal = new bootstrap.Modal(document.getElementById('modal-expense'));
+    const savingModal = new bootstrap.Modal(document.getElementById('modal-saving'));
+    const transferModal = new bootstrap.Modal(document.getElementById('modal-saving-transfer'));
+    
     let allTransactions = [];
-    let categories = []; 
-    let entities = []; // Local cache of entities
+    let categories = { INCOME: [], EXPENSE: [], SAVING: [] }; 
+    let entities = { INCOME: [], EXPENSE: [] }; 
 
     // ==========================================
     // 2. Helper Functions (Currency, Date)
@@ -40,179 +44,242 @@ document.addEventListener('DOMContentLoaded', function () {
     // 3. Categories Logic
     // ==========================================
     
+    // Versión del Script: 3.1 (Separación de categorías mejorada)
     async function initCategories() {
-        const defaultCategories = ['Alquiler', 'Expensas', 'Servicios', 'Honorarios', 'Ventas', 'Otros'];
-        categories = []; // Reset local array
+        const defaultIncomeCategories = ['Ventas', 'Honorarios', 'Otros'];
+        const defaultExpenseCategories = ['Alquiler', 'Expensas', 'Servicios', 'Sueldos', 'Impuestos', 'Otros'];
+        const defaultSavingCategories = ['Fondo de Reserva', 'Inversión', 'Viajes', 'Bienes', 'Otros'];
+        
+        categories = { INCOME: [], EXPENSE: [], SAVING: [] };
 
         try {
             const collectionRef = db.collection('cashflow_categories');
             const snap = await collectionRef.orderBy('createdAt', 'asc').get();
             
-            // 1. Load Existing from DB
-            const existingNames = new Set();
+            const existingNames = { INCOME: new Set(), EXPENSE: new Set(), SAVING: new Set() };
+            const batch = db.batch();
+            let hasMigration = false;
+            
             snap.forEach(doc => {
                 const d = doc.data();
-                existingNames.add(d.name);
-                // Only add to UI list if active
+                let type = d.type;
+                
+                // Si el tipo no existe, lo inferimos y lo guardamos PERMANENTEMENTE en la DB
+                if (!type) {
+                    if (defaultExpenseCategories.includes(d.name)) type = 'EXPENSE';
+                    else type = 'INCOME';
+                    
+                    batch.update(doc.ref, { type: type });
+                    hasMigration = true;
+                }
+
+                if (!existingNames[type]) existingNames[type] = new Set();
+                
+                existingNames[type].add(d.name);
                 if (d.active !== false) {
-                   categories.push(d.name); 
+                    if (!categories[type].includes(d.name)) {
+                        categories[type].push(d.name);
+                    }
                 }
             });
 
-            // 2. Migration Check: Do defaults exist?
-            // If the collection is empty OR if specific defaults are missing, we should probably add them?
-            // Let's assume if "Alquiler" is missing, we add it. 
-            // BUT: What if user deleted it? We shouldn't re-add it.
-            // Heuristic: If collection is completely empty, it's a fresh start -> Add Defaults.
-            // If collection has items, assume migration done or user managing them.
-            // Wait, currently defaults are NOT in DB. So for this user, existingNames might be empty (or only contain the ones they just added).
-            
-            // Refined Heuristic: Check for a "migration_complete" marker or just check if ANY default exists.
-            // Since this user just started using the DB for categories, they might have their custom ones but NOT the defaults.
-            
-            // Let's iterate defaults. If default is NOT in existingNames, add it.
-            // Risky if user deleted it already? No, because they COULDN'T delete it before this feature.
-            // So for this specific user/session, it is safe to add them if missing.
-            
-            const batch = db.batch();
-            let hasNewDefaults = false;
+            const checkDefaults = (defaults, type) => {
+                defaults.forEach(defCat => {
+                    if (!existingNames[type].has(defCat)) {
+                        const newRef = collectionRef.doc();
+                        batch.set(newRef, {
+                            name: defCat,
+                            type: type,
+                            active: true,
+                            createdAt: new Date(),
+                            createdBy: 'SYSTEM'
+                        });
+                        categories[type].push(defCat);
+                        existingNames[type].add(defCat);
+                        hasMigration = true;
+                    }
+                });
+            };
 
-            defaultCategories.forEach(defCat => {
-                if (!existingNames.has(defCat)) {
-                    // Add it
-                    const newRef = collectionRef.doc();
-                    batch.set(newRef, {
-                        name: defCat,
-                        active: true,
-                        createdAt: new Date(),
-                        createdBy: 'SYSTEM'
-                    });
-                    categories.push(defCat); // Add to local list immediately
-                    existingNames.add(defCat); // Prevent dupes locally
-                    hasNewDefaults = true;
-                }
-            });
+            checkDefaults(defaultIncomeCategories, 'INCOME');
+            checkDefaults(defaultExpenseCategories, 'EXPENSE');
+            checkDefaults(defaultSavingCategories, 'SAVING');
 
-            if (hasNewDefaults) {
+            if (hasMigration) {
                 await batch.commit();
-                console.log("Default categories migrated to Firestore.");
+                console.log("Categorías sincronizadas y tipos actualizados permanentemente.");
             }
             
-            // Re-sort alphabetically or keep creation order? 
-            // Let's sort alphabetically for better UX now that they are mixed.
-            categories.sort();
+            categories.INCOME.sort();
+            categories.EXPENSE.sort();
+            categories.SAVING.sort();
 
         } catch (error) {
-            console.error("Error loading/migrating categories:", error);
-            // Fallback just in case
-            if(categories.length === 0) categories = [...defaultCategories];
+            console.error("Error loading categories:", error);
+            if(categories.INCOME.length === 0) categories.INCOME = [...defaultIncomeCategories];
+            if(categories.EXPENSE.length === 0) categories.EXPENSE = [...defaultExpenseCategories];
+            if(categories.SAVING.length === 0) categories.SAVING = [...defaultSavingCategories];
         }
 
-        renderCategoryOptions();
+        renderCategoryOptions('INCOME');
+        renderCategoryOptions('EXPENSE');
+        renderCategoryOptions('SAVING');
+        updateGlobalFilterCategories(); 
     }
 
-    function renderCategoryOptions() {
-        const select = document.getElementById('tx-category');
+    function renderCategoryOptions(type) {
+        let selectId = '';
+        if (type === 'INCOME') selectId = 'in-category';
+        else if (type === 'EXPENSE') selectId = 'ex-category';
+        else if (type === 'SAVING') selectId = 'sav-category';
+
+        const select = document.getElementById(selectId);
+        if(!select) return;
+        
         select.innerHTML = '<option value="">Seleccione...</option>';
-        categories.forEach(c => {
+        categories[type].forEach(c => {
             select.innerHTML += `<option value="${c}">${c}</option>`;
         });
-        
-        // Filter Select
-        const filterSelect = document.getElementById('filter-category');
-        const currentVal = filterSelect.value; // Store value to restore if possible
-        filterSelect.innerHTML = '<option value="ALL">Todas</option>';
-        categories.forEach(c => {
-            filterSelect.innerHTML += `<option value="${c}">${c}</option>`;
-        });
-        if(currentVal) filterSelect.value = currentVal;
     }
 
-    // Inline Add Logic
-    const containerNewCat = document.getElementById('container-new-category');
-    const inputNewCat = document.getElementById('input-new-category');
-    
-    document.getElementById('btn-add-category').addEventListener('click', () => {
-         containerNewCat.style.display = 'block';
-         inputNewCat.focus();
-    });
-
-    document.getElementById('btn-cancel-new-cat').addEventListener('click', () => {
-         containerNewCat.style.display = 'none';
-         inputNewCat.value = '';
-    });
-
-    document.getElementById('btn-save-new-cat').addEventListener('click', async () => {
-        const cat = inputNewCat.value.trim();
-        if(!cat) return;
-
-        try {
-            const btn = document.getElementById('btn-save-new-cat');
-            btn.innerHTML = '<i class="bx bx-loader bx-spin"></i>';
-            btn.disabled = true;
-
-            await db.collection('cashflow_categories').add({
-                name: cat,
-                active: true,
-                createdAt: new Date(),
-                createdBy: auth.currentUser.uid
+    function updateGlobalFilterCategories() {
+        const filterSelect = document.getElementById('filter-category');
+        if (filterSelect) {
+            const currentVal = filterSelect.value;
+            filterSelect.innerHTML = '<option value="ALL">Todas</option>';
+            const allCats = [...new Set([...categories.INCOME, ...categories.EXPENSE])].sort();
+            allCats.forEach(c => {
+                filterSelect.innerHTML += `<option value="${c}">${c}</option>`;
             });
+            if(currentVal) filterSelect.value = currentVal;
+        }
+    }
 
-            categories.push(cat); 
-            renderCategoryOptions();
-            
-            // Select it
-            document.getElementById('tx-category').value = cat;
-            
-            // Reset UI
-            containerNewCat.style.display = 'none';
-            inputNewCat.value = '';
-            
-        } catch (error) {
-            console.error(error);
-            Swal.fire('Error', 'No se pudo guardar la categoría.', 'error');
-        } finally {
-            const btn = document.getElementById('btn-save-new-cat');
-            btn.innerHTML = '<i class="mdi mdi-check"></i>';
-            btn.disabled = false;
+    // Generic Category Add Logic using delegation
+    // Category UI Handlers (Event Delegation for robustness)
+    document.addEventListener('click', async (e) => {
+        const target = e.target.closest('button');
+        if (!target) return;
+
+        // 1. Add Category Button (Plus)
+        if (target.classList.contains('btn-add-category')) {
+            const type = target.dataset.type;
+            let containerId = '';
+            if (type === 'INCOME') containerId = 'container-new-category-in';
+            else if (type === 'EXPENSE') containerId = 'container-new-category-ex';
+            else if (type === 'SAVING') containerId = 'container-new-category-sav';
+
+            const container = document.getElementById(containerId);
+            if (container) {
+                const input = container.querySelector('.input-new-cat');
+                container.style.display = 'block';
+                if (input) input.focus();
+            }
+        }
+
+        // 2. Cancel New Category
+        if (target.classList.contains('btn-cancel-new-cat')) {
+            const container = target.closest('.container-new-cat');
+            if (container) container.style.display = 'none';
+        }
+
+        // 3. Save New Category
+        if (target.classList.contains('btn-save-new-cat')) {
+            const type = target.dataset.type;
+            const container = target.closest('.container-new-cat');
+            const input = container.querySelector('.input-new-cat');
+            const cat = input.value.trim();
+            if(!cat) return;
+
+            const btnSave = target;
+            const originalHTML = btnSave.innerHTML;
+
+            try {
+                btnSave.innerHTML = '<i class="bx bx-loader bx-spin"></i>';
+                btnSave.disabled = true;
+
+                await db.collection('cashflow_categories').add({
+                    name: cat,
+                    type: type,
+                    active: true,
+                    createdAt: new Date(),
+                    createdBy: auth.currentUser.uid
+                });
+
+                categories[type].push(cat);
+                categories[type].sort();
+                renderCategoryOptions(type);
+                updateGlobalFilterCategories();
+                
+                const selectId = type === 'INCOME' ? 'in-category' : (type === 'EXPENSE' ? 'ex-category' : 'sav-category');
+                const sel = document.getElementById(selectId);
+                if (sel) sel.value = cat;
+                
+                container.style.display = 'none';
+                input.value = '';
+                
+            } catch (error) {
+                console.error(error);
+                Swal.fire('Error', 'No se pudo guardar la categoría.', 'error');
+            } finally {
+                btnSave.innerHTML = originalHTML;
+                btnSave.disabled = false;
+            }
+        }
+
+        // 4. Manage Categories Button (Gear)
+        if (target.classList.contains('btn-manage-categories')) {
+            currentManageType = target.dataset.type;
+            await loadManageCategories(currentManageType);
+            modalManage.show();
         }
     });
 
-    // Category Management
+    // Initialize Management Modal
     const modalManage = new bootstrap.Modal(document.getElementById('modal-manage-categories'));
-    
-    document.getElementById('btn-manage-categories').addEventListener('click', async () => {
-        loadManageCategories();
-        modalManage.show();
-    });
+    let currentManageType = 'INCOME';
 
-    async function loadManageCategories() {
+    async function loadManageCategories(type) {
          const tbody = document.querySelector('#table-manage-categories tbody');
          tbody.innerHTML = '<tr><td>Cargando...</td></tr>';
          
+         const title = document.querySelector('#modal-manage-categories .modal-title');
+         let typeLabel = 'Ingresos';
+         if (type === 'EXPENSE') typeLabel = 'Gastos';
+         else if (type === 'SAVING') typeLabel = 'Ahorros';
+         
+         if(title) title.textContent = `Gestionar Categorías (${typeLabel})`;
+
          try {
-             const snap = await db.collection('cashflow_categories').where('active', '!=', false).get();
-             // Note: 'active' might be missing in old ones, so better get all and filter in JS if index is issue.
-             // Or simpler: get all from 'categories' array? No, need IDs to delete.
-             // We need IDs. So fetch query is needed.
-             
-             // Issue: we used an array `categories` mixing defaults and DB.
-             // Defaults cannot be deleted (hardcoded). DB ones can.
-             
-             // Fetch all DB categories
-             const dbCats = await db.collection('cashflow_categories').orderBy('createdAt', 'desc').get();
+             // Fetch DB categories for this specific type
+             // Removed .orderBy('createdAt', 'desc') to avoid index requirement
+             const snap = await db.collection('cashflow_categories')
+                                    .where('type', '==', type)
+                                    .get();
              
              tbody.innerHTML = '';
              
-             dbCats.forEach(doc => {
-                 const d = doc.data();
-                 if(d.active === false) return; // Skip inactive
+             // Convert to array and sort client-side
+             const dbCats = [];
+             snap.forEach(doc => {
+                 dbCats.push({ id: doc.id, ...doc.data() });
+             });
+
+             // Sort by createdAt descending
+             dbCats.sort((a, b) => {
+                 const dateA = a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt)) : new Date(0);
+                 const dateB = b.createdAt ? (b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt)) : new Date(0);
+                 return dateB - dateA;
+             });
+             
+             dbCats.forEach(d => {
+                 if(d.active === false) return; 
                  
                  tbody.innerHTML += `
                     <tr>
                         <td class="align-middle">${d.name}</td>
                         <td class="text-end">
-                            <button class="btn btn-sm btn-soft-danger" onclick="softDeleteCategory('${doc.id}', '${d.name}')">
+                            <button class="btn btn-sm btn-soft-danger" onclick="softDeleteCategory('${d.id}', '${d.name}', '${type}')">
                                 <i class="mdi mdi-trash-can-outline"></i>
                             </button>
                         </td>
@@ -220,7 +287,7 @@ document.addEventListener('DOMContentLoaded', function () {
                  `;
              });
              
-             if(tbody.innerHTML === '') tbody.innerHTML = '<tr><td colspan="2" class="text-center text-muted">No hay categorías personalizadas.</td></tr>';
+             if(tbody.innerHTML === '') tbody.innerHTML = '<tr><td colspan="2" class="text-center text-muted">No hay categorías personalizadas para este tipo.</td></tr>';
              
          } catch(e) {
              console.error(e);
@@ -228,18 +295,18 @@ document.addEventListener('DOMContentLoaded', function () {
          }
     }
 
-    window.softDeleteCategory = async function(id, name) {
+    window.softDeleteCategory = async function(id, name, type) {
         if(confirm(`¿Eliminar "${name}" del selector?`)) {
             await db.collection('cashflow_categories').doc(id).update({ active: false });
             
             // Update local array
-            categories = categories.filter(c => c !== name);
-            renderCategoryOptions();
+            categories[type] = categories[type].filter(c => c !== name);
+            renderCategoryOptions(type);
             
             // Reload list
-            loadManageCategories();
+            loadManageCategories(type);
         }
-    };
+    }
 
 
     // ==========================================
@@ -249,148 +316,226 @@ document.addEventListener('DOMContentLoaded', function () {
     const formTx = document.getElementById('form-transaction');
     const btnNewIncome = document.getElementById('btn-new-income');
     const btnNewExpense = document.getElementById('btn-new-expense');
-
     const btnNewSaving = document.getElementById('btn-new-saving');
+    const btnTransferSaving = document.getElementById('btn-transfer-saving');
+
+    if(btnNewIncome) btnNewIncome.addEventListener('click', () => openModal('INCOME'));
+    if(btnNewExpense) btnNewExpense.addEventListener('click', () => openModal('EXPENSE'));
+    if(btnNewSaving) btnNewSaving.addEventListener('click', () => openModal('SAVING'));
+    if(btnTransferSaving) btnTransferSaving.addEventListener('click', openTransferModal);
+
+    const formTransfer = document.getElementById('form-transfer-saving');
+    if(formTransfer) formTransfer.addEventListener('submit', handleTransferSubmit);
+    const selectSource = document.getElementById('trans-source');
+    if(selectSource) selectSource.addEventListener('change', updateTransferCurrency);
 
     function openModal(type, data = null) {
-        formTx.reset();
-        document.getElementById('tx-type').value = type;
-        
-        let title = '';
-        let labelEntity = '';
-        
         if (type === 'INCOME') {
-             title = 'Registrar Ingreso';
-             labelEntity = 'Cliente / Entidad';
+            const form = document.getElementById('form-income');
+            form.reset();
+            document.getElementById('in-id').value = '';
+            document.getElementById('in-date').valueAsDate = new Date();
+            incomeModal.show();
         } else if (type === 'EXPENSE') {
-             title = 'Registrar Gasto';
-             labelEntity = 'Proveedor / Entidad';
+            const form = document.getElementById('form-expense');
+            form.reset();
+            document.getElementById('ex-id').value = '';
+            document.getElementById('ex-date').valueAsDate = new Date();
+            expenseModal.show();
         } else if (type === 'SAVING') {
-             title = 'Registrar Ahorro';
-             labelEntity = 'Nombre del Ahorro / Meta';
+            const form = document.getElementById('form-saving');
+            form.reset();
+            document.getElementById('sav-id').value = '';
+            document.getElementById('sav-date').valueAsDate = new Date();
+            
+            if (data) {
+                document.getElementById('sav-id').value = data.id || '';
+                document.getElementById('sav-name').value = data.entityName || '';
+                document.getElementById('sav-amount').value = data.amount || 0;
+                document.getElementById('sav-target-amount').value = data.targetAmount || '';
+                document.getElementById('sav-currency').value = data.currency || 'ARS';
+                document.getElementById('sav-category').value = data.category || 'Fondo de Reserva';
+                document.getElementById('sav-status').value = data.status || 'ACTIVE';
+                document.getElementById('sav-is-initial').checked = data.isInitial || false;
+                if(data.date) document.getElementById('sav-date').valueAsDate = parseDate(data.date);
+                document.getElementById('sav-address').value = data.address || '';
+            }
+            
+            savingModal.show();
         }
-
-        document.getElementById('transactionModalLabel').textContent = title;
-        document.getElementById('label-entity').textContent = labelEntity;
-        document.getElementById('tx-date').valueAsDate = new Date();
-
-        if(data) {
-             // Future: pre-fill implementation
-        }
-        
-        txModal.show();
     }
 
-    btnNewIncome.addEventListener('click', () => openModal('INCOME'));
-    btnNewExpense.addEventListener('click', () => openModal('EXPENSE'));
-    btnNewSaving.addEventListener('click', () => openModal('SAVING'));
 
     // ==========================================
     // 5. Entities Registry
     // ==========================================
     
     async function initEntities() {
-         const datalist = document.getElementById('list-entities');
-         datalist.innerHTML = '';
-         entities = [];
+         const listIn = document.getElementById('list-entities-income');
+         const listEx = document.getElementById('list-entities-expense');
+         if(listIn) listIn.innerHTML = '';
+         if(listEx) listEx.innerHTML = '';
+         
+         entities = { INCOME: [], EXPENSE: [] };
          
          try {
              const snap = await db.collection('cashflow_entities').orderBy('name').get();
              snap.forEach(doc => {
-                 const name = doc.data().name;
-                 if(!entities.includes(name)) {
-                     entities.push(name);
-                     const opt = document.createElement('option');
-                     opt.value = name;
-                     datalist.appendChild(opt);
-                 }
+                 const d = doc.data();
+                 // Default to BOTH for old records to ensure they appear in one of the lists
+                 const type = d.type || 'BOTH';
+                 
+                 const addToList = (list, typeKey) => {
+                     if(list) {
+                         const opt = document.createElement('option');
+                         opt.value = d.name;
+                         list.appendChild(opt);
+                         if (!entities[typeKey].includes(d.name)) {
+                             entities[typeKey].push(d.name);
+                         }
+                     }
+                 };
+
+                 if(type === 'CLIENT' || type === 'BOTH') addToList(listIn, 'INCOME');
+                 if(type === 'PROVIDER' || type === 'BOTH') addToList(listEx, 'EXPENSE');
              });
          } catch(e) {
              console.error("Error loading entities", e);
          }
     }
 
-    async function checkAndSaveEntity(name, type) {
+    async function checkAndSaveEntity(name, typeHint) {
         if(!name) return;
-        // Check local cache
-        // Using lowercase comparison for better duplicate detection
-        const exists = entities.some(e => e.toLowerCase() === name.toLowerCase());
+        const targetType = typeHint === 'INCOME' ? 'CLIENT' : 'PROVIDER';
+        const typeKey = typeHint;
+        
+        const exists = entities[typeKey].some(e => e.toLowerCase() === name.toLowerCase());
         
         if(!exists) {
             try {
                 await db.collection('cashflow_entities').add({
                     name: name,
-                    type: type, // 'PROVIDER', 'CLIENT', or 'BOTH' (simplified to just type of tx)
+                    type: targetType, 
                     createdAt: new Date(),
                     createdBy: auth.currentUser.uid
                 });
-                // Add to local list/DOM to avoid reload
-                entities.push(name);
-                const datalist = document.getElementById('list-entities');
-                const opt = document.createElement('option');
-                opt.value = name;
-                datalist.appendChild(opt);
                 
-                console.log(`New entity ${name} saved.`);
+                entities[typeKey].push(name);
+                const listId = typeHint === 'INCOME' ? 'list-entities-income' : 'list-entities-expense';
+                const datalist = document.getElementById(listId);
+                if(datalist) {
+                    const opt = document.createElement('option');
+                    opt.value = name;
+                    datalist.appendChild(opt);
+                }
+                
+                console.log(`New entity ${name} saved as ${targetType}.`);
             } catch(e) {
                 console.error("Error auto-saving entity", e);
             }
         }
     }
 
-    formTx.addEventListener('submit', async (e) => {
+    // --- SUBMIT HANDLERS ---
+
+    async function handleTxSubmit(e, type) {
         e.preventDefault();
-        
-        const btnSave = document.getElementById('btn-save-tx');
+        const prefix = type === 'INCOME' ? 'in' : 'ex';
+        const form = e.target;
+        const btnSave = form.querySelector('button[type="submit"]');
         const originalText = btnSave.innerHTML;
+        
         btnSave.disabled = true;
         btnSave.innerHTML = '<i class="bx bx-loader bx-spin"></i> Guardando...';
 
         try {
-            const type = document.getElementById('tx-type').value;
-            const id = document.getElementById('tx-id').value;
+            const id = document.getElementById(`${prefix}-id`).value;
+            const entityName = document.getElementById(`${prefix}-entity-name`).value;
             
-            const entityName = document.getElementById('tx-entity-name').value;
-            // Auto-save entity
-            // Determine type hint
-            let entityType = 'OTHER';
-            if(type === 'INCOME') entityType = 'CLIENT';
-            else if (type === 'EXPENSE') entityType = 'PROVIDER';
-            
-            // Fire and forget (don't await) to speed up UI, or await if critical?
-            // Let's await to be safe.
-            await checkAndSaveEntity(entityName, entityType);
+            await checkAndSaveEntity(entityName, type);
 
             const data = {
                 type: type,
                 entityName: entityName,
-                cuit: document.getElementById('tx-cuit').value,
-                address: document.getElementById('tx-address').value,
-                category: document.getElementById('tx-category').value,
-                status: document.getElementById('tx-status').value,
-                currency: document.getElementById('tx-currency').value,
-                amount: parseFloat(document.getElementById('tx-amount').value),
-                date: firebase.firestore.Timestamp.fromDate(document.getElementById('tx-date').valueAsDate),
-                isRecurring: document.getElementById('tx-recurring').checked,
-                createdAt: new Date(),
-                createdBy: auth.currentUser.uid
+                cuit: document.getElementById(`${prefix}-cuit`).value,
+                address: document.getElementById(`${prefix}-address`).value,
+                category: document.getElementById(`${prefix}-category`).value,
+                status: document.getElementById(`${prefix}-status`).value,
+                currency: document.getElementById(`${prefix}-currency`).value,
+                amount: parseFloat(document.getElementById(`${prefix}-amount`).value) || 0,
+                date: firebase.firestore.Timestamp.fromDate(document.getElementById(`${prefix}-date`).valueAsDate || new Date()),
+                isRecurring: document.getElementById(`${prefix}-recurring`).checked,
+                updatedAt: new Date()
             };
 
-            await db.collection('transactions').add(data);
-            
-            txModal.hide();
-            Swal.fire('Guardado', 'Movimiento registrado correctamente.', 'success');
-            
-            // Check recurrence immediately? Not needed, loadTransactions will listen
-            
+            if (id) {
+                await db.collection('transactions').doc(id).update(data);
+            } else {
+                data.createdAt = new Date();
+                data.createdBy = auth.currentUser.uid;
+                await db.collection('transactions').add(data);
+            }
+
+            const modal = type === 'INCOME' ? incomeModal : expenseModal;
+            modal.hide();
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Guardado correctamente.', showConfirmButton: false, timer: 3000 });
+
         } catch (error) {
             console.error(error);
-            Swal.fire('Error', error.message, 'error');
+            Swal.fire('Error', 'No se pudo guardar el movimiento: ' + error.message, 'error');
         } finally {
             btnSave.disabled = false;
             btnSave.innerHTML = originalText;
         }
-    });
+    }
+
+    document.getElementById('form-income').addEventListener('submit', (e) => handleTxSubmit(e, 'INCOME'));
+    document.getElementById('form-expense').addEventListener('submit', (e) => handleTxSubmit(e, 'EXPENSE'));
+
+    async function handleSavingSubmit(e) {
+        e.preventDefault();
+        const form = e.target;
+        const btnSave = document.getElementById('btn-save-saving');
+        const originalText = btnSave.innerHTML;
+        
+        btnSave.disabled = true;
+        btnSave.innerHTML = '<i class="bx bx-loader bx-spin"></i> Guardando...';
+
+        try {
+            const id = document.getElementById('sav-id').value;
+            const data = {
+                type: 'SAVING',
+                entityName: document.getElementById('sav-name').value,
+                category: document.getElementById('sav-category').value,
+                status: document.getElementById('sav-status').value,
+                currency: document.getElementById('sav-currency').value,
+                amount: parseFloat(document.getElementById('sav-amount').value) || 0,
+                targetAmount: parseFloat(document.getElementById('sav-target-amount').value) || 0,
+                isInitial: document.getElementById('sav-is-initial').checked,
+                date: firebase.firestore.Timestamp.fromDate(document.getElementById('sav-date').valueAsDate || new Date()),
+                address: document.getElementById('sav-address').value,
+                updatedAt: new Date()
+            };
+
+            if (id) {
+                await db.collection('transactions').doc(id).update(data);
+            } else {
+                data.createdAt = new Date();
+                data.createdBy = auth.currentUser.uid;
+                await db.collection('transactions').add(data);
+            }
+
+            savingModal.hide();
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Ahorro guardado.', showConfirmButton: false, timer: 3000 });
+        } catch (error) {
+            console.error(error);
+            Swal.fire('Error', 'No se pudo guardar el ahorro.', 'error');
+        } finally {
+            btnSave.disabled = false;
+            btnSave.innerHTML = originalText;
+        }
+    }
+    document.getElementById('form-saving').addEventListener('submit', handleSavingSubmit);
 
     // ==========================================
     // 5. Load & Recurrence Logic
@@ -536,7 +681,7 @@ document.addEventListener('DOMContentLoaded', function () {
             );
         }
 
-        calculateKPIs(filtered);
+        calculateKPIs(filtered, year, period);
         renderTables(filtered);
         renderMonthlyControl(); 
         renderAgreementsList(); // Fix: Update Bottom Table too
@@ -860,59 +1005,176 @@ document.addEventListener('DOMContentLoaded', function () {
     
 
 
-    function calculateKPIs(data) {
-        // Income
-        const income = data.filter(t => t.type === 'INCOME');
-        const incExpARS = income.reduce((acc, t) => t.currency === 'ARS' ? acc + t.amount : acc, 0);
-        const incExpUSD = income.reduce((acc, t) => t.currency === 'USD' ? acc + t.amount : acc, 0);
+    function calculateKPIs(currentFilteredData, year, period) {
+        const getSum = (arr, currency) => arr.reduce((acc, t) => t.currency === currency ? acc + (Number(t.amount) || 0) : acc, 0);
+
+        // 1. Calculate ACCUMULATED Balance for Cards (Up to selected period)
+        // We look at allTransactions to get the REAL state of account at that moment.
+        let historicalData = [...allTransactions];
         
-        const incPendARS = income.filter(t => t.status !== 'PAID').reduce((acc, t) => t.currency === 'ARS' ? acc + t.amount : acc, 0);
-        const incPendUSD = income.filter(t => t.status !== 'PAID').reduce((acc, t) => t.currency === 'USD' ? acc + t.amount : acc, 0);
+        // Define terminal date of period
+        let endOfPeriodDate = new Date();
+        if (period !== 'ALL' && period !== 'YTD') {
+             const m = parseInt(period);
+             if(!isNaN(m)) {
+                 endOfPeriodDate = new Date(year, m, 0, 23, 59, 59); // Last second of the month
+             }
+        }
 
-        // Expense
-        const expense = data.filter(t => t.type === 'EXPENSE');
-        const expExpARS = expense.reduce((acc, t) => t.currency === 'ARS' ? acc + t.amount : acc, 0);
-        const expExpUSD = expense.reduce((acc, t) => t.currency === 'USD' ? acc + t.amount : acc, 0);
+        // Filter historical data up to end of period
+        if (period !== 'ALL') {
+             historicalData = historicalData.filter(t => parseDate(t.date) <= endOfPeriodDate);
+        }
 
-        const expPendARS = expense.filter(t => t.status !== 'PAID').reduce((acc, t) => t.currency === 'ARS' ? acc + t.amount : acc, 0);
-        const expPendUSD = expense.filter(t => t.status !== 'PAID').reduce((acc, t) => t.currency === 'USD' ? acc + t.amount : acc, 0);
-
-        // Savings
-        const savings = data.filter(t => t.type === 'SAVING');
-
-        // Net Balance Calculation (Paid Income - Paid Expenses)
-        // Note: Savings are "money set aside" but technically still an asset.
-        // The user asked for "Income - Expense" balance.
+        const hIncome = historicalData.filter(t => t.type === 'INCOME' && t.status === 'PAID');
+        const hExpense = historicalData.filter(t => t.type === 'EXPENSE' && t.status === 'PAID');
+        const hSavings = historicalData.filter(t => t.type === 'SAVING' && t.status !== 'USED');
         
-        const incomePaidARS = income.filter(t => t.status === 'PAID').reduce((acc, t) => t.currency === 'ARS' ? acc + t.amount : acc, 0);
-        const incomePaidUSD = income.filter(t => t.status === 'PAID').reduce((acc, t) => t.currency === 'USD' ? acc + t.amount : acc, 0);
-        
-        const expensePaidARS = expense.filter(t => t.status === 'PAID').reduce((acc, t) => t.currency === 'ARS' ? acc + t.amount : acc, 0);
-        const expensePaidUSD = expense.filter(t => t.status === 'PAID').reduce((acc, t) => t.currency === 'USD' ? acc + t.amount : acc, 0);
+        // Only savings that are NOT initial balances should be subtracted from liquid cash
+        const hSavingsToSubtract = hSavings.filter(t => t.isInitial !== true);
 
-        const balanceARS = incomePaidARS - expensePaidARS;
-        const balanceUSD = incomePaidUSD - expensePaidUSD;
+        const totalIncARS = getSum(hIncome, 'ARS');
+        const totalIncUSD = getSum(hIncome, 'USD');
+        const totalExpARS = getSum(hExpense, 'ARS');
+        const totalExpUSD = getSum(hExpense, 'USD');
+        const totalSavARS = getSum(hSavings, 'ARS');
+        const totalSavUSD = getSum(hSavings, 'USD');
 
-        // Savings Total (Active)
-        const savingsTotalARS = savings.filter(t => t.status !== 'USED').reduce((acc, t) => t.currency === 'ARS' ? acc + t.amount : acc, 0);
-        const savingsTotalUSD = savings.filter(t => t.status !== 'USED').reduce((acc, t) => t.currency === 'USD' ? acc + t.amount : acc, 0);
+        const totalSavToSubtractARS = getSum(hSavingsToSubtract, 'ARS');
+        const totalSavToSubtractUSD = getSum(hSavingsToSubtract, 'USD');
 
-        // Update DOM
+        // Caja Disponible = Tudo lo cobrado - Todo lo pagado - Ahorros generados desde esta caja
+        const balanceARS = totalIncARS - totalExpARS - totalSavToSubtractARS;
+        const balanceUSD = totalIncUSD - totalExpUSD - totalSavToSubtractUSD;
+
+        const totalPatrimonialARS = balanceARS + totalSavARS;
+        const totalPatrimonialUSD = balanceUSD + totalSavUSD;
+
+        // Update DOM Cards
         updateKPI('kpi-balance-ars', balanceARS);
         updateKPI('kpi-balance-usd', balanceUSD);
-        
-        updateKPI('kpi-savings-ars', savingsTotalARS);
-        updateKPI('kpi-savings-usd', savingsTotalUSD);
+        updateKPI('kpi-savings-ars', totalSavARS);
+        updateKPI('kpi-savings-usd', totalSavUSD);
+        updateKPI('kpi-total-ars', totalPatrimonialARS);
+        updateKPI('kpi-total-usd', totalPatrimonialUSD);
 
-        updateKPI('kpi-income-expected-ars', incExpARS);
-        updateKPI('kpi-income-expected-usd', incExpUSD);
-        updateKPI('kpi-income-pending-ars', incPendARS);
-        updateKPI('kpi-income-pending-usd', incPendUSD);
+        // 2. Calculate MONTHLY Surplus (Only for the selected month subset)
+        // This is for the "Assistant" that suggests saving what you earned THIS month.
+        const mIncome = currentFilteredData.filter(t => t.type === 'INCOME');
+        const mExpense = currentFilteredData.filter(t => t.type === 'EXPENSE');
         
-        updateKPI('kpi-expense-expected-ars', expExpARS);
-        updateKPI('kpi-expense-expected-usd', expExpUSD);
-        updateKPI('kpi-expense-pending-ars', expPendARS);
-        updateKPI('kpi-expense-pending-usd', expPendUSD);
+        // Use EXPECTED (or Paid? usually we suggest from what's effectively available)
+        // Let's use PAID for the assistant to be safe.
+        const monthlyProfitARS = getSum(mIncome.filter(t => t.status === 'PAID'), 'ARS') - getSum(mExpense.filter(t => t.status === 'PAID'), 'ARS');
+        const monthlyProfitUSD = getSum(mIncome.filter(t => t.status === 'PAID'), 'USD') - getSum(mExpense.filter(t => t.status === 'PAID'), 'USD');
+
+        checkSurplusAssistant(monthlyProfitARS, monthlyProfitUSD, balanceARS, balanceUSD);
+    }
+
+    function checkSurplusAssistant(monthlyARS, monthlyUSD, availableARS, availableUSD) {
+        const container = document.getElementById('surplus-assistant-container');
+        const msg = document.getElementById('surplus-msg');
+        const period = document.getElementById('filter-period').value;
+        
+        // Show only if there is a surplus in the CURRENT MONTH and we have LIQUID CASH available
+        if (monthlyARS > 100 || monthlyUSD > 0) {
+            const arsToSave = Math.min(monthlyARS, availableARS);
+            const usdToSave = Math.min(monthlyUSD, availableUSD);
+
+            if (arsToSave <= 0 && usdToSave <= 0) {
+                 container.style.display = 'none';
+                 return;
+            }
+
+            const monthMap = { '01': 'Enero', '02': 'Febrero', '03': 'Marzo', '04': 'Abril', '05': 'Mayo', '06': 'Junio', '07': 'Julio', '08': 'Agosto', '09': 'Septiembre', '10': 'Octubre', '11': 'Noviembre', '12': 'Diciembre' };
+            const monthName = monthMap[period];
+            
+            if (monthName) {
+                container.style.display = 'block';
+                msg.innerHTML = `Ganaste <strong>${formatCurrency(monthlyARS, 'ARS')}</strong> / <strong>${formatCurrency(monthlyUSD, 'USD')}</strong> netos en <strong>${monthName}</strong>. ¿Deseas ahorrar una parte?`;
+                return;
+            }
+        }
+        container.style.display = 'none';
+    }
+
+    window.openCapitalizeModal = async function() {
+        const ars = parseFloat(document.getElementById('kpi-balance-ars').textContent.replace(/[$.]/g, '').replace(',', '.')) || 0;
+        const usd = parseFloat(document.getElementById('kpi-balance-usd').textContent.replace(/[$.]/g, '').replace(',', '.')) || 0;
+        
+        const period = document.getElementById('filter-period').value;
+        const year = document.getElementById('filter-year').value;
+        const monthMap = { '01': 'Enero', '02': 'Febrero', '03': 'Marzo', '04': 'Abril', '05': 'Mayo', '06': 'Junio', '07': 'Julio', '08': 'Agosto', '09': 'Septiembre', '10': 'Octubre', '11': 'Noviembre', '12': 'Diciembre' };
+        const monthName = monthMap[period];
+
+        const { value: formValues } = await Swal.fire({
+            title: `Capitalizar Excedente - ${monthName}`,
+            html: `
+                <div class="text-start">
+                    <p class="text-muted small">Decide cuánto mover del saldo disponible actual a tus ahorros.</p>
+                    <div class="mb-3">
+                        <label class="form-label">Monto en Pesos (ARS) - Disponible: ${formatCurrency(ars, 'ARS')}</label>
+                        <input id="swal-ars" class="form-control" type="number" step="0.01" value="${ars > 0 ? ars : 0}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Monto en Dólares (USD) - Disponible: ${formatCurrency(usd, 'USD')}</label>
+                        <input id="swal-usd" class="form-control" type="number" step="0.01" value="${usd > 0 ? usd : 0}">
+                    </div>
+                </div>
+            `,
+            focusConfirm: false,
+            showCancelButton: true,
+            confirmButtonText: 'Confirmar Ahorro',
+            cancelButtonText: 'Cancelar',
+            preConfirm: () => {
+                return {
+                    ars: parseFloat(document.getElementById('swal-ars').value) || 0,
+                    usd: parseFloat(document.getElementById('swal-usd').value) || 0
+                }
+            }
+        });
+
+        if (formValues) {
+            executeCapitalization(formValues, period, year, monthName);
+        }
+    }
+
+    async function executeCapitalization(values, month, year, monthName) {
+        const lastDay = new Date(year, parseInt(month), 0); // Last day of month
+        const batch = db.batch();
+        const col = db.collection('transactions');
+        let created = 0;
+
+        const createSaving = (amount, currency) => {
+            if (amount <= 0) return;
+            const ref = col.doc();
+            batch.set(ref, {
+                type: 'SAVING',
+                entityName: `Capitalización Excedente ${monthName} ${year}`,
+                category: 'Fondo de Reserva',
+                status: 'ACTIVE',
+                currency: currency,
+                amount: amount,
+                date: firebase.firestore.Timestamp.fromDate(lastDay),
+                address: `Traspaso de saldo sobrante del periodo filtrado (${monthName} ${year}).`,
+                createdAt: new Date(),
+                createdBy: auth.currentUser.uid
+            });
+            created++;
+        };
+
+        createSaving(values.ars, 'ARS');
+        createSaving(values.usd, 'USD');
+
+        if (created > 0) {
+            try {
+                await batch.commit();
+                Swal.fire('¡Éxito!', 'Excedente capitalizado correctamente.', 'success');
+            } catch (e) {
+                console.error(e);
+                Swal.fire('Error', 'No se pudo realizar el traspaso.', 'error');
+            }
+        }
     }
 
     function updateKPI(id, val) {
@@ -946,13 +1208,14 @@ document.addEventListener('DOMContentLoaded', function () {
                             <h6 class="mb-0 font-size-14 text-truncate">${t.entityName}</h6>
                         </td>
                         <td><span class="badge badge-soft-primary">${t.category}</span></td>
-                        <td>${t.address || '-'}</td>
+                        <td><span class="text-truncate d-block" style="max-width: 150px;">${t.address || '-'}</span></td>
                         <td>${t.currency === 'ARS' ? amountStr : '-'}</td>
                         <td>${t.currency === 'USD' ? amountStr : '-'}</td>
                         <td><div class="${statusBadge}">${statusLabel}</div></td>
                         <td>
-                            <div class="d-flex gap-2">
-                                ${ t.status !== 'USED' ? `<button class="btn btn-sm btn-info" onclick="useSavingForExpense('${t.id}')" title="Usar para Gasto"><i class="mdi mdi-arrow-right-bold-circle-outline"></i> Mover a Gasto</button>` : '' }
+                            <div class="d-flex gap-2 text-end justify-content-end">
+                                ${ t.status !== 'USED' ? `<button class="btn btn-sm btn-soft-primary" onclick="editSaving('${t.id}')" title="Editar"><i class="mdi mdi-pencil"></i></button>` : '' }
+                                ${ t.status !== 'USED' ? `<button class="btn btn-sm btn-info" onclick="useSavingForExpense('${t.id}')" title="Usar para Gasto"><i class="mdi mdi-arrow-right-bold-circle-outline"></i></button>` : '' }
                                 <button class="btn btn-sm btn-soft-danger" onclick="deleteTransaction('${t.id}')"><i class="mdi mdi-trash-can"></i></button>
                             </div>
                         </td>
@@ -1027,123 +1290,39 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     };
 
-    window.useSavingForExpense = async function(savingId) {
-        // Logic:
-        // 1. Get the saving data
-        // 2. Open Expense Modal pre-filled
-        // 3. Mark saving as USED (or delete it? The user said "Mover a gasto", implying transformation)
-        // Better: Convert directly confirms "Are you sure you want to use this saving for an expense?"
-        // Then delete the saving and create an expense.
-        
-        const saving = allTransactions.find(t => t.id === savingId);
-        if(!saving) return;
+    window.editSaving = function(id) {
+        const t = allTransactions.find(x => x.id === id);
+        if(t) openModal('SAVING', t);
+    };
 
-        Swal.fire({
-            title: '¿Mover Ahorro a Gasto?',
-            text: `Esto convertirá el ahorro "${saving.entityName}" en un Gasto.`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Sí, convertir',
-            cancelButtonText: 'Cancelar'
-        }).then(async (result) => {
-            if (result.isConfirmed) {
-                 // Open Modal as Expense but with pre-filled Data
-                 // Actually, let's just update the doc type to EXPENSE effectively "moving" it.
-                 // But Expenses have "Provider", Savings have "Name".
-                 // Let's open the modal so user can adjust details (e.g. set the Provider name instead of Saving Name)
-                 
-                 openModal('EXPENSE');
-                 // Pre-fill
-                 setTimeout(() => {
-                     document.getElementById('tx-amount').value = saving.amount;
-                     document.getElementById('tx-currency').value = saving.currency;
-                     document.getElementById('tx-entity-name').value = saving.entityName + " (Pago con Ahorro)";
-                     document.getElementById('tx-category').value = saving.category;
-                 }, 200);
-
-                 // Delete the old saving automatically upon successful save? 
-                 // It's tricky with the current generic SAVE handler.
-                 // Alternative: Update the doc directly to Type=EXPENSE.
-                 // Let's try the direct update approach for simplicity.
-                 
-                 /*
-                 await db.collection('transactions').doc(savingId).update({
-                     type: 'EXPENSE',
-                     status: 'PAID', // Usually if you use savings, you pay immediately
-                     entityName: saving.entityName + " (Usado)"
-                 });
-                 */
-                 
-                 // Re-reading user request: "possibility to move or transfer savings to an expense".
-                 // Let's do: Delete Saving -> Open Modal pre-filled.
-                 // No, that's risky if they cancel modal.
-                 
-                 // Ideal: Open Modal. Add a hidden field "originSavingId". 
-                 // Modify Submit handler: if originSavingId is present, delete that doc after successful add.
-                 
-                 // Let's inject a hidden field processing into form handler.
-                 // Since I cannot change HTML easily right now without another call, 
-                 // I will use a global variable or dataset on the form.
-                 
-                 formTx.dataset.originSavingId = savingId;
-                 
-                 // Pre-fill
-                 document.getElementById('tx-entity-name').value = saving.entityName;
-                 document.getElementById('tx-amount').value = saving.amount;
-                 document.getElementById('tx-currency').value = saving.currency;
-                 
-                 Swal.fire('Listo', 'Completa los datos del nuevo gasto.', 'info');
-            }
-        });
-    }
-    
-    // Modify Submit Handler to check for originSavingId
-    const originalSubmit = formTx.onsubmit; // Wait, I added event listener, not onsubmit property.
-    // I need to hook into the existing listener... which is hard.
-    // I can replace the listener logic by overwriting the element? No.
-    // I can modify the existing `formTx.addEventListener('submit', ...)` block in the previous tool call?
-    // No, I am in a multi_replace for lines 373+.
-    
-    // Workaround: I will re-implement the submit handler logic here and remove the old listener? 
-    // Creating a new listener will just run AFTER the old one.
-    
-    // Let's just create a separate function `handleSaveTransaction` and call it from the listener.
-    // Too much refactoring.
-    
-    // Alternative: The `useSavingForExpense` simply DELETEs the saving and CREATES the expense in one go?
-    // "Convertir Ahorro en Gasto"
-    // Updates transaction type to EXPENSE.
-    // Ask user for Provider Name.
-    
     window.convertSaving = async function(savingId) {
          const saving = allTransactions.find(t => t.id === savingId);
          if(!saving) return;
-         
-         const { value: provider } = await Swal.fire({
-            title: 'Mover a Gasto',
-            text: `Ingresa el nombre del Proveedor/Entidad para este gasto:`,
-            input: 'text',
-            inputValue: saving.entityName,
-            showCancelButton: true,
-            confirmButtonText: 'Convertir'
-        });
 
-        if (provider) {
-             try {
-                 await db.collection('transactions').doc(savingId).update({
-                     type: 'EXPENSE',
-                     entityName: provider,
-                     status: 'PAID' // Assume paid if using savings
-                 });
-                 Swal.fire('Éxito', 'Ahorro convertido en gasto correctamente.', 'success');
-             } catch (e) {
-                 console.error(e);
-                 Swal.fire('Error', e.message, 'error');
-             }
-        }
-    }
-    
-    // Override the button action to use this new simpler function
+         const { value: provider } = await Swal.fire({
+             title: 'Mover a Gasto',
+             text: `Ingresa el nombre del Proveedor/Entidad para este gasto:`,
+             input: 'text',
+             inputValue: saving.entityName,
+             showCancelButton: true,
+             confirmButtonText: 'Convertir'
+         });
+
+         if (provider) {
+              try {
+                  await db.collection('transactions').doc(savingId).update({
+                      type: 'EXPENSE',
+                      entityName: provider,
+                      status: 'PAID' // Assume paid if using savings
+                  });
+                  Swal.fire('Éxito', 'Ahorro convertido en gasto correctamente.', 'success');
+              } catch (e) {
+                  console.error(e);
+                  Swal.fire('Error', e.message, 'error');
+              }
+         }
+    };
+
     window.useSavingForExpense = window.convertSaving;
 
 
@@ -1501,5 +1680,136 @@ document.addEventListener('DOMContentLoaded', function () {
          }
     };
 
+
+    // ==========================================
+    // 9. Savings Transfer Logic
+    // ==========================================
+
+    async function openTransferModal() {
+        const sourceSelect = document.getElementById('trans-source');
+        const destSelect = document.getElementById('trans-dest');
+        const amountInput = document.getElementById('trans-amount');
+        
+        sourceSelect.innerHTML = '<option value="">Seleccione origen...</option>';
+        destSelect.innerHTML = '<option value="">Seleccione destino...</option>';
+        amountInput.value = '';
+
+        // Filter active savings from allTransactions
+        const savings = allTransactions.filter(t => t.type === 'SAVING' && t.status !== 'USED');
+        
+        if (savings.length === 0) {
+            Swal.fire('Atención', 'No tienes ahorros activos para transferir.', 'info');
+            return;
+        }
+
+        // Populate Source
+        savings.forEach(s => {
+            const amountStr = formatCurrency(s.amount, s.currency);
+            sourceSelect.innerHTML += `<option value="${s.id}" data-currency="${s.currency}" data-amount="${s.amount}">${s.entityName} (${amountStr})</option>`;
+        });
+
+        // Populate Destination
+        savings.forEach(s => {
+            destSelect.innerHTML += `<option value="TRANS_TO_SAV_${s.id}">${s.entityName} (Existente)</option>`;
+        });
+        
+        categories.SAVING.forEach(c => {
+            destSelect.innerHTML += `<option value="TRANS_TO_CAT_${c}">Nueva meta: ${c}</option>`;
+        });
+
+        transferModal.show();
+    }
+
+    function updateTransferCurrency() {
+        const sourceSelect = document.getElementById('trans-source');
+        const selectedOption = sourceSelect.options[sourceSelect.selectedIndex];
+        const currencyInput = document.getElementById('trans-currency');
+        if (selectedOption && selectedOption.dataset.currency) {
+            currencyInput.value = selectedOption.dataset.currency;
+        } else {
+            currencyInput.value = '';
+        }
+    }
+
+    async function handleTransferSubmit(e) {
+        e.preventDefault();
+        const sourceId = document.getElementById('trans-source').value;
+        const destKey = document.getElementById('trans-dest').value;
+        const amount = parseFloat(document.getElementById('trans-amount').value);
+        const btn = document.getElementById('btn-do-transfer');
+
+        if (!sourceId || !destKey || !amount) return;
+
+        const sourceTx = allTransactions.find(t => t.id === sourceId);
+        if (amount > sourceTx.amount) {
+            Swal.fire('Monto excedido', 'No puedes transferir más del saldo disponible en el origen.', 'error');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bx bx-loader bx-spin"></i>';
+
+        try {
+            const batch = db.batch();
+            const date = firebase.firestore.Timestamp.fromDate(new Date());
+
+            // 1. Dec Source
+            const sourceDecRef = db.collection('transactions').doc();
+            batch.set(sourceDecRef, {
+                type: 'SAVING',
+                entityName: `Reducción por Transferencia: ${sourceTx.entityName}`,
+                category: sourceTx.category,
+                amount: -amount,
+                currency: sourceTx.currency,
+                date: date,
+                isInitial: true, 
+                status: 'ACTIVE',
+                address: `Transferencia interna hacia: ${destKey.includes('SAV_') ? 'otra meta' : destKey.split('CAT_')[1]}`,
+                createdAt: new Date(),
+                createdBy: auth.currentUser.uid
+            });
+
+            // 2. Add to destination
+            const destIncRef = db.collection('transactions').doc();
+            let destName = '';
+            let destCat = '';
+            
+            if (destKey.startsWith('TRANS_TO_SAV_')) {
+                const targetId = destKey.replace('TRANS_TO_SAV_', '');
+                const targetTx = allTransactions.find(t => t.id === targetId);
+                destName = targetTx.entityName;
+                destCat = targetTx.category;
+            } else {
+                destName = destKey.replace('TRANS_TO_CAT_', '');
+                destCat = destName;
+            }
+
+            batch.set(destIncRef, {
+                type: 'SAVING',
+                entityName: `Recibo por Transferencia: ${destName}`,
+                category: destCat,
+                amount: amount,
+                currency: sourceTx.currency,
+                date: date,
+                isInitial: true,
+                status: 'ACTIVE',
+                address: `Transferencia interna desde: ${sourceTx.entityName}`,
+                createdAt: new Date(),
+                createdBy: auth.currentUser.uid
+            });
+
+            await batch.commit();
+            transferModal.hide();
+            Swal.fire('Transferencia Exitosa', 'Monto reasignado correctamente.', 'success');
+            loadTransactions(); 
+
+        } catch (err) {
+            console.error(err);
+            Swal.fire('Error', 'Error al procesar: ' + err.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Confirmar Transferencia';
+        }
+    }
 
 });

@@ -14,7 +14,7 @@
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <meta name="apple-mobile-web-app-title" content="Imalá">
-        <link rel="apple-touch-icon" href="assets/images/icono-imala.png">
+        <link rel="apple-touch-icon" href="assets/images/icono-imala1.png">
 
         <!-- preloader css -->
         <link rel="stylesheet" href="assets/css/preloader.min.css" type="text/css" />
@@ -261,13 +261,11 @@
                                             Facturación
                                         </a>
                                     </li>
-                                    <!--
                                     <li class="nav-item">
-                                        <a class="nav-link" data-bs-toggle="tab" href="#tab-crm" role="tab" onclick="appAnalytics.switchTab('CRM')">
-                                            Gestión de Clientes
+                                        <a class="nav-link" data-bs-toggle="tab" href="#tab-savings" role="tab" onclick="appAnalytics.switchTab('SAVINGS')">
+                                            Análisis de Ahorros
                                         </a>
                                     </li>
-                                    -->
                                 </ul>
                             </div>
                             <div class="col-md-6">
@@ -390,15 +388,18 @@
                                     </div>
 
                                     <div class="col-xl-3 col-md-6">
-                                        <div class="card card-h-100">
+                                        <div class="card card-h-100 bg-primary bg-opacity-10 border-primary border-opacity-25">
                                             <div class="card-body">
                                                 <div class="d-flex align-items-center">
                                                     <div class="flex-grow-1">
-                                                        <span class="text-muted mb-3 lh-1 d-block text-truncate">Pendiente de Cobro</span>
+                                                        <span class="text-primary mb-3 lh-1 d-block text-truncate fw-bold">Patrimonio Real (Cash + Res)</span>
                                                         <h4 class="mb-3">
-                                                            <span class="counter-value" id="kpi-pending">0</span>
+                                                            <span class="counter-value" id="kpi-total-wealth">0</span>
                                                             <small class="text-muted font-size-12 currency-label">ARS</small>
                                                         </h4>
+                                                    </div>
+                                                    <div class="flex-shrink-0 text-end dash-widget">
+                                                        <i data-feather="briefcase" class="icon-lg text-primary"></i>
                                                     </div>
                                                 </div>
                                             </div>
@@ -469,6 +470,157 @@
                                     </div>
                                 </div>
 
+                            </div>
+
+                            <!-- SAVINGS TAB -->
+                            <div class="tab-pane" id="tab-savings" role="tabpanel">
+                                <!-- Savings KPIs -->
+                                <div class="row">
+                                    <div class="col-xl-3 col-md-6">
+                                        <div class="card card-h-100">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="flex-grow-1">
+                                                        <span class="text-muted mb-3 lh-1 d-block text-truncate">Total en Reservas</span>
+                                                        <h4 class="mb-3">
+                                                            <span class="counter-value" id="kpi-savings-total">0</span>
+                                                            <small class="text-muted font-size-12 currency-label">ARS</small>
+                                                        </h4>
+                                                    </div>
+                                                    <div class="flex-shrink-0 text-end dash-widget">
+                                                        <i data-feather="shield" class="icon-lg text-success"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-xl-3 col-md-6">
+                                        <div class="card card-h-100">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="flex-grow-1">
+                                                        <span class="text-muted mb-3 lh-1 d-block text-truncate">Ahorro del Periodo</span>
+                                                        <h4 class="mb-3">
+                                                            <span class="counter-value" id="kpi-savings-period">0</span>
+                                                            <small class="text-muted font-size-12 currency-label">ARS</small>
+                                                        </h4>
+                                                    </div>
+                                                    <div class="flex-shrink-0 text-end dash-widget">
+                                                        <i data-feather="trending-up" class="icon-lg text-info"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-xl-3 col-md-6">
+                                        <div class="card card-h-100">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="flex-grow-1">
+                                                        <span class="text-muted mb-3 lh-1 d-block text-truncate">Tasa de Ahorro</span>
+                                                        <h4 class="mb-3">
+                                                            <span class="counter-value" id="kpi-savings-rate">0</span>
+                                                            <small class="text-muted font-size-12">% s/Ingresos</small>
+                                                        </h4>
+                                                    </div>
+                                                    <div class="flex-shrink-0 text-end dash-widget">
+                                                        <i data-feather="pie-chart" class="icon-lg text-warning"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-xl-3 col-md-6">
+                                        <div class="card card-h-100 bg-info bg-opacity-10 border-info border-opacity-25">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="flex-grow-1">
+                                                        <div class="d-flex align-items-center mb-3">
+                                                            <span class="text-muted lh-1 d-block text-truncate mb-0">Supervivencia Estimada</span>
+                                                            <button class="btn btn-link btn-sm text-info p-0 ms-2" onclick="appAnalytics.showChartHelp('SURVIVAL_RATE')">
+                                                                <i class="mdi mdi-information-outline"></i>
+                                                            </button>
+                                                        </div>
+                                                        <h4 class="mb-3">
+                                                            <span class="counter-value" id="kpi-survival-months">0</span>
+                                                            <small class="text-muted font-size-12">Meses</small>
+                                                        </h4>
+                                                    </div>
+                                                    <div class="flex-shrink-0 text-end dash-widget">
+                                                        <i data-feather="heart" class="icon-lg text-danger"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Goals Progress Row -->
+                                <div class="row">
+                                    <div class="col-xl-12">
+                                        <div class="card">
+                                            <div class="card-header d-flex align-items-center justify-content-between">
+                                                <h4 class="card-title mb-0">Progreso de Metas de Ahorro</h4>
+                                                <button class="btn btn-sm btn-soft-info" onclick="appAnalytics.showChartHelp('SAVINGS_PROGRESS')">
+                                                    <i class="mdi mdi-information-outline"></i>
+                                                </button>
+                                            </div>
+                                            <div class="card-body">
+                                                <div id="goals-progress-container">
+                                                    <!-- Dynamic bars injected here -->
+                                                    <p class="text-muted text-center py-4">Calculando metas...</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Savings Charts Row 1 -->
+                                <div class="row">
+                                    <div class="col-xl-8">
+                                        <div class="card">
+                                            <div class="card-header d-flex align-items-center justify-content-between">
+                                                <h4 class="card-title mb-0">Evolución del Patrimonio (Caja vs Reservas)</h4>
+                                                <button class="btn btn-sm btn-soft-info" onclick="appAnalytics.showChartHelp('WEALTH_EVOLUTION')">
+                                                    <i class="mdi mdi-information-outline"></i>
+                                                </button>
+                                            </div>
+                                            <div class="card-body">
+                                                <canvas id="chart-wealth-evolution" class="chartjs-chart" height="300"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-xl-4">
+                                        <div class="card">
+                                            <div class="card-header d-flex align-items-center justify-content-between">
+                                                <h4 class="card-title mb-0">Distribución por Metas</h4>
+                                                <button class="btn btn-sm btn-soft-info" onclick="appAnalytics.showChartHelp('SAVINGS_DISTRIBUTION')">
+                                                    <i class="mdi mdi-information-outline"></i>
+                                                </button>
+                                            </div>
+                                            <div class="card-body">
+                                                <canvas id="chart-savings-distribution" class="chartjs-chart" height="300"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Savings Charts Row 2 -->
+                                <div class="row">
+                                    <div class="col-xl-12">
+                                        <div class="card">
+                                            <div class="card-header d-flex align-items-center justify-content-between">
+                                                <h4 class="card-title mb-0">Ahorro Mensual (Capitalización)</h4>
+                                                <button class="btn btn-sm btn-soft-info" onclick="appAnalytics.showChartHelp('MONTHLY_SAVINGS')">
+                                                    <i class="mdi mdi-information-outline"></i>
+                                                </button>
+                                            </div>
+                                            <div class="card-body">
+                                                <canvas id="chart-monthly-savings" class="chartjs-chart" height="250"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- CRM TAB (Placeholder for now, logic will be added via JS) -->
@@ -586,7 +738,33 @@
             </div>
             <!-- end main content-->
 
+        <!-- Help Modal -->
+        <div class="modal fade" id="modal-chart-help" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="help-title">Ayuda del Gráfico</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="text-center mb-4">
+                            <div class="avatar-md mx-auto">
+                                <div class="avatar-title rounded-circle bg-info bg-opacity-10 text-info display-6">
+                                    <i class="mdi mdi-information-outline"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="help-content">
+                            <!-- Content injected via JS -->
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Entendido</button>
+                    </div>
+                </div>
+            </div>
         </div>
+
         <!-- END layout-wrapper -->
 
         <!-- JAVASCRIPT -->

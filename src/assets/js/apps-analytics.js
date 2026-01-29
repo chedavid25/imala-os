@@ -10,7 +10,7 @@ let clientsData = [];
 // Defaults to Current Month
 const now = new Date();
 let filterYear = now.getFullYear();
-let filterPeriod = 'MONTH'; // YEAR, SEMESTER, QUARTER, MONTH
+let filterPeriod = 'MONTH'; // YEAR, SEMESTER, QUARTER, MONTH, ALL
 let filterMonth = now.getMonth(); // 0-11
 let filterQuarter = Math.floor(now.getMonth() / 3) + 1; // 1-4
 let filterSemester = now.getMonth() < 6 ? 1 : 2; // 1-2
@@ -122,11 +122,89 @@ const appAnalytics = {
     },
     
     switchTab: (tabName) => {
+        currentTab = tabName;
         setTimeout(() => {
-            Object.values(chartInstances).forEach(chart => chart.resize());
+            Object.values(chartInstances).forEach(chart => {
+                if(chart && typeof chart.resize === 'function') chart.resize();
+            });
+            updateDashboard(); // Re-render for the specific tab
         }, 200);
+    },
+
+    showChartHelp: (chartKey) => {
+        const helpData = {
+            'WEALTH_EVOLUTION': {
+                title: 'Ayuda: Evolución del Patrimonio',
+                content: `
+                    <p>Este gráfico muestra la trayectoria de tu capital durante todo el año:</p>
+                    <ul class="text-muted">
+                        <li><strong>Caja Disponible (Línea Azul):</strong> Es tu liquidez real. Dinero libre para gastar después de operar y ahorrar.</li>
+                        <li><strong>Reservas Totales (Línea Verde):</strong> Es el acumulado de todos tus ahorros y fondos de reserva activos.</li>
+                    </ul>
+                    <p class="mb-0"><strong>Tip:</strong> Busca que la línea verde siempre suba, indicando que tu patrimonio crece mes a mes.</p>
+                `
+            },
+            'SAVINGS_DISTRIBUTION': {
+                title: 'Ayuda: Distribución por Metas',
+                content: `
+                    <p>Muestra cómo tienes repartido tu capital de reserva actual:</p>
+                    <p class="text-muted">Toma el total de tus ahorros y los divide por las categorías que has definido (ej. Inversiones, Fondo de Emergencia, Viajes).</p>
+                    <p class="mb-0"><strong>Tip:</strong> Te ayuda a detectar si estás demasiado concentrado en una sola meta.</p>
+                `
+            },
+            'MONTHLY_SAVINGS': {
+                title: 'Ayuda: Ahorro Mensual',
+                content: `
+                    <p>Mide tu ritmo de ahorro o "capitalización" mensual:</p>
+                    <p class="text-muted">Cada barra representa el monto neto que lograste mover del saldo disponible hacia tus ahorros en ese mes específico.</p>
+                    <p class="mb-0"><strong>Tip:</strong> Compara los picos y valles para entender qué meses son más propicios para tu ahorro.</p>
+                `
+            },
+            'SURVIVAL_RATE': {
+                title: 'Ayuda: Supervivencia Estimada',
+                content: `
+                    <p>Indica cuántos meses podrías mantener tu estilo de vida actual sin percibir ingresos:</p>
+                    <ul class="text-muted">
+                        <li><strong>Cálculo:</strong> Divide tus Reservas Totales por tu promedio de gastos de la <strong>moneda seleccionada</strong> de los últimos 6 meses.</li>
+                        <li><strong>Significado:</strong> Si el valor es 6.0, significa que tienes ahorros para cubrir 6 meses de gastos en esa moneda.</li>
+                        <li><strong>Nota:</strong> Si no tienes gastos registrados en esta moneda, el sistema asumirá una supervivencia prolongada (+99).</li>
+                    </ul>
+                    <p class="mb-0"><strong>Tip:</strong> Los expertos recomiendan tener entre 3 y 6 meses de "pista financiera" como fondo de emergencia.</p>
+                `
+            },
+            'SAVINGS_PROGRESS': {
+                title: 'Ayuda: Progreso de Metas',
+                content: `
+                    <p>Muestra qué tan cerca estás de alcanzar tus objetivos financieros definidos:</p>
+                    <ul class="text-muted">
+                        <li><strong>Rojo:</strong> Menos del 30% completado.</li>
+                        <li><strong>Amarillo:</strong> Entre el 30% y 70%.</li>
+                        <li><strong>Verde:</strong> Más del 70% del camino recorrido.</li>
+                    </ul>
+                    <p class="mb-0"><strong>Tip:</strong> Define un "Monto Objetivo" al crear un ahorro para que aparezca en este panel.</p>
+                `
+            }
+        };
+
+        const help = helpData[chartKey];
+        if (help) {
+            document.getElementById('help-title').innerText = help.title;
+            document.getElementById('help-content').innerHTML = help.content;
+            const modal = new bootstrap.Modal(document.getElementById('modal-chart-help'));
+            modal.show();
+        }
+    },
+
+    applyFilters: () => {
+        filterYear = parseInt(document.getElementById('analytics-year').value);
+        filterMonth = parseInt(document.getElementById('analytics-month').value);
+        filterQuarter = parseInt(document.getElementById('analytics-quarter').value);
+        filterSemester = parseInt(document.getElementById('analytics-semester').value);
+        updateDashboard();
     }
 };
+
+let currentTab = 'BILLING';
 
 function updatePeriodButtons() {
     document.querySelectorAll('.btn-group button').forEach(b => b.classList.remove('active'));
@@ -146,67 +224,114 @@ function updateSelectorsVisibility() {
     if (filterPeriod === 'QUARTER') document.getElementById('analytics-quarter').classList.remove('d-none');
     if (filterPeriod === 'SEMESTER') document.getElementById('analytics-semester').classList.remove('d-none');
 }
-
 function updateDashboard() {
-    // Filter Data Logic
-    const filteredInvoices = invoicesData.filter(inv => {
+    // Filter by Currency (All relevant data for graphs)
+    const currencyData = invoicesData.filter(inv => (inv.currency || 'ARS') === filterCurrency);
+
+    // Filter by Period for KPIs and specific charts
+    const periodData = currencyData.filter(inv => {
         if (!inv.dateObj) return false;
-        
         const yearMatch = inv.dateObj.getFullYear() === filterYear;
         if (!yearMatch) return false;
 
-        const m = inv.dateObj.getMonth(); // 0-11
+        const m = inv.dateObj.getMonth();
         const q = Math.floor(m / 3) + 1;
         const s = m < 6 ? 1 : 2;
 
         if (filterPeriod === 'MONTH') return m === filterMonth;
         if (filterPeriod === 'QUARTER') return q === filterQuarter;
         if (filterPeriod === 'SEMESTER') return s === filterSemester;
-        
         return true; // YEAR
     });
 
-    // Filter by Currency
-    const currencyInvoices = filteredInvoices.filter(inv => (inv.currency || 'ARS') === filterCurrency);
-
-    calculateKPIs(currencyInvoices);
-    renderBillingCharts(currencyInvoices); // Pass filtered data (by period AND currency)
+    calculateKPIs(periodData, currencyData);
     
-    // CRM Updates
-    updateCRMDashboard();
+    if (currentTab === 'BILLING') {
+        renderBillingCharts(periodData); 
+    } else if (currentTab === 'SAVINGS') {
+        renderSavingsDashboard(periodData, currencyData);
+    } else if (currentTab === 'CRM') {
+        updateCRMDashboard();
+    }
 }
 
-function calculateKPIs(data) {
-    let totalBilled = 0;
-    let totalExpenses = 0;
-    let totalPending = 0;
+function calculateKPIs(periodData, allCurrencyData) {
+    // 1. Period KPIs
+    let periodIncome = 0;
+    let periodExpenses = 0;
+    let periodPending = 0;
+    let periodSavings = 0;
 
-    data.forEach(inv => {
+    periodData.forEach(inv => {
         const val = parseFloat(inv.amount) || 0;
-        
         if(inv.type === 'INCOME') {
-            totalBilled += val;
-            if(inv.status !== 'PAID') totalPending += val;
+            periodIncome += val;
+            if(inv.status !== 'PAID') periodPending += val;
         } else if (inv.type === 'EXPENSE') {
-            totalExpenses += val;
-            if(inv.status !== 'PAID') totalPending += val;
+            periodExpenses += val;
+        } else if (inv.type === 'SAVING' && inv.status !== 'USED') {
+            periodSavings += val;
         }
     });
 
-    // Special YTD Calculation (Everything in the year up to now)
-    // Filter all invoices for the year, regardless of period selection
-    const ytdInvoices = invoicesData.filter(inv => inv.dateObj && inv.dateObj.getFullYear() === filterYear && inv.type === 'INCOME');
-    const ytdTotal = ytdInvoices.reduce((sum, inv) => sum + (parseFloat(inv.amount) || 0), 0);
+    // 2. Accumulated KPIs (Historical up to selected year/period for Wealth calculation)
+    // To match apps-cashflow.js logic:
+    const nowFilter = new Date(filterYear, filterPeriod === 'MONTH' ? filterMonth + 1 : 12, 0, 23, 59, 59);
+    const historicalData = allCurrencyData.filter(d => d.dateObj <= nowFilter);
 
-    const netProfit = totalBilled - totalExpenses;
+    const calcAcc = (data, type, status = null, ignoreInitial = false) => {
+        return data.reduce((sum, d) => {
+            if (d.type !== type) return sum;
+            if (status && d.status !== status) return sum;
+            if (ignoreInitial && d.isInitial) return sum;
+            return sum + (parseFloat(d.amount) || 0);
+        }, 0);
+    };
 
-    document.getElementById('kpi-billed').innerText = formatCurrency(totalBilled);
-    document.getElementById('kpi-expenses').innerText = formatCurrency(totalExpenses);
-    document.getElementById('kpi-profit').innerText = formatCurrency(netProfit);
-    document.getElementById('kpi-pending').innerText = formatCurrency(totalPending);
+    const accIncome = calcAcc(historicalData, 'INCOME', 'PAID');
+    const accExpenses = calcAcc(historicalData, 'EXPENSE', 'PAID');
+    const accSavings = calcAcc(historicalData, 'SAVING', 'ACTIVE'); // All active savings
+    const accSavingsNonInitial = calcAcc(historicalData, 'SAVING', 'ACTIVE', true);
+
+    const cashAvailable = accIncome - accExpenses - accSavingsNonInitial;
+    const totalWealth = cashAvailable + accSavings;
+
+    // Update Billing Tab KPIs
+    if(document.getElementById('kpi-billed')) document.getElementById('kpi-billed').innerText = formatCurrency(periodIncome);
+    if(document.getElementById('kpi-expenses')) document.getElementById('kpi-expenses').innerText = formatCurrency(periodExpenses);
+    if(document.getElementById('kpi-profit')) document.getElementById('kpi-profit').innerText = formatCurrency(periodIncome - periodExpenses);
+    if(document.getElementById('kpi-total-wealth')) document.getElementById('kpi-total-wealth').innerText = formatCurrency(totalWealth);
+
+    // Update Savings Tab KPIs
+    if(document.getElementById('kpi-savings-total')) document.getElementById('kpi-savings-total').innerText = formatCurrency(accSavings);
+    if(document.getElementById('kpi-savings-period')) document.getElementById('kpi-savings-period').innerText = formatCurrency(periodSavings);
     
-    // We can show YTD somewhere else or just use the Billed one (depends on context).
-    // For now the Billed KPI reflects the FILTERED period. 
+    if(document.getElementById('kpi-savings-rate')) {
+        const rate = periodIncome > 0 ? (periodSavings / periodIncome) * 100 : 0;
+        document.getElementById('kpi-savings-rate').innerText = rate.toFixed(1);
+    }
+
+    // 3. Financial Survival (Runway)
+    if(document.getElementById('kpi-survival-months')) {
+        // Average expenses from last 6 months (approx 180 days)
+        const sixMonthsAgo = new Date(nowFilter.getTime());
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+        
+        const recentExpenses = allCurrencyData.filter(d => 
+            d.type === 'EXPENSE' && 
+            d.status === 'PAID' && 
+            d.dateObj >= sixMonthsAgo && 
+            d.dateObj <= nowFilter
+        );
+        
+        const totalRecent = recentExpenses.reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
+        // Calculate months accurately based on data range
+        const avgMonthlyExpense = totalRecent / 6; 
+        
+        const survival = avgMonthlyExpense > 0 ? accSavings / avgMonthlyExpense : (accSavings > 0 ? 999 : 0);
+        // Cap at 99 for UI if it's too high, but 1 decimal is fine
+        document.getElementById('kpi-survival-months').innerText = survival >= 99 ? "+99" : survival.toFixed(1);
+    }
 }
 
 // --- Chart Rendering ---
@@ -316,6 +441,138 @@ function renderBillingCharts(data) {
             backgroundColor: ["#2ab57d", "#ffbf53"]
         }]
     });
+}
+
+function renderSavingsDashboard(periodData, allCurrencyData) {
+    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const yearData = allCurrencyData.filter(d => d.dateObj.getFullYear() === filterYear);
+
+    // 1. Wealth Evolution (Accumulated by Month)
+    const cashEvolution = new Array(12).fill(0);
+    const savingsEvolution = new Array(12).fill(0);
+    
+    // Prerrequisito: Saldo de años anteriores
+    let currentCash = allCurrencyData.filter(d => d.dateObj.getFullYear() < filterYear).reduce((sum, d) => {
+        if(d.type === 'INCOME' && d.status === 'PAID') return sum + d.amount;
+        if(d.type === 'EXPENSE' && d.status === 'PAID') return sum - d.amount;
+        if(d.type === 'SAVING' && d.status === 'ACTIVE' && !d.isInitial) return sum - d.amount;
+        return sum;
+    }, 0);
+
+    let currentSavings = allCurrencyData.filter(d => d.dateObj.getFullYear() < filterYear && d.type === 'SAVING' && d.status === 'ACTIVE').reduce((sum, d) => sum + d.amount, 0);
+
+    for (let m = 0; m < 12; m++) {
+        const monthTx = yearData.filter(d => d.dateObj.getMonth() === m);
+        monthTx.forEach(d => {
+            const val = parseFloat(d.amount) || 0;
+            if(d.type === 'INCOME' && d.status === 'PAID') currentCash += val;
+            else if(d.type === 'EXPENSE' && d.status === 'PAID') currentCash -= val;
+            else if(d.type === 'SAVING' && d.status === 'ACTIVE') {
+                currentSavings += val;
+                if(!d.isInitial) currentCash -= val;
+            }
+        });
+        cashEvolution[m] = currentCash;
+        savingsEvolution[m] = currentSavings;
+    }
+
+    createChart('chart-wealth-evolution', 'line', {
+        labels: months,
+        datasets: [
+            {
+                label: 'Caja Disponible',
+                data: cashEvolution,
+                borderColor: '#5156be',
+                backgroundColor: 'rgba(81, 86, 190, 0.1)',
+                fill: true,
+                tension: 0.3
+            },
+            {
+                label: 'Reservas Totales',
+                data: savingsEvolution,
+                borderColor: '#2ab57d',
+                backgroundColor: 'rgba(42, 181, 125, 0.1)',
+                fill: true,
+                tension: 0.3
+            }
+        ]
+    });
+
+    // 2. Savings Distribution (By Meta/Category)
+    // Use historical active savings for this
+    const activeSavings = allCurrencyData.filter(d => d.type === 'SAVING' && d.status === 'ACTIVE');
+    const dist = {};
+    activeSavings.forEach(s => {
+        const cat = s.category || 'Otros';
+        dist[cat] = (dist[cat] || 0) + s.amount;
+    });
+
+    createChart('chart-savings-distribution', 'doughnut', {
+        labels: Object.keys(dist),
+        datasets: [{
+            data: Object.values(dist),
+            backgroundColor: ["#2ab57d", "#4ba6ef", "#ffbf53", "#fd625e", "#5156be"]
+        }]
+    });
+
+    // 3. Monthly Savings (Bars of what was saved EACH MONTH of the year)
+    const monthlySaved = new Array(12).fill(0);
+    yearData.filter(d => d.type === 'SAVING' && d.status === 'ACTIVE').forEach(d => {
+        monthlySaved[d.dateObj.getMonth()] += d.amount;
+    });
+
+    createChart('chart-monthly-savings', 'bar', {
+        labels: months,
+        datasets: [{
+            label: 'Ahorro Mensual',
+            data: monthlySaved,
+            backgroundColor: '#4ba6ef',
+            borderRadius: 5
+        }]
+    });
+
+    // 4. Savings Progress Bars
+    const container = document.getElementById('goals-progress-container');
+    if (container) {
+        container.innerHTML = '';
+        
+        // Group by category to show progress per meta category
+        // Note: For finer control, we'd need to group by individual meta names if they repeat.
+        // But grouping by the latest active items with targetAmount > 0 is better.
+        
+        const goals = activeSavings.filter(s => s.targetAmount > 0);
+        
+        if (goals.length === 0) {
+            container.innerHTML = '<p class="text-muted text-center py-3">No hay metas con "Monto Objetivo" definido para este periodo.</p>';
+        } else {
+            goals.forEach(g => {
+                const perc = Math.min(100, (g.amount / g.targetAmount) * 100);
+                const colorClass = perc < 30 ? 'bg-danger' : (perc < 70 ? 'bg-warning' : 'bg-success');
+                
+                const html = `
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="flex-grow-1">
+                                <h5 class="font-size-14 mb-0">${g.entityName || g.category}</h5>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <span class="badge badge-soft-primary">${perc.toFixed(0)}%</span>
+                            </div>
+                        </div>
+                        <div class="progress animated-progess custom-progress">
+                            <div class="progress-bar ${colorClass}" role="progressbar" style="width: ${perc}%" 
+                                aria-valuenow="${perc}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-1">
+                            <small class="text-muted">${formatCurrency(g.amount)} ahorrados</small>
+                            <small class="text-muted">Meta: ${formatCurrency(g.targetAmount)}</small>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', html);
+            });
+        }
+    }
 }
 
 // --- Helpers ---
