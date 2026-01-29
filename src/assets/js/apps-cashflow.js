@@ -357,6 +357,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('sav-category').value = data.category || 'Fondo de Reserva';
                 document.getElementById('sav-status').value = data.status || 'ACTIVE';
                 document.getElementById('sav-is-initial').checked = data.isInitial || false;
+                document.getElementById('sav-recurring').checked = data.isRecurring || false;
                 if(data.date) document.getElementById('sav-date').valueAsDate = parseDate(data.date);
                 document.getElementById('sav-address').value = data.address || '';
             }
@@ -512,6 +513,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 amount: parseFloat(document.getElementById('sav-amount').value) || 0,
                 targetAmount: parseFloat(document.getElementById('sav-target-amount').value) || 0,
                 isInitial: document.getElementById('sav-is-initial').checked,
+                isRecurring: document.getElementById('sav-recurring').checked,
                 date: firebase.firestore.Timestamp.fromDate(document.getElementById('sav-date').valueAsDate || new Date()),
                 address: document.getElementById('sav-address').value,
                 updatedAt: new Date()
@@ -590,10 +592,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 
                 childData.isRecurring = false; // Child is not the generator
                 childData.parentRecurringId = parent.id;
-                childData.status = 'PENDING'; // Always pending initially
+                childData.status = parent.type === 'SAVING' ? 'ACTIVE' : 'PENDING'; // Savings are active/ready by default
                 childData.date = newDate;
                 childData.createdAt = new Date();
                 childData.description = `${parent.address || ''} (Recurrente Mes ${today.getMonth()+1})`; 
+                if (parent.type === 'SAVING') childData.isInitial = false; // Generated records are never initial balances
 
                 console.log("Generating recurring tx for", parent.entityName);
                 await db.collection('transactions').add(childData);
@@ -1008,16 +1011,46 @@ document.addEventListener('DOMContentLoaded', function () {
     function calculateKPIs(currentFilteredData, year, period) {
         const getSum = (arr, currency) => arr.reduce((acc, t) => t.currency === currency ? acc + (Number(t.amount) || 0) : acc, 0);
 
-        // 1. Calculate ACCUMULATED Balance for Cards (Up to selected period)
-        // We look at allTransactions to get the REAL state of account at that moment.
+        // --- 1. PERIOD SPECIFIC KPIs (Facturación, Cobro, Gastos) ---
+        // Based ONLY on currentFilteredData (what the user sees in the table for this year/month)
+        const pIncome = currentFilteredData.filter(t => t.type === 'INCOME');
+        const pExpense = currentFilteredData.filter(t => t.type === 'EXPENSE');
+
+        // Facturación Esperada (Total of the period)
+        updateKPI('kpi-income-expected-ars', getSum(pIncome, 'ARS'));
+        updateKPI('kpi-income-expected-usd', getSum(pIncome, 'USD'));
+
+        // Pendiente de Cobro (Income Not Paid)
+        updateKPI('kpi-income-pending-ars', getSum(pIncome.filter(t => t.status !== 'PAID'), 'ARS'));
+        updateKPI('kpi-income-pending-usd', getSum(pIncome.filter(t => t.status !== 'PAID'), 'USD'));
+
+        // Gastos Esperados (Total Expenses of the period)
+        updateKPI('kpi-expense-expected-ars', getSum(pExpense, 'ARS'));
+        updateKPI('kpi-expense-expected-usd', getSum(pExpense, 'USD'));
+
+        // Gastos Pendientes (Expenses Not Paid)
+        updateKPI('kpi-expense-pending-ars', getSum(pExpense.filter(t => t.status !== 'PAID'), 'ARS'));
+        updateKPI('kpi-expense-pending-usd', getSum(pExpense.filter(t => t.status !== 'PAID'), 'USD'));
+
+
+        // --- 2. ACCUMULATED BALANCE KPIs (Caja, Reservas, Patrimonio) ---
+        // Up to selected period (Historical context)
         let historicalData = [...allTransactions];
         
-        // Define terminal date of period
+        // Define terminal date of period for historical balance
         let endOfPeriodDate = new Date();
-        if (period !== 'ALL' && period !== 'YTD') {
+        if (period === 'ALL') {
+             // No date filter needed
+        } else if (period === 'YTD') {
+             endOfPeriodDate = new Date(); // Current moment
+        } else {
              const m = parseInt(period);
-             if(!isNaN(m)) {
-                 endOfPeriodDate = new Date(year, m, 0, 23, 59, 59); // Last second of the month
+             if (!isNaN(m)) {
+                 endOfPeriodDate = new Date(year, m, 0, 23, 59, 59); // Last day of month
+             } else {
+                 // Quarters and Semesters
+                 const map = { 'Q1': 3, 'Q2': 6, 'Q3': 9, 'Q4': 12, 'S1': 6, 'S2': 12 };
+                 if(map[period]) endOfPeriodDate = new Date(year, map[period], 0, 23, 59, 59);
              }
         }
 
@@ -1028,45 +1061,28 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const hIncome = historicalData.filter(t => t.type === 'INCOME' && t.status === 'PAID');
         const hExpense = historicalData.filter(t => t.type === 'EXPENSE' && t.status === 'PAID');
-        const hSavings = historicalData.filter(t => t.type === 'SAVING' && t.status !== 'USED');
         
-        // Only savings that are NOT initial balances should be subtracted from liquid cash
-        const hSavingsToSubtract = hSavings.filter(t => t.isInitial !== true);
+        const hSavingsAll = historicalData.filter(t => t.type === 'SAVING');
+        const hSavingsActive = hSavingsAll.filter(t => t.status !== 'USED');
+        const hSavingsToSubtract = hSavingsAll.filter(t => t.isInitial !== true);
 
-        const totalIncARS = getSum(hIncome, 'ARS');
-        const totalIncUSD = getSum(hIncome, 'USD');
-        const totalExpARS = getSum(hExpense, 'ARS');
-        const totalExpUSD = getSum(hExpense, 'USD');
-        const totalSavARS = getSum(hSavings, 'ARS');
-        const totalSavUSD = getSum(hSavings, 'USD');
+        const balanceARS = getSum(hIncome, 'ARS') - getSum(hExpense, 'ARS') - getSum(hSavingsToSubtract, 'ARS');
+        const balanceUSD = getSum(hIncome, 'USD') - getSum(hExpense, 'USD') - getSum(hSavingsToSubtract, 'USD');
+        const totalSavARS = getSum(hSavingsActive, 'ARS');
+        const totalSavUSD = getSum(hSavingsActive, 'USD');
 
-        const totalSavToSubtractARS = getSum(hSavingsToSubtract, 'ARS');
-        const totalSavToSubtractUSD = getSum(hSavingsToSubtract, 'USD');
-
-        // Caja Disponible = Tudo lo cobrado - Todo lo pagado - Ahorros generados desde esta caja
-        const balanceARS = totalIncARS - totalExpARS - totalSavToSubtractARS;
-        const balanceUSD = totalIncUSD - totalExpUSD - totalSavToSubtractUSD;
-
-        const totalPatrimonialARS = balanceARS + totalSavARS;
-        const totalPatrimonialUSD = balanceUSD + totalSavUSD;
-
-        // Update DOM Cards
+        // Update DOM Cards (Balance and Wealth)
         updateKPI('kpi-balance-ars', balanceARS);
         updateKPI('kpi-balance-usd', balanceUSD);
         updateKPI('kpi-savings-ars', totalSavARS);
         updateKPI('kpi-savings-usd', totalSavUSD);
-        updateKPI('kpi-total-ars', totalPatrimonialARS);
-        updateKPI('kpi-total-usd', totalPatrimonialUSD);
+        updateKPI('kpi-total-ars', balanceARS + totalSavARS);
+        updateKPI('kpi-total-usd', balanceUSD + totalSavUSD);
 
-        // 2. Calculate MONTHLY Surplus (Only for the selected month subset)
-        // This is for the "Assistant" that suggests saving what you earned THIS month.
-        const mIncome = currentFilteredData.filter(t => t.type === 'INCOME');
-        const mExpense = currentFilteredData.filter(t => t.type === 'EXPENSE');
-        
-        // Use EXPECTED (or Paid? usually we suggest from what's effectively available)
-        // Let's use PAID for the assistant to be safe.
-        const monthlyProfitARS = getSum(mIncome.filter(t => t.status === 'PAID'), 'ARS') - getSum(mExpense.filter(t => t.status === 'PAID'), 'ARS');
-        const monthlyProfitUSD = getSum(mIncome.filter(t => t.status === 'PAID'), 'USD') - getSum(mExpense.filter(t => t.status === 'PAID'), 'USD');
+        // --- 3. SURPLUS ASSISTANT ---
+        // We suggest saving based on what was effectively PAID/RECEIVED this month
+        const monthlyProfitARS = getSum(pIncome.filter(t => t.status === 'PAID'), 'ARS') - getSum(pExpense.filter(t => t.status === 'PAID'), 'ARS');
+        const monthlyProfitUSD = getSum(pIncome.filter(t => t.status === 'PAID'), 'USD') - getSum(pExpense.filter(t => t.status === 'PAID'), 'USD');
 
         checkSurplusAssistant(monthlyProfitARS, monthlyProfitUSD, balanceARS, balanceUSD);
     }
@@ -1211,10 +1227,11 @@ document.addEventListener('DOMContentLoaded', function () {
                         <td><span class="text-truncate d-block" style="max-width: 150px;">${t.address || '-'}</span></td>
                         <td>${t.currency === 'ARS' ? amountStr : '-'}</td>
                         <td>${t.currency === 'USD' ? amountStr : '-'}</td>
+                        <td>${t.isRecurring ? '<i class="bx bx-revision text-primary" title="Recurrente"></i>' : ''}</td>
                         <td><div class="${statusBadge}">${statusLabel}</div></td>
                         <td>
                             <div class="d-flex gap-2 text-end justify-content-end">
-                                ${ t.status !== 'USED' ? `<button class="btn btn-sm btn-soft-primary" onclick="editSaving('${t.id}')" title="Editar"><i class="mdi mdi-pencil"></i></button>` : '' }
+                                <button class="btn btn-sm btn-soft-primary" onclick="editSaving('${t.id}')" title="Editar"><i class="mdi mdi-pencil"></i></button>
                                 ${ t.status !== 'USED' ? `<button class="btn btn-sm btn-info" onclick="useSavingForExpense('${t.id}')" title="Usar para Gasto"><i class="mdi mdi-arrow-right-bold-circle-outline"></i></button>` : '' }
                                 <button class="btn btn-sm btn-soft-danger" onclick="deleteTransaction('${t.id}')"><i class="mdi mdi-trash-can"></i></button>
                             </div>
@@ -1275,19 +1292,33 @@ document.addEventListener('DOMContentLoaded', function () {
          db.collection('transactions').doc(id).update({ status: newStatus });
     };
 
-    window.deleteTransaction = function(id) {
-        Swal.fire({
+    window.deleteTransaction = async function(id) {
+        const result = await Swal.fire({
             title: '¿Eliminar?',
             text: "No podrás revertir esto.",
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#f46a6a',
+            confirmButtonText: 'Sí, eliminar',
             cancelButtonText: 'Cancelar'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                db.collection('transactions').doc(id).delete();
-            }
         });
+
+        if (result.isConfirmed) {
+            try {
+                await db.collection('transactions').doc(id).delete();
+                Swal.fire({ 
+                    toast: true, 
+                    position: 'top-end', 
+                    icon: 'success', 
+                    title: 'Eliminado correctamente.', 
+                    showConfirmButton: false, 
+                    timer: 2000 
+                });
+            } catch (error) {
+                console.error("Error al eliminar:", error);
+                Swal.fire('Error', 'No se pudo eliminar: ' + error.message, 'error');
+            }
+        }
     };
 
     window.editSaving = function(id) {

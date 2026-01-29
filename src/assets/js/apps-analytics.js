@@ -712,19 +712,41 @@ function createChart(canvasId, type, dataConfig) {
         chartInstances[canvasId].destroy();
     }
 
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { position: 'bottom' },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        let label = context.label || '';
+                        if (label) label += ': ';
+                        
+                        const value = context.parsed;
+                        const formattedValue = type === 'pie' || type === 'doughnut' 
+                            ? formatCurrency(value) 
+                            : value;
+
+                        if (type === 'pie' || type === 'doughnut') {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%';
+                            return `${label}${formattedValue} (${percentage})`;
+                        }
+                        return `${label}${formattedValue}`;
+                    }
+                }
+            }
+        },
+        scales: type === 'bar' || type === 'line' ? {
+            y: { beginAtZero: true }
+        } : {}
+    };
+
     chartInstances[canvasId] = new Chart(ctx, {
         type: type,
         data: dataConfig,
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'bottom' }
-            },
-            scales: type === 'bar' || type === 'line' ? {
-                y: { beginAtZero: true }
-            } : {}
-        }
+        options: chartOptions
     });
 }
 
