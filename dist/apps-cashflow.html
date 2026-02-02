@@ -441,15 +441,15 @@
                                 <div class="card">
                                     <div class="card-body p-3">
                                         <div class="row align-items-end">
-                                            <div class="col-md-2">
-                                                <label class="form-label">Año</label>
+                                            <div class="col-md-1">
+                                                <label class="form-label text-truncate">Año</label>
                                                 <select class="form-select" id="filter-year">
                                                     <option value="2026">2026</option>
                                                     <option value="2025" selected>2025</option>
                                                     <option value="2024">2024</option>
                                                 </select>
                                             </div>
-                                            <div class="col-md-3">
+                                            <div class="col-md-2">
                                                 <label class="form-label">Periodo</label>
                                                 <select class="form-select" id="filter-period">
                                                     <option value="ALL">Todo el Año</option>
@@ -486,6 +486,14 @@
                                                      <option value="ALL">Todas</option>
                                                      <!-- Dynamic -->
                                                  </select>
+                                            </div>
+                                            <div class="col-md-2 d-flex align-items-center justify-content-center pb-1">
+                                                <div class="form-check form-switch mb-0">
+                                                    <input class="form-check-input p-2" type="checkbox" id="filter-only-recurring">
+                                                    <label class="form-check-label fw-bold font-size-12 text-primary ms-1" for="filter-only-recurring">
+                                                        SOLO RECURRENTES
+                                                    </label>
+                                                </div>
                                             </div>
                                              <div class="col-md-2">
                                                 <button class="btn btn-primary w-100" id="btn-apply-filters">Aplicar</button>
@@ -539,14 +547,14 @@
                                                     <table id="table-income" class="table table-bordered dt-responsive nowrap w-100 align-middle">
                                                         <thead>
                                                             <tr>
-                                                                <th>Fecha</th>
-                                                                <th>Entidad / CUIT</th>
-                                                                <th>Categoría</th>
+                                                                <th data-sort="date">Fecha</th>
+                                                                <th data-sort="entityName">Entidad / CUIT</th>
+                                                                <th data-sort="category">Categoría</th>
                                                                 <th>Descripción</th>
-                                                                <th>ARS</th>
-                                                                <th>USD</th>
+                                                                <th data-sort="amount">ARS</th>
+                                                                <th data-sort="amount">USD</th>
                                                                 <th>Recurrente</th>
-                                                                <th>Estado</th>
+                                                                <th data-sort="status">Estado</th>
                                                                 <th>Acciones</th>
                                                             </tr>
                                                         </thead>
@@ -563,14 +571,14 @@
                                                     <table id="table-expense" class="table table-bordered dt-responsive nowrap w-100 align-middle">
                                                         <thead>
                                                             <tr>
-                                                                <th>Fecha</th>
-                                                                <th>Proveedor / CUIT</th>
-                                                                <th>Categoría</th>
+                                                                <th data-sort="date">Fecha</th>
+                                                                <th data-sort="entityName">Proveedor / CUIT</th>
+                                                                <th data-sort="category">Categoría</th>
                                                                 <th>Descripción</th>
-                                                                <th>ARS</th>
-                                                                <th>USD</th>
+                                                                <th data-sort="amount">ARS</th>
+                                                                <th data-sort="amount">USD</th>
                                                                 <th>Recurrente</th>
-                                                                <th>Estado</th>
+                                                                <th data-sort="status">Estado</th>
                                                                 <th>Acciones</th>
                                                             </tr>
                                                         </thead>
@@ -588,14 +596,14 @@
                                                     <table id="table-saving" class="table table-bordered dt-responsive nowrap w-100 align-middle">
                                                         <thead>
                                                             <tr>
-                                                                <th>Fecha</th>
-                                                                <th>Nombre / Meta</th>
-                                                                <th>Categoría</th>
+                                                                <th data-sort="date">Fecha</th>
+                                                                <th data-sort="entityName">Nombre / Meta</th>
+                                                                <th data-sort="category">Categoría</th>
                                                                 <th>Descripción</th>
-                                                                <th>ARS</th>
-                                                                <th>USD</th>
+                                                                <th data-sort="amount">ARS</th>
+                                                                <th data-sort="amount">USD</th>
                                                                 <th>Recurrente</th>
-                                                                <th>Estado</th>
+                                                                <th data-sort="status">Estado</th>
                                                                 <th>Acciones</th>
                                                             </tr>
                                                         </thead>
@@ -749,9 +757,20 @@
                                     
                                     <hr>
                                     
-                                    <div class="form-check form-switch mb-3">
-                                        <input class="form-check-input" type="checkbox" id="in-recurring">
-                                        <label class="form-check-label fw-bold" for="in-recurring">¿Es un Ingreso Recurrente?</label>
+                                    <div class="row align-items-center mb-3">
+                                        <div class="col-md-6">
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="in-recurring">
+                                                <label class="form-check-label fw-bold" for="in-recurring">¿Es un Ingreso Recurrente?</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6" id="container-in-installments" style="display:none;">
+                                            <label class="form-label mb-1 font-size-13">Cantidad de Meses / Cuotas</label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" class="form-control" id="in-installments" min="2" step="1" placeholder="Ej. 12">
+                                                <span class="input-group-text">meses</span>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div class="text-end mt-4">
@@ -843,9 +862,20 @@
                                     
                                     <hr>
                                     
-                                    <div class="form-check form-switch mb-3">
-                                        <input class="form-check-input" type="checkbox" id="ex-recurring">
-                                        <label class="form-check-label fw-bold" for="ex-recurring">¿Es un Gasto Recurrente?</label>
+                                    <div class="row align-items-center mb-3">
+                                        <div class="col-md-6">
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="ex-recurring">
+                                                <label class="form-check-label fw-bold" for="ex-recurring">¿Es un Gasto Recurrente?</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6" id="container-ex-installments" style="display:none;">
+                                            <label class="form-label mb-1 font-size-13">Cantidad de Meses / Cuotas</label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" class="form-control" id="ex-installments" min="2" step="1" placeholder="Ej. 12">
+                                                <span class="input-group-text">meses</span>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div class="text-end mt-4">
@@ -930,11 +960,20 @@
                                         </div>
                                     </div>
 
-                                    <div class="mb-3">
-                                        <div class="form-check form-switch mb-0">
-                                            <input class="form-check-input" type="checkbox" id="sav-recurring">
-                                            <label class="form-check-label fw-bold" for="sav-recurring">¿Es un Ahorro/Inversión Recurrente?</label>
-                                            <small class="text-muted d-block">Se generará automáticamente todos los meses.</small>
+                                    <div class="row align-items-center mb-3">
+                                        <div class="col-md-6">
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="sav-recurring">
+                                                <label class="form-check-label fw-bold" for="sav-recurring">¿Es un Ahorro/Inversión Recurrente?</label>
+                                                <small class="text-muted d-block font-size-11">Se generará mensualmente.</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6" id="container-sav-installments" style="display:none;">
+                                            <label class="form-label mb-1 font-size-13">Cantidad de Meses / Cuotas</label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" class="form-control" id="sav-installments" min="2" step="1" placeholder="Ej. 12">
+                                                <span class="input-group-text">meses</span>
+                                            </div>
                                         </div>
                                     </div>
 

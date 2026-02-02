@@ -26,6 +26,18 @@ document.addEventListener('DOMContentLoaded', function () {
     let categories = { INCOME: [], EXPENSE: [], SAVING: [] }; 
     let entities = { INCOME: [], EXPENSE: [] }; 
 
+    // Concurrency Guards
+    let isCheckingRecurrences = false;
+    let isProcessingAgreements = false;
+    let hasRunRecurrenceThisSession = false;
+
+    // Sorting State
+    let sortConfig = {
+        INCOME: { column: 'date', direction: 'desc' },
+        EXPENSE: { column: 'date', direction: 'desc' },
+        SAVING: { column: 'date', direction: 'desc' }
+    };
+
     // ==========================================
     // 2. Helper Functions (Currency, Date)
     // ==========================================
@@ -39,6 +51,30 @@ document.addEventListener('DOMContentLoaded', function () {
         if(timestamp.seconds) return new Date(timestamp.seconds * 1000);
         return new Date(timestamp);
     };
+
+    // Recurrence/Installments Toggle Logic
+    const initRecurrenceToggles = () => {
+        const setups = [
+            { check: 'in-recurring', container: 'container-in-installments' },
+            { check: 'ex-recurring', container: 'container-ex-installments' },
+            { check: 'sav-recurring', container: 'container-sav-installments' }
+        ];
+
+        setups.forEach(s => {
+            const el = document.getElementById(s.check);
+            const container = document.getElementById(s.container);
+            if (el && container) {
+                el.addEventListener('change', () => {
+                    container.style.display = el.checked ? 'block' : 'none';
+                    if (!el.checked) {
+                        const input = container.querySelector('input');
+                        if (input) input.value = '';
+                    }
+                });
+            }
+        });
+    };
+    initRecurrenceToggles();
 
     // ==========================================
     // 3. Categories Logic
@@ -358,6 +394,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('sav-status').value = data.status || 'ACTIVE';
                 document.getElementById('sav-is-initial').checked = data.isInitial || false;
                 document.getElementById('sav-recurring').checked = data.isRecurring || false;
+                if (data.isRecurring) {
+                    document.getElementById('container-sav-installments').style.display = 'block';
+                    document.getElementById('sav-installments').value = data.installmentsTotal || '';
+                }
                 if(data.date) document.getElementById('sav-date').valueAsDate = parseDate(data.date);
                 document.getElementById('sav-address').value = data.address || '';
             }
@@ -466,6 +506,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 amount: parseFloat(document.getElementById(`${prefix}-amount`).value) || 0,
                 date: firebase.firestore.Timestamp.fromDate(document.getElementById(`${prefix}-date`).valueAsDate || new Date()),
                 isRecurring: document.getElementById(`${prefix}-recurring`).checked,
+                installmentsTotal: parseInt(document.getElementById(`${prefix}-installments`).value) || null,
+                installmentNumber: 1,
                 updatedAt: new Date()
             };
 
@@ -516,6 +558,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 isRecurring: document.getElementById('sav-recurring').checked,
                 date: firebase.firestore.Timestamp.fromDate(document.getElementById('sav-date').valueAsDate || new Date()),
                 address: document.getElementById('sav-address').value,
+                installmentsTotal: parseInt(document.getElementById('sav-installments').value) || null,
+                installmentNumber: 1,
                 updatedAt: new Date()
             };
 
@@ -557,54 +601,67 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     async function checkRecurrences(transactions) {
-        // Logic: Find recurring items. Check if current month entry exists. If not, create it.
-        // This is a "Client-side trigger" approach. Robust enough for this scale.
-        
-        const recurringParents = transactions.filter(t => t.isRecurring && !t.parentRecurringId); // Only parents
-        const today = new Date();
-        const currentMonthKey = `${today.getFullYear()}-${today.getMonth()}`; // YYYY-M
+        if (isCheckingRecurrences || hasRunRecurrenceThisSession) return;
+        isCheckingRecurrences = true;
 
-        let createdCount = 0;
+        try {
+            const recurringParents = transactions.filter(t => t.isRecurring && !t.parentRecurringId); 
+            const today = new Date();
+            const startOfCurrentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+            let createdCount = 0;
 
-        for (const parent of recurringParents) {
-            // Check if there is already a child for this month
-            // We can check by some metadata tag like "generatedPeriod: '2025-01'"
-            
-            // Simplified check: Do we have a transaction with same entity, amount, category created this month?
-            // Better: Store 'lastGenerated' on parent? Or query children.
-            // Let's rely on finding a child with 'parentRecurringId' == parent.id AND date in current month.
-            
-            const AlreadyExists = transactions.find(t => 
-                t.parentRecurringId === parent.id && 
-                parseDate(t.date).getMonth() === today.getMonth() &&
-                parseDate(t.date).getFullYear() === today.getFullYear()
-            );
-
-            if (!AlreadyExists) {
-                // Determine Date: 1st of current month? Or same day of month as parent?
-                // Let's use 10th of valid month or present day. Default to today for simplicity or 1st.
-                const newDate = new Date(today.getFullYear(), today.getMonth(), 1); 
+            for (const parent of recurringParents) {
+                const parentDate = parseDate(parent.date);
                 
-                // CREATE CHILD
-                const childData = { ...parent };
-                delete childData.id;
-                delete childData.createdAt; // New creation time
-                
-                childData.isRecurring = false; // Child is not the generator
-                childData.parentRecurringId = parent.id;
-                childData.status = parent.type === 'SAVING' ? 'ACTIVE' : 'PENDING'; // Savings are active/ready by default
-                childData.date = newDate;
-                childData.createdAt = new Date();
-                childData.description = `${parent.address || ''} (Recurrente Mes ${today.getMonth()+1})`; 
-                if (parent.type === 'SAVING') childData.isInitial = false; // Generated records are never initial balances
+                // Skip if parent is already in the current month or future
+                if (parentDate >= startOfCurrentMonth) continue;
 
-                console.log("Generating recurring tx for", parent.entityName);
-                await db.collection('transactions').add(childData);
-                createdCount++;
+                const AlreadyExists = transactions.find(t => 
+                    t.parentRecurringId === parent.id && 
+                    parseDate(t.date).getMonth() === today.getMonth() &&
+                    parseDate(t.date).getFullYear() === today.getFullYear()
+                );
+
+                if (!AlreadyExists) {
+                    const childrenCount = transactions.filter(t => t.parentRecurringId === parent.id).length;
+                    
+                    // Installment limit check
+                    if (parent.installmentsTotal && (childrenCount + 1 >= parent.installmentsTotal)) {
+                        continue;
+                    }
+
+                    const newDate = new Date(today.getFullYear(), today.getMonth(), 1); 
+                    
+                    const childData = { ...parent };
+                    delete childData.id;
+                    delete childData.createdAt; 
+                    
+                    childData.isRecurring = false; 
+                    childData.parentRecurringId = parent.id;
+                    childData.status = parent.type === 'SAVING' ? 'ACTIVE' : 'PENDING'; 
+                    childData.date = newDate;
+                    childData.createdAt = new Date();
+                    childData.description = `${parent.address || ''} (Recurrente Mes ${today.getMonth()+1})`; 
+                    
+                    if (parent.installmentsTotal) {
+                        childData.installmentNumber = childrenCount + 2;
+                    }
+
+                    if (parent.type === 'SAVING') childData.isInitial = false; 
+
+                    console.log("Generating recurring tx for", parent.entityName, parent.installmentsTotal ? `(Cuota ${childData.installmentNumber}/${parent.installmentsTotal})` : '');
+                    await db.collection('transactions').add(childData);
+                    createdCount++;
+                }
             }
+            
+            if(createdCount > 0) console.log(`Generated ${createdCount} recurring transactions.`);
+            hasRunRecurrenceThisSession = true;
+        } catch (error) {
+            console.error("Error in checkRecurrences:", error);
+        } finally {
+            isCheckingRecurrences = false;
         }
-        
-        if(createdCount > 0) console.log(`Generated ${createdCount} recurring transactions.`);
     }
 
     // ==========================================
@@ -615,6 +672,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const filterPeriod = document.getElementById('filter-period');
     const filterSearch = document.getElementById('filter-search');
     const filterCategory = document.getElementById('filter-category');
+    const filterOnlyRecurring = document.getElementById('filter-only-recurring');
     const btnApplyFilters = document.getElementById('btn-apply-filters');
 
     // Initialize Filters to Current Date
@@ -638,9 +696,52 @@ document.addEventListener('DOMContentLoaded', function () {
     btnApplyFilters.addEventListener('click', applyFilters);
     
     // Auto-update on select change
-    [filterYear, filterPeriod, filterCategory].forEach(el => el.addEventListener('change', applyFilters));
+    [filterYear, filterPeriod, filterCategory, filterOnlyRecurring].forEach(el => el.addEventListener('change', applyFilters));
     
-    // 6. Filters & Render Update for YTD
+    // --- SORTING EVENT LISTENERS ---
+    function initSortingListeners() {
+        const tables = ['table-income', 'table-expense', 'table-saving'];
+        tables.forEach(tableId => {
+            const table = document.getElementById(tableId);
+            if (!table) return;
+
+            const headers = table.querySelectorAll('th[data-sort]');
+            headers.forEach(th => {
+                th.style.cursor = 'pointer';
+                th.addEventListener('click', () => {
+                    const type = tableId.split('-')[1].toUpperCase();
+                    const column = th.dataset.sort;
+                    
+                    if (sortConfig[type].column === column) {
+                        sortConfig[type].direction = sortConfig[type].direction === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        sortConfig[type].column = column;
+                        sortConfig[type].direction = 'asc';
+                    }
+                    
+                    updateSortIndicators(tableId, column, sortConfig[type].direction);
+                    applyFilters();
+                });
+            });
+        });
+    }
+
+    function updateSortIndicators(tableId, activeColumn, direction) {
+        const table = document.getElementById(tableId);
+        const headers = table.querySelectorAll('th[data-sort]');
+        headers.forEach(th => {
+            // Remove existing markers
+            th.querySelectorAll('.sort-icon').forEach(i => i.remove());
+            
+            if (th.dataset.sort === activeColumn) {
+                const icon = document.createElement('i');
+                icon.className = `mdi mdi-arrow-${direction === 'asc' ? 'up' : 'down'} ms-1 sort-icon`;
+                th.appendChild(icon);
+            }
+        });
+    }
+
+    initSortingListeners();
     function applyFilters() {
         let filtered = [...allTransactions];
         
@@ -648,29 +749,40 @@ document.addEventListener('DOMContentLoaded', function () {
         const period = filterPeriod.value;
         const search = filterSearch.value.toLowerCase();
         const cat = filterCategory.value;
+        const onlyRecurring = filterOnlyRecurring.checked;
 
-        // Year Filter
-        filtered = filtered.filter(t => parseDate(t.date).getFullYear() === year);
+        if (onlyRecurring) {
+            // When "Only Recurring" is ON, we only show parents (rules).
+            // Robust check for isRecurring (handle boolean or string "true")
+            filtered = filtered.filter(t => (t.isRecurring === true || t.isRecurring === 'true') && !t.parentRecurringId);
+        } else {
+            // Normal behavior: Filter by Year and Period
+            const yearNum = parseInt(filterYear.value || new Date().getFullYear());
+            filtered = filtered.filter(t => {
+                const d = parseDate(t.date);
+                return d && d.getFullYear() === yearNum;
+            });
 
-        // Period Filter
-        if(period === 'YTD') {
-             const now = new Date();
-             filtered = filtered.filter(t => parseDate(t.date) <= now);
-        } else if(period !== 'ALL') {
-             filtered = filtered.filter(t => {
-                 const d = parseDate(t.date);
-                 const m = d.getMonth() + 1; // 1-12
-                 
-                 if (period === 'Q1') return m >= 1 && m <= 3;
-                 if (period === 'Q2') return m >= 4 && m <= 6;
-                 if (period === 'Q3') return m >= 7 && m <= 9;
-                 if (period === 'Q4') return m >= 10 && m <= 12;
-                 if (period === 'S1') return m >= 1 && m <= 6;
-                 if (period === 'S2') return m >= 7 && m <= 12;
-                 
-                 // Specific Month (01-12)
-                 return m === parseInt(period);
-             });
+            // Period Filter
+            if(period === 'YTD') {
+                 const now = new Date();
+                 filtered = filtered.filter(t => parseDate(t.date) <= now);
+            } else if(period !== 'ALL') {
+                 filtered = filtered.filter(t => {
+                     const d = parseDate(t.date);
+                     const m = d.getMonth() + 1; // 1-12
+                     
+                     if (period === 'Q1') return m >= 1 && m <= 3;
+                     if (period === 'Q2') return m >= 4 && m <= 6;
+                     if (period === 'Q3') return m >= 7 && m <= 9;
+                     if (period === 'Q4') return m >= 10 && m <= 12;
+                     if (period === 'S1') return m >= 1 && m <= 6;
+                     if (period === 'S2') return m >= 7 && m <= 12;
+                     
+                     // Specific Month (01-12)
+                     return m === parseInt(period);
+                 });
+            }
         }
 
         // Category Filter
@@ -684,10 +796,35 @@ document.addEventListener('DOMContentLoaded', function () {
             );
         }
 
+        // --- SORTING LOGIC ---
+        const sortData = (data, config) => {
+            return data.sort((a, b) => {
+                let valA = a[config.column];
+                let valB = b[config.column];
+
+                // Handle nesting or special field parsing
+                if (config.column === 'date') {
+                    valA = parseDate(a.date).getTime();
+                    valB = parseDate(b.date).getTime();
+                }
+
+                if (typeof valA === 'string') valA = valA.toLowerCase();
+                if (typeof valB === 'string') valB = valB.toLowerCase();
+
+                if (valA < valB) return config.direction === 'asc' ? -1 : 1;
+                if (valA > valB) return config.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        };
+
+        const incomes = sortData(filtered.filter(t => t.type === 'INCOME'), sortConfig.INCOME);
+        const expenses = sortData(filtered.filter(t => t.type === 'EXPENSE'), sortConfig.EXPENSE);
+        const savings = sortData(filtered.filter(t => t.type === 'SAVING'), sortConfig.SAVING);
+
         calculateKPIs(filtered, year, period);
-        renderTables(filtered);
+        renderTables([...incomes, ...expenses, ...savings]);
         renderMonthlyControl(); 
-        renderAgreementsList(); // Fix: Update Bottom Table too
+        renderAgreementsList();
     }
 
     // Call applyFilters when agreements data changes to update Monthly Control too 
@@ -907,25 +1044,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 8.5 Automated Logic (Non-Invoiced)
     async function processAutomaticAgreements() {
-        // Runs on load (called from loadAgreements)
-        // Target: Inactive Invoice, Monthly, Recurring -> Auto Generate for CURRENT MONTH
-        
-        const now = new Date();
-        const currentPeriodKey = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2, '0')}`;
-        
-        // Find candidates
-        const candidates = agreements.filter(a => 
-            a.frequency === 'MONTHLY' && 
-            a.hasInvoice === false
-        );
+        if (isProcessingAgreements) return;
+        isProcessingAgreements = true;
 
-        let created = 0;
+        try {
+            // Runs on load (called from loadAgreements)
+            // Target: Inactive Invoice, Monthly, Recurring -> Auto Generate for CURRENT MONTH
+            
+            const now = new Date();
+            const currentPeriodKey = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2, '0')}`;
+            
+            // Find candidates
+            const candidates = agreements.filter(a => 
+                a.frequency === 'MONTHLY' && 
+                a.hasInvoice === false
+            );
 
-        for (const a of candidates) {
-            // Check if already generated for this month
-            if (a.invoices && a.invoices[currentPeriodKey] && a.invoices[currentPeriodKey].sent) {
-                continue; // Already done
-            }
+            let created = 0;
+
+            for (const a of candidates) {
+                // Check if already generated for this month
+                if (a.invoices && a.invoices[currentPeriodKey] && a.invoices[currentPeriodKey].sent) {
+                    continue; // Already done
+                }
 
             // Create Income Automatically
             try {
@@ -979,7 +1120,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 timer: 4000
             });
         }
+    } catch (error) {
+        console.error("Error in processAutomaticAgreements:", error);
+    } finally {
+        isProcessingAgreements = false;
     }
+}
     
     // Update loadAgreements to call this
     // We need to inject the call inside the onSnapshot
@@ -1208,8 +1354,9 @@ document.addEventListener('DOMContentLoaded', function () {
         tBodySav.innerHTML = '';
 
         const createRow = (t, isSaving = false) => {
-            const dateStr = parseDate(t.date).toLocaleDateString();
-            const amountStr = formatCurrency(t.amount, t.currency);
+            const dateObj = parseDate(t.date);
+            const dateStr = dateObj ? dateObj.toLocaleDateString() : 'N/A';
+            const amountStr = formatCurrency(t.amount || 0, t.currency || 'ARS');
             
             let statusBadge = 'badge bg-warning text-dark';
             let statusLabel = 'Pendiente';
@@ -1222,12 +1369,13 @@ document.addEventListener('DOMContentLoaded', function () {
                         <td>${dateStr}</td>
                         <td>
                             <h6 class="mb-0 font-size-14 text-truncate">${t.entityName}</h6>
+                            ${t.installmentsTotal ? `<div class="mt-1"><span class="badge badge-soft-info" style="border: 1px solid #0ab39c;">Cuota ${t.installmentNumber || 1}/${t.installmentsTotal}</span></div>` : ''}
                         </td>
                         <td><span class="badge badge-soft-primary">${t.category}</span></td>
                         <td><span class="text-truncate d-block" style="max-width: 150px;">${t.address || '-'}</span></td>
                         <td>${t.currency === 'ARS' ? amountStr : '-'}</td>
                         <td>${t.currency === 'USD' ? amountStr : '-'}</td>
-                        <td>${t.isRecurring ? '<i class="bx bx-revision text-primary" title="Recurrente"></i>' : ''}</td>
+                        <td>${(t.isRecurring === true || t.isRecurring === 'true') ? '<i class="bx bx-revision text-primary" title="Recurrente"></i>' : ''}</td>
                         <td><div class="${statusBadge}">${statusLabel}</div></td>
                         <td>
                             <div class="d-flex gap-2 text-end justify-content-end">
@@ -1250,13 +1398,16 @@ document.addEventListener('DOMContentLoaded', function () {
                     <td>${dateStr}</td>
                     <td>
                         <h6 class="mb-0 font-size-14 text-truncate">${t.entityName}</h6>
-                        <small class="text-muted text-truncate">${t.cuit || '-'}</small>
+                        <small class="text-muted text-truncate">
+                            ${t.cuit || '-'} 
+                            ${t.installmentsTotal ? ` <span class="badge badge-soft-info ms-1" style="border: 1px solid #0ab39c;">Cuota ${t.installmentNumber || 1}/${t.installmentsTotal}</span>` : ''}
+                        </small>
                     </td>
                     <td><span class="badge badge-soft-primary">${t.category}</span></td>
                     <td>${t.address || '-'}</td>
                     <td>${t.currency === 'ARS' ? amountStr : '-'}</td>
                     <td>${t.currency === 'USD' ? amountStr : '-'}</td>
-                    <td>${t.isRecurring ? '<i class="bx bx-revision text-primary"></i>' : '-'}</td>
+                    <td>${(t.isRecurring === true || t.isRecurring === 'true') ? '<i class="bx bx-revision text-primary"></i>' : '-'}</td>
                     <td><div class="${statusBadge}">${statusLabel}</div></td>
                     <td>
                         <div class="d-flex gap-2">
