@@ -1044,88 +1044,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 8.5 Automated Logic (Non-Invoiced)
     async function processAutomaticAgreements() {
+        // Feature Disabled: User requested manual control for all monthly agreements.
         if (isProcessingAgreements) return;
-        isProcessingAgreements = true;
-
-        try {
-            // Runs on load (called from loadAgreements)
-            // Target: Inactive Invoice, Monthly, Recurring -> Auto Generate for CURRENT MONTH
-            
-            const now = new Date();
-            const currentPeriodKey = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2, '0')}`;
-            
-            // Find candidates
-            const candidates = agreements.filter(a => 
-                a.frequency === 'MONTHLY' && 
-                a.hasInvoice === false
-            );
-
-            let created = 0;
-
-            for (const a of candidates) {
-                // Check if already generated for this month
-                if (a.invoices && a.invoices[currentPeriodKey] && a.invoices[currentPeriodKey].sent) {
-                    continue; // Already done
-                }
-
-            // Create Income Automatically
-            try {
-                const newTx = {
-                      type: 'INCOME',
-                      entityName: a.name,
-                      cuit: a.cuit,
-                      address: 'Cobro Recurrente Automático',
-                      category: 'Honorarios', 
-                      status: 'PENDING', // User said "vaya a ingresos", usually pending until collected? Or status PAID? 
-                      // "Control mes a mes si se envió... si se envió entonces va a ingresos".
-                      // For non-factured, maybe we assume it's just "Expected Income"? Let's set Pending.
-                      // If it's recurrent payment (like subscription), maybe Paid? 
-                      // Safest is PENDING.
-                      currency: a.currency,
-                      amount: a.amount,
-                      date: firebase.firestore.Timestamp.fromDate(new Date()), // Today
-                      isRecurring: false, 
-                      agreementId: a.id,
-                      periodKey: currentPeriodKey,
-                      createdAt: new Date(),
-                      createdBy: 'SYSTEM'
-                };
-                 
-                const docRef = await db.collection('transactions').add(newTx);
-                
-                // Update Agreement Record
-                const updateMap = {};
-                updateMap[`invoices.${currentPeriodKey}`] = {
-                     sent: true, // "Sent" here just means "Generated" for non-invoice items
-                     date: new Date().toISOString().split('T')[0],
-                     incomeId: docRef.id
-                };
-                
-                await db.collection('cashflow_agreements').doc(a.id).update(updateMap);
-                console.log(`Auto-generated income for agreement: ${a.name}`);
-                created++;
-
-            } catch(e) {
-                console.error("Error auto-generating agreement income:", e);
-            }
-        }
-        
-        if(created > 0) {
-            Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: 'info',
-                title: `${created} Ingresos recurrentes generados automáticamente.`,
-                showConfirmButton: false,
-                timer: 4000
-            });
-        }
-    } catch (error) {
-        console.error("Error in processAutomaticAgreements:", error);
-    } finally {
-        isProcessingAgreements = false;
+        // Logic removed to prevent auto-generation of income.
+        console.log("Automatic agreement processing is disabled (Manual Mode).");
     }
-}
     
     // Update loadAgreements to call this
     // We need to inject the call inside the onSnapshot
@@ -1612,11 +1535,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 </div>
             `;
 
+            // Determine invoice status info
+            let invoiceStatusBadge = a.hasInvoice ? '<span class="badge bg-success-subtle text-success">Sí</span>' : '<span class="badge bg-secondary-subtle text-secondary">No</span>';
+
             tbody.innerHTML += `
                 <tr class="${isSent ? 'bg-success-subtle' : ''}">
                     <td><strong>${a.name}</strong></td>
+                    <td><small class="text-muted coding">${a.cuit || "-"}</small></td>
+                    <td>${invoiceStatusBadge}</td>
                     <td>${amountStr}</td>
-                    <td>${a.biller || 'S/D'}</td>
+                    <td>${a.biller || '-'}</td>
                     <td>${checkbox}</td>
                 </tr>
             `;
