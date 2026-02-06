@@ -174,7 +174,7 @@ gulp.task('fileinclude', function (callback) {
             basepath: '@file',
             indent: true,
         }))
-        .pipe(cached())
+        // .pipe(cached())
         .pipe(gulp.dest(paths.dist.base.dir));
 });
 
