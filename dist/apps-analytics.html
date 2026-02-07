@@ -307,6 +307,11 @@
                                         <option value="10">Noviembre</option>
                                         <option value="11">Diciembre</option>
                                     </select>
+
+                                    <!-- Account Selector -->
+                                    <select class="form-select w-auto form-select-sm" id="analytics-account" onchange="appAnalytics.applyFilters()">
+                                        <option value="ALL">Todas las Cuentas</option>
+                                    </select>
                                     
                                     <div class="btn-group btn-group-sm ms-2" role="group">
                                         <input type="radio" class="btn-check" name="currency-switch" id="currency-ars" autocomplete="off" checked onclick="appAnalytics.setCurrency('ARS')">

@@ -14520,34 +14520,4 @@ body[data-bs-theme=dark] .breadcrumb-item.active {
 .shadow-dark {
   -webkit-box-shadow: 0 2px 8px 0 rgba(33, 37, 41, 0.3);
           box-shadow: 0 2px 8px 0 rgba(33, 37, 41, 0.3);
-}}
-
-.shadow-success {
-  -webkit-box-shadow: 0 2px 8px 0 rgba(42, 181, 125, 0.3);
-          box-shadow: 0 2px 8px 0 rgba(42, 181, 125, 0.3);
-}
-
-.shadow-info {
-  -webkit-box-shadow: 0 2px 8px 0 rgba(75, 166, 239, 0.3);
-          box-shadow: 0 2px 8px 0 rgba(75, 166, 239, 0.3);
-}
-
-.shadow-warning {
-  -webkit-box-shadow: 0 2px 8px 0 rgba(255, 191, 83, 0.3);
-          box-shadow: 0 2px 8px 0 rgba(255, 191, 83, 0.3);
-}
-
-.shadow-danger {
-  -webkit-box-shadow: 0 2px 8px 0 rgba(253, 98, 94, 0.3);
-          box-shadow: 0 2px 8px 0 rgba(253, 98, 94, 0.3);
-}
-
-.shadow-light {
-  -webkit-box-shadow: 0 2px 8px 0 rgba(233, 233, 239, 0.3);
-          box-shadow: 0 2px 8px 0 rgba(233, 233, 239, 0.3);
-}
-
-.shadow-dark {
-  -webkit-box-shadow: 0 2px 8px 0 rgba(33, 37, 41, 0.3);
-          box-shadow: 0 2px 8px 0 rgba(33, 37, 41, 0.3);
 }

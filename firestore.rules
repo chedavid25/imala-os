@@ -123,7 +123,7 @@ service cloud.firestore {
     }
     
     match /transactions/{txnId} {
-        allow read, write: if hasRole('ADMIN') || hasRole('BROKER');
+        allow read, write: if isAuthenticated();
     }
 
     // INVITATION CODES
@@ -143,8 +143,11 @@ service cloud.firestore {
     match /cashflow_entities/{docId} {
         allow read, write: if isAuthenticated();
     }
+    match /cashflow_accounts/{docId} {
+        allow read, write: if isAuthenticated();
+    }
     match /cashflow_agreements/{docId} {
-         allow read, write: if hasRole('ADMIN') || hasRole('BROKER');
+         allow read, write: if isAuthenticated();
     }
 
     // SETTINGS (For dynamic categories etc)

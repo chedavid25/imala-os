@@ -68,6 +68,7 @@
                                         <button class="btn btn-danger ms-2" id="btn-new-expense"><i class="mdi mdi-arrow-down-thin-circle-outline me-1"></i> Nuevo Gasto</button>
                                         <button class="btn btn-primary ms-2" id="btn-new-saving"><i class="mdi mdi-piggy-bank-outline me-1"></i> Nuevo Ahorro</button>
                                         <button class="btn btn-soft-info ms-2" id="btn-transfer-saving"><i class="mdi mdi-swap-horizontal me-1"></i> Transferir</button>
+                                        <button class="btn btn-soft-secondary ms-2" id="btn-config-accounts" title="Configurar Cuentas"><i class="mdi mdi-cog-outline"></i></button>
                                     </div>
                                 </div>
                             </div>
@@ -493,6 +494,26 @@
                             </div>
                         </div>
                         
+                        <!-- Account Summary Row -->
+                        <div class="row mb-4" id="account-summary-container" style="display:none;">
+                            <div class="col-12">
+                                <div class="card border border-soft-secondary shadow-none">
+                                    <div class="card-header bg-transparent border-bottom py-2">
+                                        <h6 class="card-title mb-0 font-size-13 text-muted">Resumen de Saldos por Cuenta</h6>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-nowrap mb-0 align-middle">
+                                                <tbody id="account-summary-list">
+                                                    <!-- Dynamic -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                     </div> 
                 </div>
 
@@ -556,18 +577,27 @@
                                     </div>
 
                                     <div class="row">
-                                        <div class="col-md-4 mb-3">
+                                        <div class="col-md-6 mb-3">
                                             <label class="form-label">Moneda</label>
                                             <select class="form-select" id="in-currency">
                                                 <option value="ARS" selected>Pesos Argentinos (ARS)</option>
                                                 <option value="USD">Dólares (USD)</option>
                                             </select>
                                         </div>
-                                        <div class="col-md-4 mb-3">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Cuenta de Destino</label>
+                                            <select class="form-select select-account" id="in-account" required>
+                                                <option value="">Seleccione cuenta...</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
                                             <label class="form-label">Monto</label>
                                             <input type="number" class="form-control" id="in-amount" min="0" step="0.01" required>
                                         </div>
-                                        <div class="col-md-4 mb-3">
+                                        <div class="col-md-6 mb-3">
                                             <label class="form-label">Fecha</label>
                                             <input type="date" class="form-control" id="in-date" required>
                                         </div>
@@ -661,18 +691,27 @@
                                     </div>
 
                                     <div class="row">
-                                        <div class="col-md-4 mb-3">
+                                        <div class="col-md-6 mb-3">
                                             <label class="form-label">Moneda</label>
                                             <select class="form-select" id="ex-currency">
                                                 <option value="ARS" selected>Pesos Argentinos (ARS)</option>
                                                 <option value="USD">Dólares (USD)</option>
                                             </select>
                                         </div>
-                                        <div class="col-md-4 mb-3">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Desde Cuenta</label>
+                                            <select class="form-select select-account" id="ex-account" required>
+                                                <option value="">Seleccione cuenta...</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
                                             <label class="form-label">Monto</label>
                                             <input type="number" class="form-control" id="ex-amount" min="0" step="0.01" required>
                                         </div>
-                                        <div class="col-md-4 mb-3">
+                                        <div class="col-md-6 mb-3">
                                             <label class="form-label">Fecha</label>
                                             <input type="date" class="form-control" id="ex-date" required>
                                         </div>
@@ -758,11 +797,21 @@
                                                 <option value="USD">Dólares (USD)</option>
                                             </select>
                                         </div>
-                                        <div class="col-md-4 mb-3">
+                                        <div class="col-md-8 mb-3">
+                                            <label class="form-label">Asociar a Cuenta Bancaria/Billetera</label>
+                                            <select class="form-select select-account" id="sav-account" required>
+                                                <option value="">Seleccione cuenta...</option>
+                                            </select>
+                                            <small class="text-muted">¿De dónde sale este ahorro?</small>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
                                             <label class="form-label">Monto Actual</label>
                                             <input type="number" class="form-control" id="sav-amount" min="0" step="0.01" required>
                                         </div>
-                                        <div class="col-md-4 mb-3">
+                                        <div class="col-md-6 mb-3">
                                             <label class="form-label">Monto Objetivo</label>
                                             <input type="number" class="form-control" id="sav-target-amount" min="0" step="0.01" placeholder="Opcional">
                                         </div>
@@ -815,54 +864,101 @@
                     </div>
                 </div>
 
-                <!-- Internal Transfer Modal -->
-                <div class="modal fade" id="modal-saving-transfer" tabindex="-1">
+                <!-- Unified Transfer Modal -->
+                <div class="modal fade" id="modal-transfer-unified" tabindex="-1" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content border-info shadow-lg">
-                            <div class="modal-header bg-info bg-opacity-10">
-                                <h5 class="modal-title font-size-16 text-info"><i class="mdi mdi-swap-horizontal me-1"></i> Transferencia entre Ahorros</h5>
+                        <div class="modal-content border-primary shadow-lg">
+                            <div class="modal-header bg-primary bg-opacity-10">
+                                <h5 class="modal-title text-primary"><i class="mdi mdi-swap-horizontal me-1"></i> Movimientos de Fondos</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-hidden="true"></button>
                             </div>
                             <div class="modal-body">
-                                <form id="form-transfer-saving">
-                                    <div class="alert alert-info py-2 font-size-12 mb-3">
-                                        <i class="mdi mdi-information-outline me-1"></i> Esta acción no afecta tu caja disponible, solo mueve capital entre tus reservas.
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label class="form-label">Desde (Origen)</label>
-                                        <select class="form-select" id="trans-source" required>
-                                            <!-- Dynamic Savings List -->
-                                        </select>
+                                <!-- Nav tabs -->
+                                <ul class="nav nav-tabs nav-tabs-custom nav-justified mb-4" role="tablist">
+                                    <li class="nav-item">
+                                        <a class="nav-link active" data-bs-toggle="tab" href="#tab-transfer-accounts" role="tab">
+                                            <span class="d-none d-sm-block"><i class="mdi mdi-bank me-1"></i> Entre Cuentas</span>
+                                            <span class="d-block d-sm-none"><i class="mdi mdi-bank"></i></span>
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" data-bs-toggle="tab" href="#tab-transfer-savings" role="tab">
+                                            <span class="d-none d-sm-block"><i class="mdi mdi-piggy-bank me-1"></i> Reasignar Ahorro</span>
+                                            <span class="d-block d-sm-none"><i class="mdi mdi-piggy-bank"></i></span>
+                                        </a>
+                                    </li>
+                                </ul>
+
+                                <!-- Tab panes -->
+                                <div class="tab-content">
+                                    <!-- Tab 1: Between Accounts -->
+                                    <div class="tab-pane active" id="tab-transfer-accounts" role="tabpanel">
+                                        <form id="form-account-transfer">
+                                            <div class="mb-3">
+                                                <label class="form-label">Cuenta Origen</label>
+                                                <select class="form-select select-account" id="acc-trans-source" required></select>
+                                                <div id="acc-source-balance-info" class="mt-1 small fw-medium text-muted"></div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Cuenta Destino</label>
+                                                <select class="form-select select-account" id="acc-trans-dest" required></select>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-md-6 mb-3">
+                                                    <label class="form-label">Monto</label>
+                                                    <input type="number" class="form-control" id="acc-trans-amount" step="0.01" required>
+                                                </div>
+                                                <div class="col-md-6 mb-3">
+                                                    <label class="form-label">Fecha</label>
+                                                    <input type="date" class="form-control" id="acc-trans-date" required>
+                                                </div>
+                                            </div>
+                                            <div class="text-end mt-3">
+                                                <button type="button" class="btn btn-light me-1" data-bs-dismiss="modal">Cancelar</button>
+                                                <button type="submit" class="btn btn-primary">Realizar Transferencia</button>
+                                            </div>
+                                        </form>
                                     </div>
 
-                                    <div class="mb-3 text-center">
-                                        <i class="mdi mdi-arrow-down-bold font-size-24 text-muted"></i>
-                                    </div>
+                                    <!-- Tab 2: Reassign Savings -->
+                                    <div class="tab-pane" id="tab-transfer-savings" role="tabpanel">
+                                        <form id="form-transfer-saving">
+                                            <div class="alert alert-info py-2 font-size-12 mb-3">
+                                                <i class="mdi mdi-information-outline me-1"></i> Mueve capital entre tus reservas internas (Ahorros). No afecta el saldo efectivo en cuenta.
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label class="form-label">Desde (Origen)</label>
+                                                <select class="form-select" id="trans-source" required></select>
+                                            </div>
 
-                                    <div class="mb-3">
-                                        <label class="form-label">Hacia (Destino)</label>
-                                        <select class="form-select" id="trans-dest" required>
-                                            <!-- Dynamic Savings List / Categories -->
-                                        </select>
-                                    </div>
+                                            <div class="mb-3 text-center">
+                                                <i class="mdi mdi-arrow-down-bold font-size-24 text-muted"></i>
+                                            </div>
 
-                                    <div class="row mt-4">
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label font-size-13 text-muted uppercase">Moneda</label>
-                                            <input type="text" class="form-control bg-light" id="trans-currency" readonly>
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label fw-bold font-size-13 text-muted uppercase">Monto a Mover</label>
-                                            <input type="number" class="form-control border-info" id="trans-amount" min="0.01" step="0.01" required>
-                                        </div>
-                                    </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Hacia (Destino)</label>
+                                                <select class="form-select" id="trans-dest" required></select>
+                                            </div>
 
-                                    <div class="text-end mt-3 border-top pt-3">
-                                        <button type="button" class="btn btn-light me-1" data-bs-dismiss="modal">Cancelar</button>
-                                        <button type="submit" class="btn btn-info w-md" id="btn-do-transfer">Confirmar Transferencia</button>
+                                            <div class="row mt-4">
+                                                <div class="col-md-6 mb-3">
+                                                    <label class="form-label font-size-13 text-muted uppercase">Moneda</label>
+                                                    <input type="text" class="form-control bg-light" id="trans-currency" readonly>
+                                                </div>
+                                                <div class="col-md-6 mb-3">
+                                                    <label class="form-label fw-bold font-size-13 text-muted uppercase">Monto a Mover</label>
+                                                    <input type="number" class="form-control border-info" id="trans-amount" min="0.01" step="0.01" required>
+                                                </div>
+                                            </div>
+
+                                            <div class="text-end mt-3 border-top pt-3">
+                                                <button type="button" class="btn btn-light me-1" data-bs-dismiss="modal">Cancelar</button>
+                                                <button type="submit" class="btn btn-info w-md" id="btn-do-transfer">Confirmar Reasignación</button>
+                                            </div>
+                                        </form>
                                     </div>
-                                </form>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -890,12 +986,11 @@
                     </div>
                 </div>
 
-                <!-- Agreement Modal -->
                 <div class="modal fade" id="agreement-modal" tabindex="-1">
                     <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="agreement-modal-title">Nuevo Acuerdo</h5>
+                        <div class="modal-content border-info shadow-lg">
+                            <div class="modal-header bg-info bg-opacity-10">
+                                <h5 class="modal-title text-info" id="agreement-modal-title"><i class="mdi mdi-file-document-edit-outline me-1"></i> Nuevo Acuerdo</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-hidden="true"></button>
                             </div>
                             <div class="modal-body">
@@ -904,7 +999,10 @@
                                     
                                     <div class="mb-3">
                                         <label class="form-label">Cliente / Oficina</label>
-                                        <input type="text" class="form-control" id="agr-name" required placeholder="Ej. Oficina Central">
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light"><i class="mdi mdi-office-building"></i></span>
+                                            <input type="text" class="form-control" id="agr-name" required placeholder="Ej. Oficina Central">
+                                        </div>
                                     </div>
                                     <div class="row">
                                         <div class="col-6">
@@ -940,49 +1038,56 @@
                                     <div class="row">
                                         <div class="col-6">
                                             <div class="mb-3">
-                                                <label class="form-label">Frecuencia de Cobro</label>
+                                                <label class="form-label">Frecuencia</label>
                                                 <select class="form-select" id="agr-frequency">
-                                                    <option value="MONTHLY">Mensual (Recurrente)</option>
+                                                    <option value="MONTHLY">Mensual</option>
                                                     <option value="ONE_OFF">Único</option>
                                                 </select>
                                             </div>
                                         </div>
                                         <div class="col-6">
-                                             <div class="mb-3">
-                                                <label class="form-label">Moneda</label>
-                                                <select class="form-select" id="agr-currency">
-                                                    <option value="ARS">ARS</option>
-                                                    <option value="USD">USD</option>
-                                                </select>
+                                            <div class="mb-3">
+                                                <label class="form-label">Cuenta de Cobro</label>
+                                                <select class="form-select select-account" id="agr-account" required></select>
                                             </div>
                                         </div>
                                     </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Moneda</label>
+                                        <select class="form-select" id="agr-currency">
+                                            <option value="ARS">ARS (Pesos)</option>
+                                            <option value="USD">USD (Dólares)</option>
+                                        </select>
+                                    </div>
 
-                                    <div class="mb-3 p-3 bg-light rounded">
-                                        <label class="form-label fw-bold">Gestión de Precio</label>
+                                    <div class="mb-3 p-3 bg-light rounded border border-dashed">
+                                        <label class="form-label fw-bold text-info"><i class="mdi mdi-cash-multiple me-1"></i> Gestión de Precio</label>
                                         <div class="input-group mb-2">
-                                            <span class="input-group-text">$</span>
-                                            <input type="number" class="form-control text-end font-size-16 fw-bold" id="agr-amount" required placeholder="0.00">
+                                            <span class="input-group-text bg-info text-white border-info">$</span>
+                                            <input type="number" class="form-control text-end font-size-18 fw-bold border-info" id="agr-amount" required placeholder="0.00">
                                         </div>
                                         
                                         <div class="row align-items-center g-2 mt-2">
                                             <div class="col-auto">
-                                                <span class="text-muted font-size-12">Calculadora Aumento:</span>
+                                                <span class="text-muted font-size-12">Actualizar Precio (%):</span>
                                             </div>
                                             <div class="col">
                                                 <div class="input-group input-group-sm">
-                                                    <input type="number" class="form-control" id="agr-calc-percent" placeholder="%">
-                                                    <button class="btn btn-outline-secondary" type="button" id="btn-calc-update">Aplicar %</button>
+                                                    <input type="number" class="form-control" id="agr-calc-percent" placeholder="Ej. 10">
+                                                    <button class="btn btn-info" type="button" id="btn-calc-update">Aplicar %</button>
                                                 </div>
                                             </div>
                                         </div>
-                                        <small class="text-muted d-block mt-2">Última actualización: <span id="agr-last-update">-</span></small>
+                                        <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+                                            <small class="text-muted">Última edición: <span id="agr-last-update" class="fw-medium">-</span></small>
+                                            <button type="button" class="btn btn-sm btn-link text-danger p-0 d-none" id="btn-delete-agreement"><i class="mdi mdi-trash-can me-1"></i>Eliminar Acuerdo</button>
+                                        </div>
                                     </div>
 
-                                    <div class="text-end mt-4">
-                                        <button type="button" class="btn btn-light me-1" data-bs-dismiss="modal">Cerrar</button>
-                                        <button type="button" class="btn btn-danger me-auto float-start d-none" id="btn-delete-agreement">Eliminar</button>
-                                        <button type="submit" class="btn btn-success" id="btn-save-agreement">Guardar Acuerdo</button>
+                                    <div class="d-flex justify-content-end gap-2 mt-4">
+                                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="submit" class="btn btn-info px-4" id="btn-save-agreement"><i class="mdi mdi-check-all me-1"></i> Guardar Acuerdo</button>
                                     </div>
                                 </form>
                             </div>
@@ -1135,7 +1240,64 @@
 
             </div> <!-- end slimscroll-menu-->
         </div>
-        <!-- /Right-bar -->
+                <!-- Accounts Management Modal -->
+                <div class="modal fade" id="modal-manage-accounts" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Configuración de Cuentas</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div id="account-form-container" class="mb-4 p-3 bg-light rounded border">
+                                    <h6 class="mb-3" id="title-account-form">Agregar Nueva Cuenta</h6>
+                                    <form id="form-account">
+                                        <input type="hidden" id="acc-id">
+                                        <div class="row g-2">
+                                            <div class="col-md-4">
+                                                <label class="form-label small mb-1">Nombre de la Cuenta</label>
+                                                <input type="text" id="acc-name" class="form-control" placeholder="Ej. Débito David" required>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label small mb-1">Moneda</label>
+                                                <select id="acc-currency" class="form-select" required>
+                                                    <option value="ARS">ARS</option>
+                                                    <option value="USD">USD</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label small mb-1">Saldo Inicial</label>
+                                                <input type="number" id="acc-initial-balance" class="form-control" placeholder="0.00" step="0.01">
+                                            </div>
+                                            <div class="col-md-2 d-flex align-items-end">
+                                                <button type="submit" class="btn btn-primary w-100" id="btn-save-account">Guardar</button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+
+                                <div class="table-responsive">
+                                    <table class="table table-bordered align-middle mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Nombre</th>
+                                                <th>Moneda</th>
+                                                <th>S. Inicial</th>
+                                                <th class="text-center">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="table-accounts-list">
+                                            <!-- Dynamic -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- /Right-bar -->
 
         <!-- Right bar overlay-->
         <div class="rightbar-overlay"></div>

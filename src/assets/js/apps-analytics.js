@@ -5,6 +5,7 @@ let chartInstances = {}; // Store chart instances to destroy/update
 let invoicesData = [];
 let tasksData = [];
 let clientsData = [];
+let accountsData = []; // Cuentas
 
 // Defaults to Current Month
 // Defaults to Current Month
@@ -15,6 +16,7 @@ let filterMonth = now.getMonth(); // 0-11
 let filterQuarter = Math.floor(now.getMonth() / 3) + 1; // 1-4
 let filterSemester = now.getMonth() < 6 ? 1 : 2; // 1-2
 let filterCurrency = 'ARS'; // ARS, USD
+let filterAccount = 'ALL'; 
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', function() {
@@ -101,6 +103,30 @@ function loadData() {
             clientsData.push({ id: doc.id, ...doc.data() });
         });
         updateDashboard();
+    });
+
+    // 4. Listen to Accounts
+    db.collection('cashflow_accounts').onSnapshot(snap => {
+        accountsData = [];
+        snap.forEach(doc => accountsData.push({ id: doc.id, ...doc.data() }));
+        populateAccountSelect();
+        updateDashboard();
+    });
+}
+
+function populateAccountSelect() {
+    const select = document.getElementById('analytics-account');
+    if (!select) return;
+
+    // Keep "Todas las Cuentas"
+    select.innerHTML = '<option value="ALL">Todas las Cuentas</option>';
+
+    accountsData.filter(a => a.isActive !== false).forEach(acc => {
+        const opt = document.createElement('option');
+        opt.value = acc.id;
+        opt.textContent = `${acc.name} (${acc.currency})`;
+        if (acc.id === filterAccount) opt.selected = true;
+        select.appendChild(opt);
     });
 }
 
@@ -200,6 +226,7 @@ const appAnalytics = {
         filterMonth = parseInt(document.getElementById('analytics-month').value);
         filterQuarter = parseInt(document.getElementById('analytics-quarter').value);
         filterSemester = parseInt(document.getElementById('analytics-semester').value);
+        filterAccount = document.getElementById('analytics-account').value;
         updateDashboard();
     }
 };
@@ -225,8 +252,14 @@ function updateSelectorsVisibility() {
     if (filterPeriod === 'SEMESTER') document.getElementById('analytics-semester').classList.remove('d-none');
 }
 function updateDashboard() {
+    // Filter by Account
+    let filteredInvoices = invoicesData;
+    if (filterAccount !== 'ALL') {
+        filteredInvoices = invoicesData.filter(inv => inv.accountId === filterAccount);
+    }
+
     // Filter by Currency (All relevant data for graphs)
-    const currencyData = invoicesData.filter(inv => (inv.currency || 'ARS') === filterCurrency);
+    const currencyData = filteredInvoices.filter(inv => (inv.currency || 'ARS') === filterCurrency);
 
     // Filter by Period for KPIs and specific charts
     const periodData = currencyData.filter(inv => {
@@ -345,7 +378,8 @@ function renderBillingCharts(data) {
     const yearData = invoicesData.filter(inv => 
         inv.dateObj && 
         inv.dateObj.getFullYear() === filterYear &&
-        (inv.currency || 'ARS') === filterCurrency
+        (inv.currency || 'ARS') === filterCurrency &&
+        (filterAccount === 'ALL' || inv.accountId === filterAccount)
     );
     
     const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];

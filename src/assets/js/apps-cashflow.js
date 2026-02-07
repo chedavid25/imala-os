@@ -14,17 +14,20 @@ document.addEventListener('DOMContentLoaded', function () {
             initEntities();
             loadTransactions();
             loadAgreements(); // New Module
+            initAccounts(); // Move inside auth
         }
     });
 
     const incomeModal = new bootstrap.Modal(document.getElementById('modal-income'));
     const expenseModal = new bootstrap.Modal(document.getElementById('modal-expense'));
     const savingModal = new bootstrap.Modal(document.getElementById('modal-saving'));
-    const transferModal = new bootstrap.Modal(document.getElementById('modal-saving-transfer'));
+    const transferUnifiedModal = new bootstrap.Modal(document.getElementById('modal-transfer-unified'));
     
     let allTransactions = [];
+    let accountsData = []; // Cuentas globales
     let categories = { INCOME: [], EXPENSE: [], SAVING: [] }; 
     let entities = { INCOME: [], EXPENSE: [] }; 
+    let agreements = []; // Acuerdos globales
 
     // Concurrency Guards
     let isCheckingRecurrences = false;
@@ -44,6 +47,13 @@ document.addEventListener('DOMContentLoaded', function () {
     
     const formatCurrency = (amount, currency) => {
         return new Intl.NumberFormat('es-AR', { style: 'currency', currency: currency }).format(amount);
+    };
+
+    const getUIDSafe = () => {
+        // En Imala OS, los asistentes ven los datos de su agente.
+        // Se asume que el UID efectivo está en Session Storage o es el del usuario actual.
+        return window.getEffectiveUID ? window.getEffectiveUID() : 
+               (sessionStorage.getItem('effectiveUID') || auth.currentUser.uid);
     };
 
     const parseDate = (timestamp) => {
@@ -420,7 +430,8 @@ document.addEventListener('DOMContentLoaded', function () {
          entities = { INCOME: [], EXPENSE: [] };
          
          try {
-             const snap = await db.collection('cashflow_entities').orderBy('name').get();
+             const snap = await db.collection('cashflow_entities')
+                 .orderBy('name').get();
              snap.forEach(doc => {
                  const d = doc.data();
                  // Default to BOTH for old records to ensure they appear in one of the lists
@@ -458,7 +469,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     name: name,
                     type: targetType, 
                     createdAt: new Date(),
-                    createdBy: auth.currentUser.uid
+                    uid: getUIDSafe()
                 });
                 
                 entities[typeKey].push(name);
@@ -503,6 +514,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 category: document.getElementById(`${prefix}-category`).value,
                 status: document.getElementById(`${prefix}-status`).value,
                 currency: document.getElementById(`${prefix}-currency`).value,
+                accountId: document.getElementById(`${prefix}-account`).value,
                 amount: parseFloat(document.getElementById(`${prefix}-amount`).value) || 0,
                 date: firebase.firestore.Timestamp.fromDate(document.getElementById(`${prefix}-date`).valueAsDate || new Date()),
                 isRecurring: document.getElementById(`${prefix}-recurring`).checked,
@@ -552,6 +564,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 category: document.getElementById('sav-category').value,
                 status: document.getElementById('sav-status').value,
                 currency: document.getElementById('sav-currency').value,
+                accountId: document.getElementById('sav-account').value,
                 amount: parseFloat(document.getElementById('sav-amount').value) || 0,
                 targetAmount: parseFloat(document.getElementById('sav-target-amount').value) || 0,
                 isInitial: document.getElementById('sav-is-initial').checked,
@@ -588,7 +601,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // ==========================================
 
     function loadTransactions() {
-        db.collection('transactions').onSnapshot(snap => {
+        db.collection('transactions')
+            .where('createdBy', '==', getUIDSafe())
+            .onSnapshot(snap => {
             allTransactions = [];
             snap.forEach(doc => allTransactions.push({ id: doc.id, ...doc.data() }));
             
@@ -1006,11 +1021,11 @@ document.addEventListener('DOMContentLoaded', function () {
             targetMonthLabel = `${monthMap[currM]} ${now.getFullYear()} (Actual)`;
         }
 
-        // Filter: Active, Monthly Frequency, Has Invoice = TRUE
-        const pendingList = agreements.filter(a => a.frequency === 'MONTHLY' && a.hasInvoice === true);
+        // Filter: Active, Monthly Frequency
+        const pendingList = agreements.filter(a => a.frequency === 'MONTHLY');
 
         if(pendingList.length === 0) {
-             tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No hay clientes con factura mensual activos.</td></tr>';
+             tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No hay acuerdos mensuales activos.</td></tr>';
              return;
         }
 
@@ -1027,14 +1042,20 @@ document.addEventListener('DOMContentLoaded', function () {
              const checkbox = `
                 <div class="form-check form-switch mb-0">
                     <input class="form-check-input" type="checkbox" id="ctrl-invoice-${a.id}" ${isSent ? 'checked' : ''} onchange="toggleInvoiceSent('${a.id}', '${targetMonthKey}', this)">
-                    <label class="form-check-label text-muted small" for="ctrl-invoice-${a.id}">${isSent ? 'ENVIADA' : 'NO ENVIADA'}</label>
+                    <label class="form-check-label text-muted small" for="ctrl-invoice-${a.id}">${isSent ? 'GENERADO' : 'PENDIENTE'}</label>
                 </div>
              `;
+
+             const invoiceBadge = a.hasInvoice 
+                ? '<span class="badge bg-success-subtle text-success">Sí</span>' 
+                : '<span class="badge bg-secondary-subtle text-secondary">No</span>';
 
              tbody.innerHTML += `
                 <tr class="${isSent ? 'bg-success-subtle' : ''}">
                     <td><strong>${a.name}</strong></td>
-                    <td>${amountStr}</td>
+                    <td><small class="text-muted coding">${a.cuit || '-'}</small></td>
+                    <td>${invoiceBadge}</td>
+                    <td class="fw-bold">${amountStr}</td>
                     <td>${a.biller || '-'}</td>
                     <td>${checkbox}</td>
                 </tr>
@@ -1135,8 +1156,12 @@ document.addEventListener('DOMContentLoaded', function () {
         const hSavingsActive = hSavingsAll.filter(t => t.status !== 'USED');
         const hSavingsToSubtract = hSavingsAll.filter(t => t.isInitial !== true);
 
-        const balanceARS = getSum(hIncome, 'ARS') - getSum(hExpense, 'ARS') - getSum(hSavingsToSubtract, 'ARS');
-        const balanceUSD = getSum(hIncome, 'USD') - getSum(hExpense, 'USD') - getSum(hSavingsToSubtract, 'USD');
+        // Saldos Iniciales
+        const initialARS = accountsData.filter(a => a.currency === 'ARS' && a.isActive !== false).reduce((acc, a) => acc + (Number(a.initialBalance) || 0), 0);
+        const initialUSD = accountsData.filter(a => a.currency === 'USD' && a.isActive !== false).reduce((acc, a) => acc + (Number(a.initialBalance) || 0), 0);
+
+        const balanceARS = initialARS + getSum(hIncome, 'ARS') - getSum(hExpense, 'ARS') - getSum(hSavingsToSubtract, 'ARS');
+        const balanceUSD = initialUSD + getSum(hIncome, 'USD') - getSum(hExpense, 'USD') - getSum(hSavingsToSubtract, 'USD');
         const totalSavARS = getSum(hSavingsActive, 'ARS');
         const totalSavUSD = getSum(hSavingsActive, 'USD');
 
@@ -1147,6 +1172,8 @@ document.addEventListener('DOMContentLoaded', function () {
         updateKPI('kpi-savings-usd', totalSavUSD);
         updateKPI('kpi-total-ars', balanceARS + totalSavARS);
         updateKPI('kpi-total-usd', balanceUSD + totalSavUSD);
+
+        if (typeof renderAccountSummary === 'function') renderAccountSummary();
 
         // --- 3. SURPLUS ASSISTANT ---
         // We suggest saving based on what was effectively PAID/RECEIVED this month
@@ -1435,13 +1462,13 @@ document.addEventListener('DOMContentLoaded', function () {
     // 8. AGREEMENTS MODULE (New)
     // ==========================================
     
-    let agreements = [];
     const modalAgreements = new bootstrap.Modal(document.getElementById('agreement-modal'));
     const formAgreement = document.getElementById('form-agreement');
 
     async function loadAgreements() {
         // Real-time listener
-        db.collection('cashflow_agreements').where('isActive', '!=', false).onSnapshot(snap => {
+        db.collection('cashflow_agreements')
+            .where('isActive', '!=', false).onSnapshot(snap => {
             agreements = [];
             snap.forEach(doc => agreements.push({ id: doc.id, ...doc.data() }));
             
@@ -1465,91 +1492,6 @@ document.addEventListener('DOMContentLoaded', function () {
         // Optional: Data migration if schema changes
     }
 
-    // 8.2 UI Rendering
-    function renderAgreementsList() {
-        const tbody = document.querySelector('#table-agreements tbody');
-        tbody.innerHTML = '';
-
-        if(agreements.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No hay acuerdos registrados.</td></tr>';
-            return;
-        }
-
-        agreements.forEach(a => {
-            const amountStr = formatCurrency(a.amount, a.currency);
-            
-            tbody.innerHTML += `
-                <tr>
-                    <td>
-                        <h6 class="mb-0 text-truncate font-size-14">${a.name}</h6>
-                        <small class="text-muted">${a.biller || '-'}</small>
-                    </td>
-                    <td>${a.cuit || '-'}</td>
-                    <td>${a.description || '-'}</td>
-                    <td><span class="badge ${a.frequency === 'MONTHLY' ? 'bg-info' : 'bg-secondary'}">${a.frequency === 'MONTHLY' ? 'Mensual' : 'Único'}</span></td>
-                    <td class="fw-bold">${amountStr}</td>
-                    <td>${a.lastUpdate || '-'}</td>
-                    <td>
-                        <button class="btn btn-sm btn-soft-primary" onclick="editAgreement('${a.id}')"><i class="mdi mdi-pencil"></i></button>
-                    </td>
-                </tr>
-            `;
-        });
-    }
-
-    function renderMonthlyControl() {
-        const tbody = document.getElementById('monthly-control-list');
-        tbody.innerHTML = '';
-        
-        // Filter: Only Recurring (Monthly) and Active
-        const monthly = agreements.filter(a => a.frequency === 'MONTHLY');
-        
-        if(monthly.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No hay acuerdos mensuales activos.</td></tr>';
-            return;
-        }
-
-        const now = new Date();
-        const currentPeriod = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2, '0')}`; // YYYY-MM
-
-        monthly.forEach(a => {
-            const amountStr = formatCurrency(a.amount, a.currency);
-            
-            // Check status for this period
-            let isSent = false;
-            let sentDate = null;
-            if(a.invoices && a.invoices[currentPeriod] && a.invoices[currentPeriod].sent) {
-                isSent = true;
-                sentDate = a.invoices[currentPeriod].date;
-            }
-
-            // Checkbox logic
-            // If sent, show Checked state. If disabled? Maybe allow unchecking? 
-            // Better to allow toggle but confirm if unchecking (deleting income?).
-            // Simplified: Allow toggle.
-            
-            const checkbox = `
-                <div class="form-check form-switch mb-0">
-                    <input class="form-check-input" type="checkbox" id="check-invoice-${a.id}" ${isSent ? 'checked' : ''} onchange="toggleInvoiceSent('${a.id}', '${currentPeriod}', this)">
-                    <label class="form-check-label text-muted small" for="check-invoice-${a.id}">${isSent ? 'Enviada' : 'Pendiente'}</label>
-                </div>
-            `;
-
-            // Determine invoice status info
-            let invoiceStatusBadge = a.hasInvoice ? '<span class="badge bg-success-subtle text-success">Sí</span>' : '<span class="badge bg-secondary-subtle text-secondary">No</span>';
-
-            tbody.innerHTML += `
-                <tr class="${isSent ? 'bg-success-subtle' : ''}">
-                    <td><strong>${a.name}</strong></td>
-                    <td><small class="text-muted coding">${a.cuit || "-"}</small></td>
-                    <td>${invoiceStatusBadge}</td>
-                    <td>${amountStr}</td>
-                    <td>${a.biller || '-'}</td>
-                    <td>${checkbox}</td>
-                </tr>
-            `;
-        });
-    }
 
     // 8.3 CRUD Logic
 
@@ -1563,6 +1505,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('div-biller').style.display = 'block'; // Show
         document.getElementById('agr-currency').value = 'ARS';
         document.getElementById('agr-frequency').value = 'MONTHLY';
+        document.getElementById('agr-account').value = '';
         document.getElementById('agr-hasInvoice').value = 'true';
         modalAgreements.show();
     });
@@ -1603,6 +1546,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('agr-desc').value = a.description || '';
         document.getElementById('agr-frequency').value = a.frequency || 'MONTHLY';
         document.getElementById('agr-currency').value = a.currency || 'ARS';
+        document.getElementById('agr-account').value = a.accountId || '';
         document.getElementById('agr-amount').value = a.amount;
         document.getElementById('agr-last-update').textContent = a.lastUpdate || '-';
         
@@ -1627,6 +1571,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 description: document.getElementById('agr-desc').value,
                 frequency: document.getElementById('agr-frequency').value,
                 currency: document.getElementById('agr-currency').value,
+                accountId: document.getElementById('agr-account').value,
                 amount: parseFloat(document.getElementById('agr-amount').value) || 0,
                 lastUpdate: document.getElementById('agr-last-update').textContent,
                 isActive: true, // Soft delete logic
@@ -1637,6 +1582,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 await db.collection('cashflow_agreements').doc(id).update(data);
             } else {
                 data.createdAt = new Date();
+                data.uid = getUIDSafe(); // Store owner
                 data.invoices = {}; // Init map
                 await db.collection('cashflow_agreements').add(data);
             }
@@ -1715,25 +1661,99 @@ document.addEventListener('DOMContentLoaded', function () {
              const agRef = db.collection('cashflow_agreements').doc(agreementId);
              
              if(isChecked) {
-                 // 1. Generate Income Transaction
-                 const newTx = {
-                      type: 'INCOME',
-                      entityName: agreement.name,
-                      cuit: agreement.cuit,
-                      address: 'Facturación Mensual Automática', // Description/Address
-                      category: 'Honorarios', // Default? Or 'Ventas'? 'Honorarios' fits service agreements.
-                      status: 'PENDING', // Invoice sent, but maybe not paid yet? User said "se agregó a ingresos", usually implies "Expected Income".
-                      currency: agreement.currency,
-                      amount: agreement.amount,
-                      date: firebase.firestore.Timestamp.fromDate(new Date()), // Today
-                      isRecurring: false, // It's generated from an agreement, not the transaction recurrence engine
-                      agreementId: agreementId,
-                      periodKey: periodKey,
-                      createdAt: new Date(),
-                      createdBy: auth.currentUser.uid
-                 };
-                 
-                 const docRef = await db.collection('transactions').add(newTx);
+                 // 1. Ask for Payment Currency & Conversion
+             let finalCurrency = agreement.currency;
+             let finalAmount = agreement.amount;
+             let conversionNote = '';
+
+             const otherCurrency = agreement.currency === 'USD' ? 'ARS' : 'USD';
+             
+             const { value: mode } = await Swal.fire({
+                 title: 'Moneda de Cobro',
+                 text: `El acuerdo es en ${agreement.currency}. ¿Cómo se cobró esta factura?`,
+                 icon: 'question',
+                 showCancelButton: true,
+                 confirmButtonText: `Cobrar en ${agreement.currency}`,
+                 cancelButtonText: `Convertir a ${otherCurrency}`,
+                 reverseButtons: true
+             });
+
+             // If cancelled (cancelButtonText), it means they want to CONVERT
+             if (mode === undefined) {
+                 // Revert checkbox if they just closed the modal
+                 checkbox.checked = false;
+                 return;
+             }
+
+             const wantsConversion = (mode === false); // Swal confirm yields true, cancel yields undefined/false depending on config. Here we use basic logic.
+             // Actually, let's use a more explicit Swal for better UX
+             
+             const result = await Swal.fire({
+                 title: 'Seleccione Moneda',
+                 text: `Monto Original: ${formatCurrency(agreement.amount, agreement.currency)}`,
+                 input: 'radio',
+                 inputOptions: {
+                     [agreement.currency]: `Cobrar en ${agreement.currency} (Original)`,
+                     [otherCurrency]: `Convertir a ${otherCurrency}`
+                 },
+                 inputValue: agreement.currency,
+                 confirmButtonText: 'Continuar',
+                 showCancelButton: true
+             });
+
+             if (!result.value) {
+                 checkbox.checked = false;
+                 return;
+             }
+
+             if (result.value === otherCurrency) {
+                 const { value: tc } = await Swal.fire({
+                     title: 'Tipo de Cambio',
+                     text: `Ingrese el tipo de cambio para convertir de ${agreement.currency} a ${otherCurrency}`,
+                     input: 'number',
+                     inputAttributes: { min: 0, step: 0.01 },
+                     showCancelButton: true,
+                     confirmButtonText: 'Aplicar Conversión',
+                     inputValidator: (value) => {
+                         if (!value || value <= 0) return 'Ingrese un valor válido';
+                     }
+                 });
+
+                 if (!tc) {
+                     checkbox.checked = false;
+                     return;
+                 }
+
+                 finalCurrency = otherCurrency;
+                 if (agreement.currency === 'USD') {
+                     finalAmount = agreement.amount * tc;
+                     conversionNote = ` [Conv. de USD a tasa ${tc}]`;
+                 } else {
+                     finalAmount = agreement.amount / tc;
+                     conversionNote = ` [Conv. de ARS a tasa ${tc}]`;
+                 }
+             }
+
+             // 2. Generate Income Transaction
+             const newTx = {
+                  type: 'INCOME',
+                  entityName: agreement.name + conversionNote,
+                  cuit: agreement.cuit,
+                  address: 'Facturación Mensual Automática', 
+                  category: 'Honorarios', 
+                  status: 'PAID',
+                  currency: finalCurrency,
+                  accountId: agreement.accountId,
+                  amount: finalAmount,
+                  date: firebase.firestore.Timestamp.fromDate(new Date()), 
+                  isRecurring: false, 
+                  agreementId: agreementId,
+                  periodKey: periodKey,
+                  createdAt: new Date(),
+                  createdBy: getUIDSafe()
+             };
+             
+             const docRef = await db.collection('transactions').add(newTx);
                  
                  // 2. Mark in Agreement
                  const updateMap = {};
@@ -1909,7 +1929,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
 
             await batch.commit();
-            transferModal.hide();
+            transferUnifiedModal.hide();
             Swal.fire('Transferencia Exitosa', 'Monto reasignado correctamente.', 'success');
             loadTransactions(); 
 
@@ -1921,5 +1941,313 @@ document.addEventListener('DOMContentLoaded', function () {
             btn.textContent = 'Confirmar Transferencia';
         }
     }
+
+    // ==========================================
+    // 9. Accounts Management
+    // ==========================================
+
+    const modalAccounts = new bootstrap.Modal(document.getElementById('modal-manage-accounts'));
+    const formAccount = document.getElementById('form-account');
+    
+    document.getElementById('btn-config-accounts').addEventListener('click', () => modalAccounts.show());
+
+    function initAccounts() {
+        db.collection('cashflow_accounts')
+            .where('uid', '==', getUIDSafe())
+            .onSnapshot(snap => {
+                accountsData = [];
+                snap.forEach(doc => accountsData.push({ id: doc.id, ...doc.data() }));
+                
+                populateAccountSelects();
+                renderAccountsList();
+                renderAccountSummary();
+            });
+    }
+
+    function populateAccountSelects() {
+        const selects = document.querySelectorAll('.select-account');
+        const activeAccounts = accountsData.filter(a => a.isActive !== false);
+        
+        selects.forEach(sel => {
+            const currentVal = sel.value;
+            sel.innerHTML = '<option value="">Seleccione cuenta...</option>';
+            
+            // Group by Currency if needed, but for now just list
+            activeAccounts.forEach(acc => {
+                const opt = document.createElement('option');
+                opt.value = acc.id;
+                opt.textContent = `${acc.name} (${acc.currency})`;
+                sel.appendChild(opt);
+            });
+            
+            sel.value = currentVal;
+        });
+    }
+
+    async function handleAccountSubmit(e) {
+        e.preventDefault();
+        const id = document.getElementById('acc-id').value;
+        const btn = document.getElementById('btn-save-account');
+        const originalText = btn.innerHTML;
+
+        const data = {
+            name: document.getElementById('acc-name').value,
+            currency: document.getElementById('acc-currency').value,
+            initialBalance: parseFloat(document.getElementById('acc-initial-balance').value) || 0,
+            updatedAt: new Date(),
+            isActive: true
+        };
+
+        try {
+            if (!auth.currentUser) throw new Error("Usuario no autenticado");
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bx bx-loader bx-spin"></i>';
+
+            if (id) {
+                await db.collection('cashflow_accounts').doc(id).update(data);
+            } else {
+                data.uid = getUIDSafe();
+                data.createdAt = new Date();
+                await db.collection('cashflow_accounts').add(data);
+            }
+
+            formAccount.reset();
+            document.getElementById('acc-id').value = '';
+            document.getElementById('title-account-form').textContent = 'Agregar Nueva Cuenta';
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Cuenta guardada.', showConfirmButton: false, timer: 2000 });
+        } catch (error) {
+            console.error(error);
+            Swal.fire('Error', 'No se pudo guardar la cuenta.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+
+    formAccount.addEventListener('submit', handleAccountSubmit);
+
+    function renderAccountsList() {
+        const tbody = document.getElementById('table-accounts-list');
+        tbody.innerHTML = '';
+
+        accountsData.forEach(acc => {
+            if (acc.isActive === false) return; // Only show active in management (or show all with toggle?)
+            
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${acc.name}</td>
+                <td><span class="badge bg-soft-info text-info">${acc.currency}</span></td>
+                <td>${formatCurrency(acc.initialBalance, acc.currency)}</td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-soft-primary btn-edit-account" data-id="${acc.id}"><i class="mdi mdi-pencil"></i></button>
+                    <button class="btn btn-sm btn-soft-danger btn-delete-account" data-id="${acc.id}"><i class="mdi mdi-trash-can"></i></button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        // Delegation
+        tbody.querySelectorAll('.btn-edit-account').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const acc = accountsData.find(a => a.id === btn.dataset.id);
+                if (acc) {
+                    document.getElementById('acc-id').value = acc.id;
+                    document.getElementById('acc-name').value = acc.name;
+                    document.getElementById('acc-currency').value = acc.currency;
+                    document.getElementById('acc-initial-balance').value = acc.initialBalance;
+                    document.getElementById('title-account-form').textContent = 'Editar Cuenta';
+                }
+            });
+        });
+
+        tbody.querySelectorAll('.btn-delete-account').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const id = btn.dataset.id;
+                const result = await Swal.fire({
+                    title: '¿Eliminar cuenta?',
+                    text: "Se mantendrá el historial de movimientos pero no podrás usarla para nuevos registros.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sí, desactivar',
+                    cancelButtonText: 'Cancelar'
+                });
+
+                if (result.isConfirmed) {
+                    await db.collection('cashflow_accounts').doc(id).update({ isActive: false, updatedAt: new Date() });
+                    Swal.fire('Desactivada', 'La cuenta ha sido desactivada.', 'success');
+                }
+            });
+        });
+    }
+
+    function renderAccountSummary() {
+        const container = document.getElementById('account-summary-container');
+        const list = document.getElementById('account-summary-list');
+        
+        if (!accountsData || accountsData.length === 0) {
+            container.style.display = 'none';
+            return;
+        }
+
+        container.style.display = 'block';
+        list.innerHTML = '';
+
+        accountsData.filter(a => a.isActive !== false).forEach(acc => {
+            const balance = calculateAccountBalance(acc.id);
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="avatar-xs me-2">
+                            <span class="avatar-title rounded-circle bg-soft-primary text-primary font-size-10">
+                                <i class="mdi mdi-bank"></i>
+                            </span>
+                        </div>
+                        <div>
+                            <h5 class="font-size-13 mb-0">${acc.name}</h5>
+                            <small class="text-muted">${acc.currency}</small>
+                        </div>
+                    </div>
+                </td>
+                <td class="text-end">
+                    <h5 class="font-size-14 mb-0 ${balance < 0 ? 'text-danger' : 'text-success'}">${formatCurrency(balance, acc.currency)}</h5>
+                    <small class="text-muted">Disponible</small>
+                </td>
+            `;
+            list.appendChild(tr);
+        });
+    }
+
+    function calculateAccountBalance(accId) {
+        const acc = accountsData.find(a => a.id === accId);
+        if (!acc) return 0;
+
+        const initial = Number(acc.initialBalance) || 0;
+        const txs = allTransactions.filter(t => t.accountId === accId && t.status === 'PAID');
+        const inc = txs.filter(t => t.type === 'INCOME').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+        const exp = txs.filter(t => t.type === 'EXPENSE').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+        
+        // Savings linked to this account (only if ACTIVE and not INITIAL)
+        const sav = allTransactions.filter(t => t.accountId === accId && t.type === 'SAVING' && t.status === 'ACTIVE' && t.isInitial !== true)
+                     .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+
+        return initial + inc - exp - sav;
+    }
+
+    // ==========================================
+    // 10. Transfers between Accounts
+    // ==========================================
+    const selectSourceAcc = document.getElementById('acc-trans-source');
+    const infoSourceAcc = document.getElementById('acc-source-balance-info');
+
+    if (selectSourceAcc) {
+        selectSourceAcc.addEventListener('change', () => {
+            const accId = selectSourceAcc.value;
+            if (!accId) {
+                infoSourceAcc.innerHTML = '';
+                return;
+            }
+
+            const acc = accountsData.find(a => a.id === accId);
+            if (acc) {
+                const balance = calculateAccountBalance(accId);
+                infoSourceAcc.innerHTML = `<i class="mdi mdi-information-outline me-1"></i> Disponible: <span class="text-primary fw-bold">${formatCurrency(balance, acc.currency)}</span>`;
+            }
+        });
+    }
+
+    document.getElementById('btn-transfer-saving').addEventListener('click', () => {
+        if (infoSourceAcc) infoSourceAcc.innerHTML = '';
+        transferUnifiedModal.show();
+    });
+
+    const formAccTransfer = document.getElementById('form-account-transfer');
+    formAccTransfer.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const srcId = document.getElementById('acc-trans-source').value;
+        const dstId = document.getElementById('acc-trans-dest').value;
+        const amount = parseFloat(document.getElementById('acc-trans-amount').value);
+        const date = document.getElementById('acc-trans-date').valueAsDate || new Date();
+
+        if (srcId === dstId) {
+            Swal.fire('Error', 'La cuenta origen y destino no pueden ser la misma.', 'warning');
+            return;
+        }
+
+        const srcAcc = accountsData.find(a => a.id === srcId);
+        const dstAcc = accountsData.find(a => a.id === dstId);
+
+        if (!srcAcc || !dstAcc) return;
+
+        const availableBalance = calculateAccountBalance(srcId);
+        if (amount > availableBalance) {
+            Swal.fire('Saldo Insuficiente', `La cuenta ${srcAcc.name} solo dispone de ${formatCurrency(availableBalance, srcAcc.currency)}.`, 'warning');
+            return;
+        }
+
+        const btn = e.target.querySelector('button[type="submit"]');
+        const originalText = btn.innerHTML;
+
+        try {
+            if (!auth.currentUser) throw new Error("Usuario no autenticado");
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bx bx-loader bx-spin"></i> Procesando...';
+
+            const transferId = 'TRANS_' + Date.now();
+
+            // 1. Transaction OUT (Expense)
+            const txOut = {
+                type: 'EXPENSE',
+                entityName: `Transf. a ${dstAcc.name}`,
+                category: 'Transferencia Enviada',
+                status: 'PAID',
+                currency: srcAcc.currency,
+                accountId: srcId,
+                amount: amount,
+                date: firebase.firestore.Timestamp.fromDate(date),
+                transferId: transferId,
+                createdAt: new Date(),
+                createdBy: getUIDSafe(),
+                description: `Transferencia entre cuentas propias`
+            };
+
+            // 2. Transaction IN (Income)
+            // Note: If currencies are different, this logic might need a rate, 
+            // but user didn't specify. Assuming same currency for simplicity or ARS/USD mixed.
+            const txIn = {
+                type: 'INCOME',
+                entityName: `Transf. de ${srcAcc.name}`,
+                category: 'Transferencia Recibida',
+                status: 'PAID',
+                currency: dstAcc.currency,
+                accountId: dstId,
+                amount: amount, // Simplified: same amount
+                date: firebase.firestore.Timestamp.fromDate(date),
+                transferId: transferId,
+                createdAt: new Date(),
+                createdBy: getUIDSafe(),
+                description: `Transferencia entre cuentas propias`
+            };
+
+            const batch = db.batch();
+            batch.set(db.collection('transactions').doc(), txOut);
+            batch.set(db.collection('transactions').doc(), txIn);
+            await batch.commit();
+
+            transferUnifiedModal.hide();
+            formAccTransfer.reset();
+            Swal.fire('Éxito', 'Transferencia realizada correctamente.', 'success');
+
+        } catch (error) {
+            console.error(error);
+            Swal.fire('Error', 'No se pudo realizar la transferencia.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    });
 
 });
