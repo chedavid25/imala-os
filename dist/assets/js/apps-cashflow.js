@@ -107,7 +107,150 @@ document.addEventListener("DOMContentLoaded",function(){let E=window.Imala.db,y=
                         <input id="swal-usd" class="form-control" type="number" step="0.01" value="${0<t?t:0}">
                     </div>
                 </div>
-            `,focusConfirm:!1,showCancelButton:!0,confirmButtonText:"Confirmar Ahorro",cancelButtonText:"Cancelar",preConfirm:()=>({ars:parseFloat(document.getElementById("swal-ars").value)||0,usd:parseFloat(document.getElementById("swal-usd").value)||0})})).value;e&&(async(e,t,a,r)=>{let o=new Date(a,parseInt(t),0),c=E.batch(),i=E.collection("transactions"),s=0,n=(e,t)=>{var n;e<=0||(n=i.doc(),c.set(n,{type:"SAVING",entityName:`Capitalización Excedente ${r} `+a,category:"Fondo de Reserva",status:"ACTIVE",currency:t,amount:e,date:firebase.firestore.Timestamp.fromDate(o),address:`Traspaso de saldo sobrante del periodo filtrado (${r} ${a}).`,createdAt:new Date,createdBy:y.currentUser.uid}),s++)};if(n(e.ars,"ARS"),n(e.usd,"USD"),0<s)try{await c.commit(),Swal.fire("¡Éxito!","Excedente capitalizado correctamente.","success")}catch(e){console.error(e),Swal.fire("Error","No se pudo realizar el traspaso.","error")}})(e,n,a,r)},window.toggleStatus=function(e,t){E.collection("transactions").doc(e).update({status:t})},window.deleteTransaction=async function(e){if((await Swal.fire({title:"¿Eliminar?",text:"No podrás revertir esto.",icon:"warning",showCancelButton:!0,confirmButtonColor:"#f46a6a",confirmButtonText:"Sí, eliminar",cancelButtonText:"Cancelar"})).isConfirmed)try{await E.collection("transactions").doc(e).delete(),Swal.fire({toast:!0,position:"top-end",icon:"success",title:"Eliminado correctamente.",showConfirmButton:!1,timer:2e3})}catch(e){console.error("Error al eliminar:",e),Swal.fire("Error","No se pudo eliminar: "+e.message,"error")}},window.editSaving=function(t){var e=g.find(e=>e.id===t);e&&c("SAVING",e)},window.convertSaving=async function(t){var e=g.find(e=>e.id===t);if(e){e=(await Swal.fire({title:"Mover a Gasto",text:"Ingresa el nombre del Proveedor/Entidad para este gasto:",input:"text",inputValue:e.entityName,showCancelButton:!0,confirmButtonText:"Convertir"})).value;if(e)try{await E.collection("transactions").doc(t).update({type:"EXPENSE",entityName:e,status:"PAID"}),Swal.fire("Éxito","Ahorro convertido en gasto correctamente.","success")}catch(e){console.error(e),Swal.fire("Error",e.message,"error")}}},window.useSavingForExpense=window.convertSaving;let L=new bootstrap.Modal(document.getElementById("agreement-modal")),X=document.getElementById("form-agreement");async function q(){E.collection("cashflow_agreements").where("isActive","!=",!1).onSnapshot(e=>{b=[],e.forEach(e=>b.push({id:e.id,...e.data()})),F(),_(),(async()=>{O||console.log("Automatic agreement processing is disabled (Manual Mode).")})()})}y.currentUser&&q(),document.getElementById("btn-new-agreement").addEventListener("click",()=>{X.reset(),document.getElementById("agreement-id").value="",document.getElementById("agreement-modal-title").textContent="Nuevo Acuerdo",document.getElementById("btn-delete-agreement").classList.add("d-none"),document.getElementById("agr-last-update").textContent=(new Date).toISOString().split("T")[0],document.getElementById("agr-biller").value="Lucre",document.getElementById("div-biller").style.display="block",document.getElementById("agr-currency").value="ARS",document.getElementById("agr-frequency").value="MONTHLY",document.getElementById("agr-account").value="",document.getElementById("agr-hasInvoice").value="true",L.show()}),document.getElementById("agr-hasInvoice").addEventListener("change",e=>{var t=document.getElementById("div-biller"),n=document.getElementById("agr-biller");"true"===e.target.value?(t.style.display="block",n.value="Lucre"):(t.style.display="none",n.value="")}),window.editAgreement=function(t){var e=b.find(e=>e.id===t);e&&(document.getElementById("agreement-id").value=t,document.getElementById("agreement-modal-title").textContent="Editar Acuerdo",document.getElementById("agr-name").value=e.name,document.getElementById("agr-cuit").value=e.cuit||"",document.getElementById("agr-hasInvoice").value=e.hasInvoice?"true":"false",e.hasInvoice?(document.getElementById("div-biller").style.display="block",document.getElementById("agr-biller").value=e.biller||"Lucre"):(document.getElementById("div-biller").style.display="none",document.getElementById("agr-biller").value=""),document.getElementById("agr-desc").value=e.description||"",document.getElementById("agr-frequency").value=e.frequency||"MONTHLY",document.getElementById("agr-currency").value=e.currency||"ARS",document.getElementById("agr-account").value=e.accountId||"",document.getElementById("agr-amount").value=e.amount,document.getElementById("agr-last-update").textContent=e.lastUpdate||"-",document.getElementById("btn-delete-agreement").classList.remove("d-none"),L.show())},X.addEventListener("submit",async e=>{e.preventDefault();var e=document.getElementById("agreement-id").value,t=document.getElementById("btn-save-agreement");t.disabled=!0,t.innerHTML='<i class="bx bx-loader bx-spin"></i>';try{var n={name:document.getElementById("agr-name").value,cuit:document.getElementById("agr-cuit").value,hasInvoice:"true"===document.getElementById("agr-hasInvoice").value,biller:document.getElementById("agr-biller").value,description:document.getElementById("agr-desc").value,frequency:document.getElementById("agr-frequency").value,currency:document.getElementById("agr-currency").value,accountId:document.getElementById("agr-account").value,amount:parseFloat(document.getElementById("agr-amount").value)||0,lastUpdate:document.getElementById("agr-last-update").textContent,isActive:!0,updatedAt:new Date};e?await E.collection("cashflow_agreements").doc(e).update(n):(n.createdAt=new Date,n.uid=h(),n.invoices={},await E.collection("cashflow_agreements").add(n)),L.hide(),Swal.fire("Guardado","El acuerdo se actualizó correctamente.","success")}catch(e){console.error(e),Swal.fire("Error","No se pudo guardar: "+e.message,"error")}finally{t.disabled=!1,t.textContent="Guardar Acuerdo"}}),document.getElementById("btn-delete-agreement").addEventListener("click",async()=>{let t=document.getElementById("agreement-id").value;t&&Swal.fire({title:"¿Archivar Acuerdo?",text:"No aparecerá en los listados activos.",icon:"warning",showCancelButton:!0,confirmButtonText:"Sí, archivar",cancelButtonText:"Cancelar"}).then(async e=>{e.isConfirmed&&(await E.collection("cashflow_agreements").doc(t).update({isActive:!1}),L.hide())})}),document.getElementById("btn-calc-update").addEventListener("click",()=>{let e=document.getElementById("agr-amount");var t=document.getElementById("agr-calc-percent"),n=document.getElementById("agr-last-update"),a=parseFloat(e.value)||0,r=parseFloat(t.value)||0;0!==r&&(e.value=(a+a*(r/100)).toFixed(2),n.textContent=(new Date).toISOString().split("T")[0],e.classList.add("is-valid"),setTimeout(()=>e.classList.remove("is-valid"),2e3),t.value="")}),window.toggleInvoiceSent=async function(a,r,o){var t=o.checked,c=b.find(e=>e.id===a);if(c)try{var i=E.collection("cashflow_agreements").doc(a);if(t){let e=c.currency,t=c.amount,n="";var s="USD"===c.currency?"ARS":"USD",l=(await Swal.fire({title:"Moneda de Cobro",text:`El acuerdo es en ${c.currency}. ¿Cómo se cobró esta factura?`,icon:"question",showCancelButton:!0,confirmButtonText:"Cobrar en "+c.currency,cancelButtonText:"Convertir a "+s,reverseButtons:!0})).value;if(void 0===l)o.checked=!1;else{var d=await Swal.fire({title:"Seleccione Moneda",text:"Monto Original: "+w(c.amount,c.currency),input:"radio",inputOptions:{[c.currency]:`Cobrar en ${c.currency} (Original)`,[s]:"Convertir a "+s},inputValue:c.currency,confirmButtonText:"Continuar",showCancelButton:!0});if(d.value){if(d.value===s){var u=(await Swal.fire({title:"Tipo de Cambio",text:`Ingrese el tipo de cambio para convertir de ${c.currency} a `+s,input:"number",inputAttributes:{min:0,step:.01},showCancelButton:!0,confirmButtonText:"Aplicar Conversión",inputValidator:e=>{if(!e||e<=0)return"Ingrese un valor válido"}})).value;if(!u)return void(o.checked=!1);e=s,n="USD"===c.currency?(t=c.amount*u,` [Conv. de USD a tasa ${u}]`):(t=c.amount/u,` [Conv. de ARS a tasa ${u}]`)}var m={type:"INCOME",entityName:c.name+n,cuit:c.cuit,address:"Facturación Mensual Automática",category:"Honorarios",status:"PAID",currency:e,accountId:c.accountId,amount:t,date:firebase.firestore.Timestamp.fromDate(new Date),isRecurring:!1,agreementId:a,periodKey:r,createdAt:new Date,createdBy:h()},g=await E.collection("transactions").add(m),y={};y["invoices."+r]={sent:!0,date:(new Date).toISOString().split("T")[0],incomeId:g.id},await i.update(y),Swal.fire({toast:!0,position:"top-end",icon:"success",title:"Ingreso generado y Factura marcada.",showConfirmButton:!1,timer:3e3})}else o.checked=!1}}else{var e=c.invoices?c.invoices[r]:null;if(e&&e.incomeId){if(!(await Swal.fire({title:"¿Deshacer?",text:"Esto borrará el ingreso generado automáticamente.",icon:"warning",showCancelButton:!0,confirmButtonText:"Sí, borrar ingreso"})).isConfirmed)return void(o.checked=!0);await E.collection("transactions").doc(e.incomeId).delete()}var n={};n["invoices."+r]=firebase.firestore.FieldValue.delete(),await i.update(n)}}catch(e){console.error(e),o.checked=!t,Swal.fire("Error",e.message,"error")}else o.checked=!t};let z=new bootstrap.Modal(document.getElementById("modal-manage-accounts")),Y=document.getElementById("form-account");function Q(){var e=document.getElementById("account-summary-container");let a=document.getElementById("account-summary-list");f&&0!==f.length?(e.style.display="block",a.innerHTML="",f.filter(e=>!1!==e.isActive).forEach(e=>{var t=$(e.id),n=document.createElement("tr");n.innerHTML=`
+            `,focusConfirm:!1,showCancelButton:!0,confirmButtonText:"Confirmar Ahorro",cancelButtonText:"Cancelar",preConfirm:()=>({ars:parseFloat(document.getElementById("swal-ars").value)||0,usd:parseFloat(document.getElementById("swal-usd").value)||0})})).value;e&&(async(e,t,a,r)=>{let o=new Date(a,parseInt(t),0),c=E.batch(),i=E.collection("transactions"),s=0,n=(e,t)=>{var n;e<=0||(n=i.doc(),c.set(n,{type:"SAVING",entityName:`Capitalización Excedente ${r} `+a,category:"Fondo de Reserva",status:"ACTIVE",currency:t,amount:e,date:firebase.firestore.Timestamp.fromDate(o),address:`Traspaso de saldo sobrante del periodo filtrado (${r} ${a}).`,createdAt:new Date,createdBy:y.currentUser.uid}),s++)};if(n(e.ars,"ARS"),n(e.usd,"USD"),0<s)try{await c.commit(),Swal.fire("¡Éxito!","Excedente capitalizado correctamente.","success")}catch(e){console.error(e),Swal.fire("Error","No se pudo realizar el traspaso.","error")}})(e,n,a,r)},window.toggleStatus=function(e,t){E.collection("transactions").doc(e).update({status:t})},window.deleteTransaction=async function(e){if((await Swal.fire({title:"¿Eliminar?",text:"No podrás revertir esto.",icon:"warning",showCancelButton:!0,confirmButtonColor:"#f46a6a",confirmButtonText:"Sí, eliminar",cancelButtonText:"Cancelar"})).isConfirmed)try{await E.collection("transactions").doc(e).delete(),Swal.fire({toast:!0,position:"top-end",icon:"success",title:"Eliminado correctamente.",showConfirmButton:!1,timer:2e3})}catch(e){console.error("Error al eliminar:",e),Swal.fire("Error","No se pudo eliminar: "+e.message,"error")}},window.editSaving=function(t){var e=g.find(e=>e.id===t);e&&c("SAVING",e)},window.convertSaving=async function(t){var e=g.find(e=>e.id===t);if(e){e=(await Swal.fire({title:"Mover a Gasto",text:"Ingresa el nombre del Proveedor/Entidad para este gasto:",input:"text",inputValue:e.entityName,showCancelButton:!0,confirmButtonText:"Convertir"})).value;if(e)try{await E.collection("transactions").doc(t).update({type:"EXPENSE",entityName:e,status:"PAID"}),Swal.fire("Éxito","Ahorro convertido en gasto correctamente.","success")}catch(e){console.error(e),Swal.fire("Error",e.message,"error")}}},window.useSavingForExpense=window.convertSaving;let L=new bootstrap.Modal(document.getElementById("agreement-modal")),X=document.getElementById("form-agreement");async function q(){E.collection("cashflow_agreements").where("isActive","!=",!1).onSnapshot(e=>{b=[],e.forEach(e=>b.push({id:e.id,...e.data()})),F(),_(),(async()=>{O||console.log("Automatic agreement processing is disabled (Manual Mode).")})()})}y.currentUser&&q(),document.getElementById("btn-new-agreement").addEventListener("click",()=>{X.reset(),document.getElementById("agreement-id").value="",document.getElementById("agreement-modal-title").textContent="Nuevo Acuerdo",document.getElementById("btn-delete-agreement").classList.add("d-none"),document.getElementById("agr-last-update").textContent=(new Date).toISOString().split("T")[0],document.getElementById("agr-biller").value="Lucre",document.getElementById("div-biller").style.display="block",document.getElementById("agr-currency").value="ARS",document.getElementById("agr-frequency").value="MONTHLY",document.getElementById("agr-account").value="",document.getElementById("agr-hasInvoice").value="true",L.show()}),document.getElementById("agr-hasInvoice").addEventListener("change",e=>{var t=document.getElementById("div-biller"),n=document.getElementById("agr-biller");"true"===e.target.value?(t.style.display="block",n.value="Lucre"):(t.style.display="none",n.value="")}),window.editAgreement=function(t){var e=b.find(e=>e.id===t);e&&(document.getElementById("agreement-id").value=t,document.getElementById("agreement-modal-title").textContent="Editar Acuerdo",document.getElementById("agr-name").value=e.name,document.getElementById("agr-cuit").value=e.cuit||"",document.getElementById("agr-hasInvoice").value=e.hasInvoice?"true":"false",e.hasInvoice?(document.getElementById("div-biller").style.display="block",document.getElementById("agr-biller").value=e.biller||"Lucre"):(document.getElementById("div-biller").style.display="none",document.getElementById("agr-biller").value=""),document.getElementById("agr-desc").value=e.description||"",document.getElementById("agr-frequency").value=e.frequency||"MONTHLY",document.getElementById("agr-currency").value=e.currency||"ARS",document.getElementById("agr-account").value=e.accountId||"",document.getElementById("agr-amount").value=e.amount,document.getElementById("agr-last-update").textContent=e.lastUpdate||"-",document.getElementById("btn-delete-agreement").classList.remove("d-none"),L.show())},X.addEventListener("submit",async e=>{e.preventDefault();var e=document.getElementById("agreement-id").value,t=document.getElementById("btn-save-agreement");t.disabled=!0,t.innerHTML='<i class="bx bx-loader bx-spin"></i>';try{var n={name:document.getElementById("agr-name").value,cuit:document.getElementById("agr-cuit").value,hasInvoice:"true"===document.getElementById("agr-hasInvoice").value,biller:document.getElementById("agr-biller").value,description:document.getElementById("agr-desc").value,frequency:document.getElementById("agr-frequency").value,currency:document.getElementById("agr-currency").value,accountId:document.getElementById("agr-account").value,amount:parseFloat(document.getElementById("agr-amount").value)||0,lastUpdate:document.getElementById("agr-last-update").textContent,isActive:!0,updatedAt:new Date};e?await E.collection("cashflow_agreements").doc(e).update(n):(n.createdAt=new Date,n.uid=h(),n.invoices={},await E.collection("cashflow_agreements").add(n)),L.hide(),Swal.fire("Guardado","El acuerdo se actualizó correctamente.","success")}catch(e){console.error(e),Swal.fire("Error","No se pudo guardar: "+e.message,"error")}finally{t.disabled=!1,t.textContent="Guardar Acuerdo"}}),document.getElementById("btn-delete-agreement").addEventListener("click",async()=>{let t=document.getElementById("agreement-id").value;t&&Swal.fire({title:"¿Archivar Acuerdo?",text:"No aparecerá en los listados activos.",icon:"warning",showCancelButton:!0,confirmButtonText:"Sí, archivar",cancelButtonText:"Cancelar"}).then(async e=>{e.isConfirmed&&(await E.collection("cashflow_agreements").doc(t).update({isActive:!1}),L.hide())})}),document.getElementById("btn-calc-update").addEventListener("click",()=>{let e=document.getElementById("agr-amount");var t=document.getElementById("agr-calc-percent"),n=document.getElementById("agr-last-update"),a=parseFloat(e.value)||0,r=parseFloat(t.value)||0;0!==r&&(e.value=(a+a*(r/100)).toFixed(2),n.textContent=(new Date).toISOString().split("T")[0],e.classList.add("is-valid"),setTimeout(()=>e.classList.remove("is-valid"),2e3),t.value="")}),window.toggleInvoiceSent = async function(agreementId, periodKey, toggleElement) {
+    const isChecked = toggleElement.checked;
+    const agreement = b.find(a => a.id === agreementId);
+
+    if (!agreement) {
+        console.error("Acuerdo no encontrado");
+        return;
+    }
+
+    try {
+        const agreementRef = E.collection("cashflow_agreements").doc(agreementId);
+
+        if (isChecked) {
+            let finalCurrency = agreement.currency;
+            let finalAmount = agreement.amount;
+            let descriptionSuffix = "";
+            const altCurrency = agreement.currency === "USD" ? "ARS" : "USD";
+
+            const result = await Swal.fire({
+                title: "Moneda de Cobro",
+                text: `El acuerdo es de ${w(agreement.amount, agreement.currency)}. ¿En qué moneda se cobró?`,
+                icon: "question",
+                showDenyButton: true,
+                showCancelButton: true,
+                confirmButtonText: `Cobrar en ${agreement.currency}`,
+                denyButtonText: `Convertir a ${altCurrency}`,
+                cancelButtonText: "Cancelar"
+            });
+
+            if (result.isDismissed) {
+                toggleElement.checked = false;
+                return;
+            }
+
+            if (result.isDenied) {
+                const { value: rate } = await Swal.fire({
+                    title: "Tipo de Cambio",
+                    text: `Ingrese la cotización para convertir de ${agreement.currency} a ${altCurrency}:`,
+                    input: "number",
+                    inputAttributes: { min: 0, step: 0.01 },
+                    showCancelButton: true,
+                    confirmButtonText: "Aplicar Conversión",
+                    inputValidator: (value) => {
+                        if (!value || value <= 0) return "Ingrese un valor válido mayor a 0";
+                    }
+                });
+
+                if (!rate) {
+                    toggleElement.checked = false;
+                    return;
+                }
+
+                const conversionRate = parseFloat(rate);
+                finalCurrency = altCurrency;
+                
+                if (agreement.currency === "USD" && finalCurrency === "ARS") {
+                    finalAmount = agreement.amount * conversionRate;
+                    descriptionSuffix = ` [Conv. de USD a tasa ${conversionRate}]`;
+                } else {
+                    finalAmount = agreement.amount / conversionRate;
+                    descriptionSuffix = ` [Conv. de ARS a tasa ${conversionRate}]`;
+                }
+            }
+            
+            const newIncome = {
+                type: "INCOME",
+                entityName: agreement.name + descriptionSuffix,
+                cuit: agreement.cuit,
+                address: "Facturación Mensual Automática",
+                category: "Honorarios",
+                status: "PAID",
+                currency: finalCurrency,
+                accountId: agreement.accountId || null,
+                amount: finalAmount,
+                date: firebase.firestore.Timestamp.fromDate(new Date()),
+                isRecurring: false,
+                agreementId: agreementId,
+                periodKey: periodKey,
+                createdAt: new Date(),
+                createdBy: h()
+            };
+
+            const docRef = await E.collection("transactions").add(newIncome);
+
+            const updateData = {};
+            updateData[`invoices.${periodKey}`] = {
+                sent: true,
+                date: new Date().toISOString().split('T')[0],
+                incomeId: docRef.id
+            };
+            
+            await agreementRef.update(updateData);
+
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: 'Ingreso generado y Factura marcada.',
+                showConfirmButton: false,
+                timer: 3000
+            });
+
+        } else {
+            const invoiceData = agreement.invoices ? agreement.invoices[periodKey] : null;
+            
+            if (invoiceData && invoiceData.incomeId) {
+                const confirmUndo = await Swal.fire({
+                    title: "¿Deshacer cobro?",
+                    text: "Esto eliminará el ingreso asociado a esta factura. ¿Estás seguro?",
+                    icon: "warning",
+                    showCancelButton: true,
+                    confirmButtonText: "Sí, eliminar ingreso",
+                    cancelButtonText: "No, mantener"
+                });
+
+                if (!confirmUndo.isConfirmed) {
+                    toggleElement.checked = true;
+                    return;
+                }
+
+                await E.collection("transactions").doc(invoiceData.incomeId).delete();
+            }
+
+            const updateData = {};
+            updateData[`invoices.${periodKey}`] = firebase.firestore.FieldValue.delete();
+            
+            await agreementRef.update(updateData);
+            
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'info',
+                title: 'Factura desmarcada.',
+                showConfirmButton: false,
+                timer: 2000
+            });
+        }
+
+    } catch (error) {
+        console.error(error);
+        toggleElement.checked = !isChecked;
+        Swal.fire("Error", "Ocurrió un error al procesar la solicitud: " + error.message, "error");
+    }
+};let z=new bootstrap.Modal(document.getElementById("modal-manage-accounts")),Y=document.getElementById("form-account");function Q(){var e=document.getElementById("account-summary-container");let a=document.getElementById("account-summary-list");f&&0!==f.length?(e.style.display="block",a.innerHTML="",f.filter(e=>!1!==e.isActive).forEach(e=>{var t=$(e.id),n=document.createElement("tr");n.innerHTML=`
                 <td>
                     <div class="d-flex align-items-center">
                         <div class="avatar-xs me-2">

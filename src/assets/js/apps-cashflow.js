@@ -1655,107 +1655,88 @@ document.addEventListener('DOMContentLoaded', function () {
          const isChecked = checkbox.checked;
          const agreement = agreements.find(a => a.id === agreementId);
          
-         if(!agreement) { checkbox.checked = !isChecked; return; }
+         if(!agreement) {
+             console.error("Acuerdo no encontrado");
+             return;
+         }
 
          try {
              const agRef = db.collection('cashflow_agreements').doc(agreementId);
              
              if(isChecked) {
-                 // 1. Ask for Payment Currency & Conversion
-             let finalCurrency = agreement.currency;
-             let finalAmount = agreement.amount;
-             let conversionNote = '';
+                 let finalCurrency = agreement.currency;
+                 let finalAmount = agreement.amount;
+                 let conversionNote = '';
+                 const otherCurrency = agreement.currency === 'USD' ? 'ARS' : 'USD';
 
-             const otherCurrency = agreement.currency === 'USD' ? 'ARS' : 'USD';
-             
-             const { value: mode } = await Swal.fire({
-                 title: 'Moneda de Cobro',
-                 text: `El acuerdo es en ${agreement.currency}. ¿Cómo se cobró esta factura?`,
-                 icon: 'question',
-                 showCancelButton: true,
-                 confirmButtonText: `Cobrar en ${agreement.currency}`,
-                 cancelButtonText: `Convertir a ${otherCurrency}`,
-                 reverseButtons: true
-             });
-
-             // If cancelled (cancelButtonText), it means they want to CONVERT
-             if (mode === undefined) {
-                 // Revert checkbox if they just closed the modal
-                 checkbox.checked = false;
-                 return;
-             }
-
-             const wantsConversion = (mode === false); // Swal confirm yields true, cancel yields undefined/false depending on config. Here we use basic logic.
-             // Actually, let's use a more explicit Swal for better UX
-             
-             const result = await Swal.fire({
-                 title: 'Seleccione Moneda',
-                 text: `Monto Original: ${formatCurrency(agreement.amount, agreement.currency)}`,
-                 input: 'radio',
-                 inputOptions: {
-                     [agreement.currency]: `Cobrar en ${agreement.currency} (Original)`,
-                     [otherCurrency]: `Convertir a ${otherCurrency}`
-                 },
-                 inputValue: agreement.currency,
-                 confirmButtonText: 'Continuar',
-                 showCancelButton: true
-             });
-
-             if (!result.value) {
-                 checkbox.checked = false;
-                 return;
-             }
-
-             if (result.value === otherCurrency) {
-                 const { value: tc } = await Swal.fire({
-                     title: 'Tipo de Cambio',
-                     text: `Ingrese el tipo de cambio para convertir de ${agreement.currency} a ${otherCurrency}`,
-                     input: 'number',
-                     inputAttributes: { min: 0, step: 0.01 },
+                 const result = await Swal.fire({
+                     title: 'Moneda de Cobro',
+                     text: `El acuerdo es de ${formatCurrency(agreement.amount, agreement.currency)}. ¿En qué moneda se cobró?`,
+                     icon: 'question',
+                     showDenyButton: true,
                      showCancelButton: true,
-                     confirmButtonText: 'Aplicar Conversión',
-                     inputValidator: (value) => {
-                         if (!value || value <= 0) return 'Ingrese un valor válido';
-                     }
+                     confirmButtonText: `Cobrar en ${agreement.currency}`,
+                     denyButtonText: `Convertir a ${otherCurrency}`,
+                     cancelButtonText: 'Cancelar'
                  });
 
-                 if (!tc) {
+                 if (result.isDismissed) {
                      checkbox.checked = false;
                      return;
                  }
 
-                 finalCurrency = otherCurrency;
-                 if (agreement.currency === 'USD') {
-                     finalAmount = agreement.amount * tc;
-                     conversionNote = ` [Conv. de USD a tasa ${tc}]`;
-                 } else {
-                     finalAmount = agreement.amount / tc;
-                     conversionNote = ` [Conv. de ARS a tasa ${tc}]`;
-                 }
-             }
+                 if (result.isDenied) {
+                     const { value: rate } = await Swal.fire({
+                         title: 'Tipo de Cambio',
+                         text: `Ingrese la cotización para convertir de ${agreement.currency} a ${otherCurrency}`,
+                         input: 'number',
+                         inputAttributes: { min: 0, step: 0.01 },
+                         showCancelButton: true,
+                         confirmButtonText: 'Aplicar Conversión',
+                         inputValidator: (value) => {
+                             if (!value || value <= 0) return 'Ingrese un valor válido';
+                         }
+                     });
 
-             // 2. Generate Income Transaction
-             const newTx = {
-                  type: 'INCOME',
-                  entityName: agreement.name + conversionNote,
-                  cuit: agreement.cuit,
-                  address: 'Facturación Mensual Automática', 
-                  category: 'Honorarios', 
-                  status: 'PAID',
-                  currency: finalCurrency,
-                  accountId: agreement.accountId,
-                  amount: finalAmount,
-                  date: firebase.firestore.Timestamp.fromDate(new Date()), 
-                  isRecurring: false, 
-                  agreementId: agreementId,
-                  periodKey: periodKey,
-                  createdAt: new Date(),
-                  createdBy: getUIDSafe()
-             };
-             
-             const docRef = await db.collection('transactions').add(newTx);
+                     if (!rate) {
+                         checkbox.checked = false;
+                         return;
+                     }
+
+                     const conversionRate = parseFloat(rate);
+                     finalCurrency = otherCurrency;
+                     
+                     if (agreement.currency === 'USD' && finalCurrency === 'ARS') {
+                         finalAmount = agreement.amount * conversionRate;
+                         conversionNote = ` [Conv. de USD a tasa ${conversionRate}]`;
+                     } else {
+                         finalAmount = agreement.amount / conversionRate;
+                         conversionNote = ` [Conv. de ARS a tasa ${conversionRate}]`;
+                     }
+                 }
+
+                 // Generate Income Transaction
+                 const newTx = {
+                      type: 'INCOME',
+                      entityName: agreement.name + conversionNote,
+                      cuit: agreement.cuit,
+                      address: 'Facturación Mensual Automática', 
+                      category: 'Honorarios', 
+                      status: 'PAID',
+                      currency: finalCurrency,
+                      accountId: agreement.accountId || null,
+                      amount: finalAmount,
+                      date: firebase.firestore.Timestamp.fromDate(new Date()), 
+                      isRecurring: false, 
+                      agreementId: agreementId,
+                      periodKey: periodKey,
+                      createdAt: new Date(),
+                      createdBy: getUIDSafe()
+                 };
                  
-                 // 2. Mark in Agreement
+                 const docRef = await db.collection('transactions').add(newTx);
+                     
+                 // Mark in Agreement
                  const updateMap = {};
                  updateMap[`invoices.${periodKey}`] = {
                      sent: true,
@@ -1774,33 +1755,41 @@ document.addEventListener('DOMContentLoaded', function () {
                  });
 
              } else {
-                 // 1. Uncheck: Delete the generated income?
-                 // Checking if we stored the ID.
+                 // Uncheck: Delete the generated income?
                  const invoiceData = agreement.invoices ? agreement.invoices[periodKey] : null;
                  
                  if(invoiceData && invoiceData.incomeId) {
-                     // Ask confirmation
-                     const confirm = await Swal.fire({
-                         title: '¿Deshacer?',
-                         text: "Esto borrará el ingreso generado automáticamente.",
+                     const confirmUndo = await Swal.fire({
+                         title: '¿Deshacer cobro?',
+                         text: "Esto eliminará el ingreso asociado a esta factura. ¿Estás seguro?",
                          icon: 'warning',
                          showCancelButton: true,
-                         confirmButtonText: 'Sí, borrar ingreso'
+                         confirmButtonText: 'Sí, eliminar ingreso',
+                         cancelButtonText: 'No, mantener'
                      });
                      
-                     if(!confirm.isConfirmed) {
+                     if(!confirmUndo.isConfirmed) {
                          checkbox.checked = true; // Revert UI
                          return; 
                      }
                      
-                     // Delete
                      await db.collection('transactions').doc(invoiceData.incomeId).delete();
                  }
                  
-                 // 2. Update Agreement
+                 // Update Agreement to remove invoice data
                  const updateMap = {};
-                 updateMap[`invoices.${periodKey}`] = firebase.firestore.FieldValue.delete(); // Remove the key
+                 updateMap[`invoices.${periodKey}`] = firebase.firestore.FieldValue.delete();
+                 
                  await agRef.update(updateMap);
+                 
+                 Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'info',
+                    title: 'Factura desmarcada.',
+                    showConfirmButton: false,
+                    timer: 2000
+                });
              }
              
          } catch(e) {
