@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', function () {
             loadTransactions();
             loadAgreements(); // New Module
             initAccounts(); // Move inside auth
+            initAssets(); // Investment Module
         }
     });
 
@@ -22,12 +23,17 @@ document.addEventListener('DOMContentLoaded', function () {
     const expenseModal = new bootstrap.Modal(document.getElementById('modal-expense'));
     const savingModal = new bootstrap.Modal(document.getElementById('modal-saving'));
     const transferUnifiedModal = new bootstrap.Modal(document.getElementById('modal-transfer-unified'));
+    const modalAsset = new bootstrap.Modal(document.getElementById('modal-asset'));
+    const modalInvestment = new bootstrap.Modal(document.getElementById('modal-investment'));
+    const modalWithdrawal = new bootstrap.Modal(document.getElementById('modal-withdrawal'));
     
     let allTransactions = [];
     let accountsData = []; // Cuentas globales
     let categories = { INCOME: [], EXPENSE: [], SAVING: [] }; 
     let entities = { INCOME: [], EXPENSE: [] }; 
     let agreements = []; // Acuerdos globales
+    let assets = []; // Global Assets List
+    let assetsData = []; // Alias for compatibility if needed, or just use assets
 
     // Concurrency Guards
     let isCheckingRecurrences = false;
@@ -594,7 +600,8 @@ document.addEventListener('DOMContentLoaded', function () {
             btnSave.innerHTML = originalText;
         }
     }
-    document.getElementById('form-saving').addEventListener('submit', handleSavingSubmit);
+    const formSaving = document.getElementById('form-saving');
+    if (formSaving) formSaving.addEventListener('submit', handleSavingSubmit);
 
     // ==========================================
     // 5. Load & Recurrence Logic
@@ -708,7 +715,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Set Period (Month)
     filterPeriod.value = currentMonth;
 
-    btnApplyFilters.addEventListener('click', applyFilters);
+    if (btnApplyFilters) btnApplyFilters.addEventListener('click', applyFilters);
     
     // Auto-update on select change
     [filterYear, filterPeriod, filterCategory, filterOnlyRecurring].forEach(el => el.addEventListener('change', applyFilters));
@@ -1130,85 +1137,63 @@ document.addEventListener('DOMContentLoaded', function () {
         const getSum = (arr, currency) => arr.reduce((acc, t) => t.currency === currency ? acc + (Number(t.amount) || 0) : acc, 0);
 
         // --- 1. PERIOD SPECIFIC KPIs (Facturación, Cobro, Gastos) ---
-        // Based ONLY on currentFilteredData (what the user sees in the table for this year/month)
         const pIncome = currentFilteredData.filter(t => t.type === 'INCOME');
         const pExpense = currentFilteredData.filter(t => t.type === 'EXPENSE');
 
-        // Facturación Esperada (Total of the period)
+        // Facturación Esperada
         updateKPI('kpi-income-expected-ars', getSum(pIncome, 'ARS'));
         updateKPI('kpi-income-expected-usd', getSum(pIncome, 'USD'));
-
-        // Pendiente de Cobro (Income Not Paid)
         updateKPI('kpi-income-pending-ars', getSum(pIncome.filter(t => t.status !== 'PAID'), 'ARS'));
         updateKPI('kpi-income-pending-usd', getSum(pIncome.filter(t => t.status !== 'PAID'), 'USD'));
 
-        // Gastos Esperados (Total Expenses of the period)
+        // Gastos Esperados
         updateKPI('kpi-expense-expected-ars', getSum(pExpense, 'ARS'));
         updateKPI('kpi-expense-expected-usd', getSum(pExpense, 'USD'));
-
-        // Gastos Pendientes (Expenses Not Paid)
         updateKPI('kpi-expense-pending-ars', getSum(pExpense.filter(t => t.status !== 'PAID'), 'ARS'));
         updateKPI('kpi-expense-pending-usd', getSum(pExpense.filter(t => t.status !== 'PAID'), 'USD'));
 
-
-        // --- 2. ACCUMULATED BALANCE KPIs (Caja, Reservas, Patrimonio) ---
-        // Up to selected period (Historical context)
-        let historicalData = [...allTransactions];
+        // --- 2. GLOBAL WEALTH KPIs (Header) ---
+        // A. LIQUIDITY (From Accounts)
+        let liquidityARS = 0;
+        let liquidityUSD = 0;
         
-        // Define terminal date of period for historical balance
-        let endOfPeriodDate = new Date();
-        if (period === 'ALL') {
-             // No date filter needed
-        } else if (period === 'YTD') {
-             endOfPeriodDate = new Date(); // Current moment
-        } else {
-             const m = parseInt(period);
-             if (!isNaN(m)) {
-                 endOfPeriodDate = new Date(year, m, 0, 23, 59, 59); // Last day of month
-             } else {
-                 // Quarters and Semesters
-                 const map = { 'Q1': 3, 'Q2': 6, 'Q3': 9, 'Q4': 12, 'S1': 6, 'S2': 12 };
-                 if(map[period]) endOfPeriodDate = new Date(year, map[period], 0, 23, 59, 59);
-             }
-        }
+        accountsData.forEach(acc => {
+            const bal = calculateAccountBalance(acc.id);
+            if (acc.currency === 'ARS') liquidityARS += bal;
+            if (acc.currency === 'USD') liquidityUSD += bal;
+        });
 
-        // Filter historical data up to end of period
-        if (period !== 'ALL') {
-             historicalData = historicalData.filter(t => parseDate(t.date) <= endOfPeriodDate);
-        }
+        updateKPI('kpi-balance-ars', liquidityARS);
+        updateKPI('kpi-balance-usd', liquidityUSD);
 
-        const hIncome = historicalData.filter(t => t.type === 'INCOME' && t.status === 'PAID');
-        const hExpense = historicalData.filter(t => t.type === 'EXPENSE' && t.status === 'PAID');
-        
-        const hSavingsAll = historicalData.filter(t => t.type === 'SAVING');
-        const hSavingsActive = hSavingsAll.filter(t => t.status !== 'USED');
-        const hSavingsToSubtract = hSavingsAll.filter(t => t.isInitial !== true);
+        // B. INVESTED ASSETS (From Assets Collection)
+        let investedARS = 0;
+        let investedUSD = 0;
+        assets.forEach(a => {
+            let val = Number(a.currentValuation) || Number(a.investedAmount) || 0;
+            if (a.currency === 'ARS') investedARS += val;
+            if (a.currency === 'USD') investedUSD += val;
+        });
 
-        // Saldos Iniciales
-        const initialARS = accountsData.filter(a => a.currency === 'ARS' && a.isActive !== false).reduce((acc, a) => acc + (Number(a.initialBalance) || 0), 0);
-        const initialUSD = accountsData.filter(a => a.currency === 'USD' && a.isActive !== false).reduce((acc, a) => acc + (Number(a.initialBalance) || 0), 0);
+        updateKPI('kpi-invested-ars', investedARS);
+        updateKPI('kpi-invested-usd', investedUSD);
 
-        const balanceARS = initialARS + getSum(hIncome, 'ARS') - getSum(hExpense, 'ARS') - getSum(hSavingsToSubtract, 'ARS');
-        const balanceUSD = initialUSD + getSum(hIncome, 'USD') - getSum(hExpense, 'USD') - getSum(hSavingsToSubtract, 'USD');
-        const totalSavARS = getSum(hSavingsActive, 'ARS');
-        const totalSavUSD = getSum(hSavingsActive, 'USD');
+        // C. NET WORTH (Total)
+        const netWorthARS = liquidityARS + investedARS;
+        const netWorthUSD = liquidityUSD + investedUSD;
+        updateKPI('kpi-net-worth-ars', netWorthARS);
+        updateKPI('kpi-net-worth-usd', netWorthUSD);
 
-        // Update DOM Cards (Balance and Wealth)
-        updateKPI('kpi-balance-ars', balanceARS);
-        updateKPI('kpi-balance-usd', balanceUSD);
-        updateKPI('kpi-savings-ars', totalSavARS);
-        updateKPI('kpi-savings-usd', totalSavUSD);
-        updateKPI('kpi-total-ars', balanceARS + totalSavARS);
-        updateKPI('kpi-total-usd', balanceUSD + totalSavUSD);
-
-        if (typeof renderAccountSummary === 'function') renderAccountSummary();
-
-        // --- 3. SURPLUS ASSISTANT ---
-        // We suggest saving based on what was effectively PAID/RECEIVED this month
+        // --- 3. SURPLUS ASSISTANT (Preserved) ---
         const monthlyProfitARS = getSum(pIncome.filter(t => t.status === 'PAID'), 'ARS') - getSum(pExpense.filter(t => t.status === 'PAID'), 'ARS');
         const monthlyProfitUSD = getSum(pIncome.filter(t => t.status === 'PAID'), 'USD') - getSum(pExpense.filter(t => t.status === 'PAID'), 'USD');
 
-        checkSurplusAssistant(monthlyProfitARS, monthlyProfitUSD, balanceARS, balanceUSD);
+        if (typeof checkSurplusAssistant === 'function') {
+            checkSurplusAssistant(monthlyProfitARS, monthlyProfitUSD, liquidityARS, liquidityUSD);
+        }
+        
+        // --- 4. ACCOUNT SUMMARY ---
+        if (typeof renderAccountSummary === 'function') renderAccountSummary();
     }
 
     function checkSurplusAssistant(monthlyARS, monthlyUSD, availableARS, availableUSD) {
@@ -1325,11 +1310,11 @@ document.addEventListener('DOMContentLoaded', function () {
     function renderTables(data) {
         const tBodyInc = document.querySelector('#table-income tbody');
         const tBodyExp = document.querySelector('#table-expense tbody');
-        const tBodySav = document.querySelector('#table-saving tbody');
+        // const tBodySav = document.querySelector('#table-saving tbody'); // Removed in Investment System
         
         tBodyInc.innerHTML = '';
         tBodyExp.innerHTML = '';
-        tBodySav.innerHTML = '';
+        // if(tBodySav) tBodySav.innerHTML = '';
 
         const createRow = (t, isSaving = false) => {
             const dateObj = parseDate(t.date);
@@ -1341,30 +1326,9 @@ document.addEventListener('DOMContentLoaded', function () {
             if(t.status === 'PAID') { statusBadge = 'badge bg-success'; statusLabel = 'Cobrado/Pagado'; }
             if(t.status === 'USED') { statusBadge = 'badge bg-secondary'; statusLabel = 'Usado'; }
 
-            if (isSaving) {
-                 return `
-                    <tr>
-                        <td>${dateStr}</td>
-                        <td>
-                            <h6 class="mb-0 font-size-14 text-truncate">${t.entityName}</h6>
-                            ${t.installmentsTotal ? `<div class="mt-1"><span class="badge badge-soft-info" style="border: 1px solid #0ab39c;">Cuota ${t.installmentNumber || 1}/${t.installmentsTotal}</span></div>` : ''}
-                        </td>
-                        <td><span class="badge badge-soft-primary">${t.category}</span></td>
-                        <td><span class="text-truncate d-block" style="max-width: 150px;">${t.address || '-'}</span></td>
-                        <td>${t.currency === 'ARS' ? amountStr : '-'}</td>
-                        <td>${t.currency === 'USD' ? amountStr : '-'}</td>
-                        <td>${(t.isRecurring === true || t.isRecurring === 'true') ? '<i class="bx bx-revision text-primary" title="Recurrente"></i>' : ''}</td>
-                        <td><div class="${statusBadge}">${statusLabel}</div></td>
-                        <td>
-                            <div class="d-flex gap-2 text-end justify-content-end">
-                                <button class="btn btn-sm btn-soft-primary" onclick="editSaving('${t.id}')" title="Editar"><i class="mdi mdi-pencil"></i></button>
-                                ${ t.status !== 'USED' ? `<button class="btn btn-sm btn-info" onclick="useSavingForExpense('${t.id}')" title="Usar para Gasto"><i class="mdi mdi-arrow-right-bold-circle-outline"></i></button>` : '' }
-                                <button class="btn btn-sm btn-soft-danger" onclick="deleteTransaction('${t.id}')"><i class="mdi mdi-trash-can"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                 `;
-            }
+            // Logic for Saving Row removed for now as table is gone.
+            // If we re-introduce a History Table, we can uncomment/adapt.
+            if (isSaving) return ''; 
 
             // Normal Income/Expense
             const btnAction = t.status === 'PENDING' 
@@ -1407,10 +1371,12 @@ document.addEventListener('DOMContentLoaded', function () {
              tBodyExp.innerHTML += createRow(t, false);
         });
 
-        // Render Savings
+        // Render Savings - Disabled
+        /*
         data.filter(t => t.type === 'SAVING').forEach(t => {
              tBodySav.innerHTML += createRow(t, true);
         });
+        */
     }
 
     // ==========================================
@@ -1523,33 +1489,39 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 8.3 CRUD Logic
 
-    document.getElementById('btn-new-agreement').addEventListener('click', () => {
-        formAgreement.reset();
-        document.getElementById('agreement-id').value = '';
-        document.getElementById('agreement-modal-title').textContent = 'Nuevo Acuerdo';
-        document.getElementById('btn-delete-agreement').classList.add('d-none');
-        document.getElementById('agr-last-update').textContent = new Date().toISOString().split('T')[0];
-        document.getElementById('agr-biller').value = 'Lucre'; // Default
-        document.getElementById('div-biller').style.display = 'block'; // Show
-        document.getElementById('agr-currency').value = 'ARS';
-        document.getElementById('agr-frequency').value = 'MONTHLY';
-        document.getElementById('agr-account').value = '';
-        document.getElementById('agr-hasInvoice').value = 'true';
-        modalAgreements.show();
-    });
+    const btnNewAgr = document.getElementById('btn-new-agreement');
+    if (btnNewAgr) {
+        btnNewAgr.addEventListener('click', () => {
+            formAgreement.reset();
+            document.getElementById('agreement-id').value = '';
+            document.getElementById('agreement-modal-title').textContent = 'Nuevo Acuerdo';
+            document.getElementById('btn-delete-agreement').classList.add('d-none');
+            document.getElementById('agr-last-update').textContent = new Date().toISOString().split('T')[0];
+            document.getElementById('agr-biller').value = 'Lucre'; // Default
+            document.getElementById('div-biller').style.display = 'block'; // Show
+            document.getElementById('agr-currency').value = 'ARS';
+            document.getElementById('agr-frequency').value = 'MONTHLY';
+            document.getElementById('agr-account').value = '';
+            document.getElementById('agr-hasInvoice').value = 'true';
+            modalAgreements.show();
+        });
+    }
 
     // Biller Toggle Logic
-    document.getElementById('agr-hasInvoice').addEventListener('change', (e) => {
-        const div = document.getElementById('div-biller');
-        const select = document.getElementById('agr-biller');
-        if(e.target.value === 'true') {
-             div.style.display = 'block';
-             select.value = 'Lucre'; // Default or keep previous?
-        } else {
-             div.style.display = 'none';
-             select.value = ''; // Clear
-        }
-    });
+    const selectHasInv = document.getElementById('agr-hasInvoice');
+    if (selectHasInv) {
+        selectHasInv.addEventListener('change', (e) => {
+            const div = document.getElementById('div-biller');
+            const select = document.getElementById('agr-biller');
+            if(e.target.value === 'true') {
+                 if (div) div.style.display = 'block';
+                 if (select) select.value = 'Lucre'; // Default or keep previous?
+            } else {
+                 if (div) div.style.display = 'none';
+                 if (select) select.value = ''; // Clear
+            }
+        });
+    }
 
     window.editAgreement = function(id) {
         const a = agreements.find(x => x.id === id);
@@ -1627,56 +1599,55 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    document.getElementById('btn-delete-agreement').addEventListener('click', async () => {
-        const id = document.getElementById('agreement-id').value;
-        if(!id) return;
-        
-        /* 
-        // Hard Delete
-        if(confirm('¿Eliminar Acuerdo?')) {
-             await db.collection('cashflow_agreements').doc(id).delete();
-             modalAgreements.hide();
-        }
-        */
-       // Soft Delete prefered
-       Swal.fire({
-            title: '¿Archivar Acuerdo?',
-            text: "No aparecerá en los listados activos.",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Sí, archivar',
-            cancelButtonText: 'Cancelar'
-       }).then(async (res) => {
-           if(res.isConfirmed) {
-               await db.collection('cashflow_agreements').doc(id).update({ isActive: false });
-               modalAgreements.hide();
-           }
-       });
-    });
+    const btnDelAgr = document.getElementById('btn-delete-agreement');
+    if (btnDelAgr) {
+        btnDelAgr.addEventListener('click', async () => {
+            const id = document.getElementById('agreement-id').value;
+            if(!id) return;
+            
+           // Soft Delete prefered
+           Swal.fire({
+                title: '¿Archivar Acuerdo?',
+                text: "No aparecerá en los listados activos.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, archivar',
+                cancelButtonText: 'Cancelar'
+           }).then(async (res) => {
+               if(res.isConfirmed) {
+                   await db.collection('cashflow_agreements').doc(id).update({ isActive: false });
+                   modalAgreements.hide();
+               }
+           });
+        });
+    }
 
     // 8.4 Calculator Logic
-    document.getElementById('btn-calc-update').addEventListener('click', () => {
-        const inputAmount = document.getElementById('agr-amount');
-        const inputPercent = document.getElementById('agr-calc-percent');
-        const labelDate = document.getElementById('agr-last-update');
-
-        const currentVal = parseFloat(inputAmount.value) || 0;
-        const pct = parseFloat(inputPercent.value) || 0;
-
-        if(pct === 0) return;
-
-        const newVal = currentVal + (currentVal * (pct / 100));
-        inputAmount.value = newVal.toFixed(2);
-        
-        // Update Label Date
-        labelDate.textContent = new Date().toISOString().split('T')[0];
-        
-        // Optional: Highlight change
-        inputAmount.classList.add('is-valid');
-        setTimeout(() => inputAmount.classList.remove('is-valid'), 2000);
-        
-        inputPercent.value = ''; // clear
-    });
+    const btnCalcUpd = document.getElementById('btn-calc-update');
+    if (btnCalcUpd) {
+        btnCalcUpd.addEventListener('click', () => {
+            const inputAmount = document.getElementById('agr-amount');
+            const inputPercent = document.getElementById('agr-calc-percent');
+            const labelDate = document.getElementById('agr-last-update');
+    
+            const currentVal = parseFloat(inputAmount.value) || 0;
+            const pct = parseFloat(inputPercent.value) || 0;
+    
+            if(pct === 0) return;
+    
+            const newVal = currentVal + (currentVal * (pct / 100));
+            inputAmount.value = newVal.toFixed(2);
+            
+            // Update Label Date
+            labelDate.textContent = new Date().toISOString().split('T')[0];
+            
+            // Optional: Highlight change
+            inputAmount.classList.add('is-valid');
+            setTimeout(() => inputAmount.classList.remove('is-valid'), 2000);
+            
+            inputPercent.value = ''; // clear
+        });
+    }
 
     // 8.5 Automated Invoice Logic (The "Magic")
     window.toggleInvoiceSent = async function(agreementId, periodKey, checkbox) {
@@ -1997,7 +1968,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const modalAccounts = new bootstrap.Modal(document.getElementById('modal-manage-accounts'));
     const formAccount = document.getElementById('form-account');
     
-    document.getElementById('btn-config-accounts').addEventListener('click', () => modalAccounts.show());
+    const btnConfAcc = document.getElementById('btn-config-accounts');
+    if (btnConfAcc) btnConfAcc.addEventListener('click', () => modalAccounts.show());
 
     function initAccounts() {
         db.collection('cashflow_accounts')
@@ -2174,14 +2146,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const initial = Number(acc.initialBalance) || 0;
         const txs = allTransactions.filter(t => t.accountId === accId && t.status === 'PAID');
+        
         const inc = txs.filter(t => t.type === 'INCOME').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
         const exp = txs.filter(t => t.type === 'EXPENSE').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
         
-        // Savings linked to this account (only if ACTIVE and not INITIAL)
+        // Savings (Legacy)
         const sav = allTransactions.filter(t => t.accountId === accId && t.type === 'SAVING' && t.status === 'ACTIVE' && t.isInitial !== true)
                      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
-        return initial + inc - exp - sav;
+        // Investments (Money OUT)
+        const inv = txs.filter(t => t.type === 'INVESTMENT').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+
+        // Withdrawals (Money IN)
+        const withdr = txs.filter(t => t.type === 'WITHDRAWAL').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+
+        return initial + inc - exp - sav - inv + withdr;
     }
 
     // ==========================================
@@ -2206,10 +2185,13 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    document.getElementById('btn-transfer-saving').addEventListener('click', () => {
-        if (infoSourceAcc) infoSourceAcc.innerHTML = '';
-        transferUnifiedModal.show();
-    });
+    const btnTrSaving = document.getElementById('btn-transfer-saving');
+    if (btnTrSaving) {
+        btnTrSaving.addEventListener('click', () => {
+            if (infoSourceAcc) infoSourceAcc.innerHTML = '';
+            transferUnifiedModal.show();
+        });
+    }
 
     const formAccTransfer = document.getElementById('form-account-transfer');
     formAccTransfer.addEventListener('submit', async (e) => {
@@ -2301,7 +2283,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // ==========================================
     // 11. Sync Agreements (Fix History)
     // ==========================================
-    document.getElementById('btn-sync-agreements').addEventListener('click', async () => {
+    const btnSyncAgr = document.getElementById('btn-sync-agreements');
+    if (btnSyncAgr) {
+        btnSyncAgr.addEventListener('click', async () => {
         const btn = document.getElementById('btn-sync-agreements');
         
         const confirmResult = await Swal.fire({
@@ -2373,5 +2357,484 @@ document.addEventListener('DOMContentLoaded', function () {
             btn.innerHTML = '<i class="mdi mdi-refresh me-1"></i> Sync Acuerdos';
         }
     });
+}
+
+    // ==========================================
+    // 12. Investment System (Assets & Portfolio)
+    // ==========================================
+
+    // Init Assets Listener
+    function initAssets() {
+        console.log("Initializing Assets Module...");
+        db.collection('cashflow_assets')
+            .where('uid', '==', getUIDSafe())
+            .onSnapshot(snap => {
+                assets = [];
+                snap.forEach(doc => {
+                    assets.push({ id: doc.id, ...doc.data() });
+                });
+                console.log("Assets loaded:", assets.length);
+                renderPortfolio();
+                if (typeof applyFilters === 'function') applyFilters(); // Refresh KPIs
+            }, error => {
+                console.error("Error loading assets (possible permissions issue):", error);
+                const grid = document.getElementById('portfolio-grid');
+                if (grid) {
+                    grid.innerHTML = `<div class="alert alert-danger">Error de permisos al cargar activos. Por favor contacte al administrador para actualizar las reglas de Firestore.</div>`;
+                }
+            });
+    }
+
+    // Render Portfolio Grid
+    function renderPortfolio() {
+        const grid = document.getElementById('portfolio-grid');
+        if (!grid) return;
+
+        grid.innerHTML = '';
+
+        if (assets.length === 0) {
+            grid.innerHTML = `
+                <div class="col-12 text-center text-muted py-5">
+                    <i class="mdi mdi-briefcase-outline display-4"></i>
+                    <p class="mt-3">Aún no tienes activos registrados.</p>
+                    <button class="btn btn-sm btn-primary" onclick="window.document.getElementById('btn-new-asset').click()">Crear Primer Activo</button>
+                </div>
+            `;
+            return;
+        }
+
+        assets.forEach(asset => {
+            const valuation = Number(asset.currentValuation) || 0;
+            const invested = Number(asset.investedAmount) || 0;
+            const target = Number(asset.targetAmount) || 0;
+            
+            let progress = target > 0 ? (invested / target) * 100 : 100;
+            if (progress > 100) progress = 100;
+
+            const icon = getAssetIcon(asset.type);
+
+            const card = document.createElement('div');
+            card.className = 'col-md-6 col-xl-4';
+            card.innerHTML = `
+                <div class="card shadow-sm h-100 border-start border-4 border-primary">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-sm me-3">
+                                    <span class="avatar-title rounded-circle bg-light text-primary font-size-20">
+                                        <i class="${icon}"></i>
+                                    </span>
+                                </div>
+                                <div>
+                                    <h5 class="font-size-14 mb-1 text-truncate" style="max-width: 150px;" title="${asset.name}">${asset.name}</h5>
+                                    <span class="text-muted font-size-12">${asset.type}</span>
+                                </div>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-link font-size-16 shadow-none text-muted p-0" type="button" data-bs-toggle="dropdown">
+                                    <i class="mdi mdi-dots-horizontal"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item btn-edit-asset" href="javascript:void(0);" data-id="${asset.id}"><i class="mdi mdi-pencil me-2"></i>Editar</a></li>
+                                    <li><a class="dropdown-item btn-delete-asset text-danger" href="javascript:void(0);" data-id="${asset.id}"><i class="mdi mdi-trash-can me-2"></i>Eliminar</a></li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="row text-center mt-3">
+                            <div class="col-6">
+                                <h5 class="font-size-14 mb-0">${formatCurrency(valuation, asset.currency)}</h5>
+                                <small class="text-muted">Valuación</small>
+                            </div>
+                            <div class="col-6 border-start">
+                                <h5 class="text-success font-size-14 mb-0">${formatCurrency(invested, asset.currency)}</h5>
+                                <small class="text-muted">Invertido</small>
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <div class="d-flex justify-content-between font-size-11 mb-1">
+                                <span>Progreso Inversión</span>
+                                <span>${progress.toFixed(0)}%</span>
+                            </div>
+                            <div class="progress h-5px">
+                                <div class="progress-bar bg-primary" role="progressbar" style="width: ${progress}%"></div>
+                            </div>
+                            <small class="text-muted d-block mt-1 text-end">Meta: ${target > 0 ? formatCurrency(target, asset.currency) : 'N/A'}</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+
+        // Event Listeners for Dynamic Cards
+        grid.querySelectorAll('.btn-edit-asset').forEach(btn => {
+            btn.addEventListener('click', () => openAssetModal(btn.dataset.id));
+        });
+        grid.querySelectorAll('.btn-delete-asset').forEach(btn => {
+            btn.addEventListener('click', () => deleteAsset(btn.dataset.id));
+        });
+    }
+
+    function getAssetIcon(type) {
+        switch(type) {
+            case 'REAL_ESTATE': return 'mdi mdi-office-building';
+            case 'CRYPTO': return 'mdi mdi-bitcoin';
+            case 'STOCK': return 'mdi mdi-trending-up';
+            case 'RESERVE_FUND': return 'mdi mdi-safe'; 
+            default: return 'mdi mdi-briefcase';
+        }
+    }
+
+    // Modal Asset Management
+    window.openAssetModal = function(id = null) {
+        const form = document.getElementById('form-asset');
+        if(!form) return;
+        form.reset();
+        document.getElementById('asset-id').value = '';
+        
+        if (id) {
+            const asset = assets.find(a => a.id === id);
+            if (asset) {
+                document.getElementById('asset-id').value = asset.id;
+                document.getElementById('asset-name').value = asset.name;
+                document.getElementById('asset-type').value = asset.type;
+                document.getElementById('asset-currency').value = asset.currency;
+                document.getElementById('asset-target').value = asset.targetAmount;
+                document.getElementById('asset-valuation').value = asset.currentValuation;
+            }
+        }
+        modalAsset.show();
+    };
+
+    // Asset Form Submission
+    const formAsset = document.getElementById('form-asset');
+    if (formAsset) {
+        formAsset.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            
+            const id = document.getElementById('asset-id').value;
+            const data = {
+                name: document.getElementById('asset-name').value,
+                type: document.getElementById('asset-type').value,
+                currency: document.getElementById('asset-currency').value,
+                targetAmount: parseFloat(document.getElementById('asset-target').value) || 0,
+                currentValuation: parseFloat(document.getElementById('asset-valuation').value) || 0,
+                updatedAt: new Date()
+            };
+
+            try {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="bx bx-loader bx-spin"></i>';
+                if (id) {
+                    await db.collection('cashflow_assets').doc(id).update(data);
+                } else {
+                    data.uid = getUIDSafe();
+                    data.createdAt = new Date();
+                    data.investedAmount = 0;
+                    await db.collection('cashflow_assets').add(data);
+                }
+                modalAsset.hide();
+                Swal.fire('Guardado', 'Activo actualizado.', 'success');
+            } catch (err) {
+                console.error(err);
+                Swal.fire('Error', 'No se pudo guardar.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        });
+    }
+
+    // Investment Logic
+    const btnNewAsset = document.getElementById('btn-new-asset');
+    if(btnNewAsset) btnNewAsset.addEventListener('click', () => openAssetModal());
+
+    const btnNewInv = document.getElementById('btn-new-investment');
+    if(btnNewInv) btnNewInv.addEventListener('click', () => openInvestmentModal());
+
+    function openInvestmentModal() {
+        const selAcc = document.getElementById('inv-account');
+        const selInv = document.getElementById('inv-asset');
+        const exchangeSection = document.getElementById('inv-exchange-section');
+        if(!selAcc || !selInv) return;
+        
+        selAcc.innerHTML = '<option value="">Seleccione cuenta...</option>';
+        selInv.innerHTML = '<option value="">Seleccione activo...</option>';
+
+        accountsData.filter(a => a.isActive !== false).forEach(acc => {
+            selAcc.innerHTML += `<option value="${acc.id}">${acc.name} (${acc.currency})</option>`;
+        });
+        assets.forEach(ass => {
+            selInv.innerHTML += `<option value="${ass.id}">${ass.name} (${ass.currency})</option>`;
+        });
+
+        if(exchangeSection) exchangeSection.style.display = 'none';
+        document.getElementById('form-investment').reset();
+        modalInvestment.show();
+    }
+
+    // Currency Detection Logic
+    const invAccSelect = document.getElementById('inv-account');
+    const invAssetSelect = document.getElementById('inv-asset');
+    const invAmountInput = document.getElementById('inv-amount');
+    const invExchangeRateInput = document.getElementById('inv-exchange-rate');
+    const invFinalAmountInput = document.getElementById('inv-final-asset-amount');
+
+    const updateInvExchangeSection = () => {
+        const accId = invAccSelect.value;
+        const assetId = invAssetSelect.value;
+        const exchangeSection = document.getElementById('inv-exchange-section');
+        
+        if (!accId || !assetId || !exchangeSection) return;
+
+        const acc = accountsData.find(a => a.id === accId);
+        const asset = assets.find(a => a.id === assetId);
+
+        if (acc && asset && acc.currency !== asset.currency) {
+            exchangeSection.style.display = 'block';
+            document.getElementById('inv-src-curr').innerText = acc.currency;
+            document.getElementById('inv-dst-curr').innerText = asset.currency;
+            calculateInvFinalAmount();
+        } else {
+            exchangeSection.style.display = 'none';
+        }
+    };
+
+    const calculateInvFinalAmount = () => {
+        const amount = parseFloat(invAmountInput.value) || 0;
+        const rate = parseFloat(invExchangeRateInput.value) || 0;
+        if (amount > 0 && rate > 0) {
+            invFinalAmountInput.value = (amount / rate).toFixed(2);
+        } else {
+            invFinalAmountInput.value = '';
+        }
+    };
+
+    if(invAccSelect) invAccSelect.addEventListener('change', updateInvExchangeSection);
+    if(invAssetSelect) invAssetSelect.addEventListener('change', updateInvExchangeSection);
+    if(invAmountInput) invAmountInput.addEventListener('input', calculateInvFinalAmount);
+    if(invExchangeRateInput) invExchangeRateInput.addEventListener('input', calculateInvFinalAmount);
+    
+    const formInvestment = document.getElementById('form-investment');
+    if (formInvestment) {
+        formInvestment.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+
+            const accId = document.getElementById('inv-account').value;
+            const assetId = document.getElementById('inv-asset').value;
+            const amount = parseFloat(document.getElementById('inv-amount').value) || 0;
+            const dateVal = document.getElementById('inv-date').value;
+            const rate = parseFloat(document.getElementById('inv-exchange-rate').value) || 0;
+            const finalAssetAmount = parseFloat(document.getElementById('inv-final-asset-amount').value) || amount;
+            
+            if (!accId || !assetId || amount <= 0 || !dateVal) {
+                Swal.fire('Error', 'Complete los campos.', 'warning');
+                return;
+            }
+
+            const acc = accountsData.find(a => a.id === accId);
+            const asset = assets.find(a => a.id === assetId);
+            
+            // Check if exchange rate is needed but missing
+            if (acc && asset && acc.currency !== asset.currency && rate <= 0) {
+                Swal.fire('Error', 'Ingrese la tasa de cambio para la conversión.', 'warning');
+                return;
+            }
+
+            try {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="bx bx-loader bx-spin"></i>';
+
+                const txData = {
+                    type: 'INVESTMENT',
+                    accountId: accId,
+                    assetId: assetId,
+                    amount: amount, // Amount in ACCOUNT currency
+                    exchangeRate: rate > 0 ? rate : 1,
+                    assetAmount: finalAssetAmount, // Amount in ASSET currency
+                    date: firebase.firestore.Timestamp.fromDate(new Date(dateVal)),
+                    category: 'Inversión',
+                    status: 'PAID',
+                    description: document.getElementById('inv-description').value || 'Inversión',
+                    createdAt: new Date(),
+                    createdBy: getUIDSafe()
+                };
+
+                if(acc) txData.currency = acc.currency;
+
+                const batch = db.batch();
+                batch.set(db.collection('transactions').doc(), txData);
+                batch.update(db.collection('cashflow_assets').doc(assetId), { 
+                    investedAmount: firebase.firestore.FieldValue.increment(finalAssetAmount),
+                    updatedAt: new Date()
+                });
+
+                await batch.commit();
+                modalInvestment.hide();
+                Swal.fire('Éxito', 'Inversión registrada.', 'success');
+            } catch (err) {
+                console.error(err);
+                Swal.fire('Error', 'No se pudo registrar.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        });
+    }
+
+    window.deleteAsset = async function(id) {
+         const result = await Swal.fire({
+            title: '¿Eliminar Activo?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, eliminar'
+        });
+        if (result.isConfirmed) {
+            try {
+                await db.collection('cashflow_assets').doc(id).delete();
+                Swal.fire('Eliminado', 'Activo borrado.', 'success');
+            } catch (err) {
+                Swal.fire('Error', 'No se pudo eliminar.', 'error');
+            }
+        }
+    };
+
+    // ==========================================
+    // 13. Withdrawal Logic
+    // ==========================================
+    const btnNewWith = document.getElementById('btn-new-withdrawal');
+    if(btnNewWith) btnNewWith.addEventListener('click', () => openWithdrawalModal());
+
+    const withAccSelect = document.getElementById('with-account');
+    const withAssetSelect = document.getElementById('with-asset');
+    const withAmountInput = document.getElementById('with-amount');
+    const withExchangeRateInput = document.getElementById('with-exchange-rate');
+    const withFinalAmountInput = document.getElementById('with-final-amount');
+
+    window.openWithdrawalModal = function() {
+        if(!withAccSelect || !withAssetSelect) return;
+        
+        withAccSelect.innerHTML = '<option value="">Seleccione cuenta...</option>';
+        withAssetSelect.innerHTML = '<option value="">Seleccione activo...</option>';
+
+        accountsData.filter(a => a.isActive !== false).forEach(acc => {
+            withAccSelect.innerHTML += `<option value="${acc.id}">${acc.name} (${acc.currency})</option>`;
+        });
+        assets.forEach(ass => {
+            withAssetSelect.innerHTML += `<option value="${ass.id}">${ass.name} (${ass.currency})</option>`;
+        });
+
+        document.getElementById('with-exchange-section').style.display = 'none';
+        document.getElementById('form-withdrawal').reset();
+        modalWithdrawal.show();
+    };
+
+    const updateWithExchangeSection = () => {
+        const accId = withAccSelect.value;
+        const assetId = withAssetSelect.value;
+        const exchangeSection = document.getElementById('with-exchange-section');
+        
+        if (!accId || !assetId || !exchangeSection) return;
+
+        const acc = accountsData.find(a => a.id === accId);
+        const asset = assets.find(a => a.id === assetId);
+
+        if (acc && asset && acc.currency !== asset.currency) {
+            exchangeSection.style.display = 'block';
+            document.getElementById('with-src-curr').innerText = asset.currency;
+            document.getElementById('with-dst-curr').innerText = acc.currency;
+            calculateWithFinalAmount();
+        } else {
+            exchangeSection.style.display = 'none';
+        }
+    };
+
+    const calculateWithFinalAmount = () => {
+        const amount = parseFloat(withAmountInput.value) || 0;
+        const rate = parseFloat(withExchangeRateInput.value) || 0;
+        if (amount > 0 && rate > 0) {
+            withFinalAmountInput.value = (amount * rate).toFixed(2);
+        } else {
+            withFinalAmountInput.value = '';
+        }
+    };
+
+    if(withAccSelect) withAccSelect.addEventListener('change', updateWithExchangeSection);
+    if(withAssetSelect) withAssetSelect.addEventListener('change', updateWithExchangeSection);
+    if(withAmountInput) withAmountInput.addEventListener('input', calculateWithFinalAmount);
+    if(withExchangeRateInput) withExchangeRateInput.addEventListener('input', calculateWithFinalAmount);
+
+    const formWithdrawal = document.getElementById('form-withdrawal');
+    if (formWithdrawal) {
+        formWithdrawal.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+
+            const accId = withAccSelect.value;
+            const assetId = withAssetSelect.value;
+            const amount = parseFloat(withAmountInput.value) || 0; // Amount in ASSET currency
+            const dateVal = document.getElementById('with-date').value;
+            const rate = parseFloat(withExchangeRateInput.value) || 0;
+            const finalAccountAmount = parseFloat(withFinalAmountInput.value) || amount;
+            
+            if (!accId || !assetId || amount <= 0 || !dateVal) {
+                Swal.fire('Error', 'Complete los campos.', 'warning');
+                return;
+            }
+
+            const acc = accountsData.find(a => a.id === accId);
+            const asset = assets.find(a => a.id === assetId);
+            
+            if (acc && asset && acc.currency !== asset.currency && rate <= 0) {
+                Swal.fire('Error', 'Ingrese la tasa de cambio para la conversión.', 'warning');
+                return;
+            }
+
+            try {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="bx bx-loader bx-spin"></i>';
+
+                const txData = {
+                    type: 'WITHDRAWAL',
+                    accountId: accId,
+                    assetId: assetId,
+                    amount: finalAccountAmount, // Amount in ACCOUNT currency (Money IN)
+                    exchangeRate: rate > 0 ? rate : 1,
+                    assetAmount: amount, // Amount deducted from ASSET
+                    date: firebase.firestore.Timestamp.fromDate(new Date(dateVal)),
+                    category: 'Retiro de Inversión',
+                    status: 'PAID',
+                    description: document.getElementById('with-description').value || 'Retiro de activo',
+                    createdAt: new Date(),
+                    createdBy: getUIDSafe(),
+                    currency: acc ? acc.currency : 'ARS'
+                };
+
+                const batch = db.batch();
+                batch.set(db.collection('transactions').doc(), txData);
+                batch.update(db.collection('cashflow_assets').doc(assetId), { 
+                    investedAmount: firebase.firestore.FieldValue.increment(-amount),
+                    updatedAt: new Date()
+                });
+
+                await batch.commit();
+                modalWithdrawal.hide();
+                Swal.fire('Éxito', 'Retiro registrado y fondos acreditados en cuenta.', 'success');
+            } catch (err) {
+                console.error(err);
+                Swal.fire('Error', 'No se pudo registrar el retiro.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        });
+    }
 
 });
