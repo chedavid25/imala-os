@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', function () {
             loadAgreements(); // New Module
             initAccounts(); // Move inside auth
             initAssets(); // Investment Module
+            initAssetTypes(); // NEW: Asset Types Management
         }
     });
 
@@ -26,6 +27,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const modalAsset = new bootstrap.Modal(document.getElementById('modal-asset'));
     const modalInvestment = new bootstrap.Modal(document.getElementById('modal-investment'));
     const modalWithdrawal = new bootstrap.Modal(document.getElementById('modal-withdrawal'));
+    const modalAssetTransfer = new bootstrap.Modal(document.getElementById('modal-asset-transfer'));
+    const modalManageAssetTypes = new bootstrap.Modal(document.getElementById('modal-manage-asset-types'));
     
     let allTransactions = [];
     let accountsData = []; // Cuentas globales
@@ -33,7 +36,8 @@ document.addEventListener('DOMContentLoaded', function () {
     let entities = { INCOME: [], EXPENSE: [] }; 
     let agreements = []; // Acuerdos globales
     let assets = []; // Global Assets List
-    let assetsData = []; // Alias for compatibility if needed, or just use assets
+    let assetsData = []; // Alias for compatibility
+    let assetTypes = []; // NEW: Customizable Asset Types
 
     // Concurrency Guards
     let isCheckingRecurrences = false;
@@ -369,6 +373,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const btnNewIncome = document.getElementById('btn-new-income');
     const btnNewExpense = document.getElementById('btn-new-expense');
     const btnNewSaving = document.getElementById('btn-new-saving');
+    // Hide old Saving button per user request
+    if (btnNewSaving) btnNewSaving.classList.add('d-none');
+    
     const btnTransferSaving = document.getElementById('btn-transfer-saving');
 
     if(btnNewIncome) btnNewIncome.addEventListener('click', () => openModal('INCOME'));
@@ -424,7 +431,156 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     // ==========================================
-    // 5. Entities Registry
+    // 5. Asset Types Management (NEW)
+    // ==========================================
+    function initAssetTypes() {
+        db.collection('cashflow_asset_types')
+            .where('uid', '==', getUIDSafe())
+            .onSnapshot(snap => {
+                assetTypes = [];
+                snap.forEach(doc => {
+                    assetTypes.push({ id: doc.id, ...doc.data() });
+                });
+
+                // Seed defaults if empty
+                if (assetTypes.length === 0) {
+                    seedDefaultAssetTypes();
+                } else {
+                    renderAssetTypes();
+                    renderAssetTypesList();
+                }
+            }, error => {
+                console.error("Error loading asset types (permissions):", error);
+                const select = document.getElementById('asset-type');
+                if (select) {
+                    select.innerHTML = '<option value="">Error de permisos</option>';
+                }
+                // Only show SweetAlert if the modal is open or about to be opened to avoid annoying the user on load
+                if (document.getElementById('modal-asset').classList.contains('show')) {
+                    Swal.fire('Error de Permisos', 'No se pudieron cargar los tipos de activo. Asegúrate de haber desplegado las reglas de Firestore.', 'error');
+                }
+            });
+    }
+
+    async function seedDefaultAssetTypes() {
+        const defaults = [
+            'Real Estate / Pozo',
+            'Fondo de Reserva / Colchón',
+            'Criptomonedas',
+            'Acciones / Bonos',
+            'Relojes / Lujo',
+            'Otro'
+        ];
+        const batch = db.batch();
+        defaults.forEach(name => {
+            const ref = db.collection('cashflow_asset_types').doc();
+            batch.set(ref, { name, uid: getUIDSafe(), active: true, createdAt: new Date() });
+        });
+        await batch.commit();
+        console.log("Default asset types seeded.");
+    }
+
+    function renderAssetTypes() {
+        const select = document.getElementById('asset-type');
+        if (!select) return;
+        const currentVal = select.value;
+        select.innerHTML = '<option value="">Seleccione tipo...</option>';
+        // Only show active types in the dropdown
+        assetTypes
+            .filter(t => t.active !== false)
+            .sort((a,b) => a.name.localeCompare(b.name))
+            .forEach(t => {
+                select.innerHTML += `<option value="${t.name}">${t.name}</option>`;
+            });
+        if (currentVal) select.value = currentVal;
+    }
+
+    function renderAssetTypesList() {
+        const tbody = document.getElementById('table-asset-types-list');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        // Show only active types in the management list too (or all if we want to allow reactivating?)
+        // User said "borrarla del listado", so we filter them out.
+        assetTypes
+            .filter(t => t.active !== false)
+            .sort((a,b) => a.name.localeCompare(b.name))
+            .forEach(t => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${t.name}</td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-soft-primary me-1" onclick="editAssetType('${t.id}', '${t.name}')"><i class="mdi mdi-pencil"></i></button>
+                            <button class="btn btn-sm btn-soft-danger" onclick="deleteAssetType('${t.id}', '${t.name}')"><i class="mdi mdi-trash-can-outline"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+    }
+
+    document.getElementById('btn-save-asset-type')?.addEventListener('click', async () => {
+        const input = document.getElementById('new-asset-type-name');
+        const idInput = document.getElementById('manage-asset-type-id');
+        const name = input.value.trim();
+        const id = idInput.value;
+        if (!name) return;
+
+        try {
+            if (id) {
+                await db.collection('cashflow_asset_types').doc(id).update({ name, updatedAt: new Date() });
+            } else {
+                await db.collection('cashflow_asset_types').add({
+                    name,
+                    uid: getUIDSafe(),
+                    active: true,
+                    createdAt: new Date()
+                });
+            }
+            cancelAssetTypeEdit();
+        } catch (err) {
+            console.error(err);
+            Swal.fire('Error', 'No se pudo guardar el tipo de activo.', 'error');
+        }
+    });
+
+    window.editAssetType = (id, name) => {
+        document.getElementById('manage-asset-type-id').value = id;
+        document.getElementById('new-asset-type-name').value = name;
+        document.getElementById('btn-save-asset-type-text').textContent = 'Actualizar';
+        document.getElementById('btn-cancel-edit-asset-type').classList.remove('d-none');
+    };
+
+    window.cancelAssetTypeEdit = () => {
+        document.getElementById('manage-asset-type-id').value = '';
+        document.getElementById('new-asset-type-name').value = '';
+        document.getElementById('btn-save-asset-type-text').textContent = 'Guardar';
+        document.getElementById('btn-cancel-edit-asset-type').classList.add('d-none');
+    };
+
+    document.getElementById('btn-cancel-edit-asset-type')?.addEventListener('click', cancelAssetTypeEdit);
+
+    window.deleteAssetType = async (id, name) => {
+        const { isConfirmed } = await Swal.fire({
+            title: `¿Eliminar "${name}"?`,
+            text: "Se quitará del listado, pero se mantendrá la referencia en activos creados previamente.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (isConfirmed) {
+            // Soft delete: update active to false
+            await db.collection('cashflow_asset_types').doc(id).update({ active: false, updatedAt: new Date() });
+        }
+    };
+
+    document.getElementById('btn-manage-asset-types')?.addEventListener('click', () => {
+        cancelAssetTypeEdit();
+        modalManageAssetTypes.show();
+    });
+
+    // ==========================================
+    // 6. Entities Registry
     // ==========================================
     
     async function initEntities() {
@@ -2711,11 +2867,20 @@ document.addEventListener('DOMContentLoaded', function () {
     const btnNewWith = document.getElementById('btn-new-withdrawal');
     if(btnNewWith) btnNewWith.addEventListener('click', () => openWithdrawalModal());
 
+    const btnNewTrans = document.getElementById('btn-new-asset-transfer');
+    if(btnNewTrans) btnNewTrans.addEventListener('click', () => openAssetTransferModal());
+
     const withAccSelect = document.getElementById('with-account');
     const withAssetSelect = document.getElementById('with-asset');
     const withAmountInput = document.getElementById('with-amount');
     const withExchangeRateInput = document.getElementById('with-exchange-rate');
-    const withFinalAmountInput = document.getElementById('with-final-amount');
+    const withFinalAmountInput = document.getElementById('with-final-account-amount'); // Corrected ID
+
+    const transAccSrcSelect = document.getElementById('trans-asset-src');
+    const transAccDstSelect = document.getElementById('trans-asset-dst');
+    const transAmountInput = document.getElementById('trans-amount');
+    const transExchangeRateInput = document.getElementById('trans-exchange-rate');
+    const transFinalAmountInput = document.getElementById('trans-final-amount');
 
     window.openWithdrawalModal = function() {
         if(!withAccSelect || !withAssetSelect) return;
@@ -2730,9 +2895,23 @@ document.addEventListener('DOMContentLoaded', function () {
             withAssetSelect.innerHTML += `<option value="${ass.id}">${ass.name} (${ass.currency})</option>`;
         });
 
+        document.getElementById('with-asset-balance').textContent = '';
         document.getElementById('with-exchange-section').style.display = 'none';
         document.getElementById('form-withdrawal').reset();
         modalWithdrawal.show();
+    };
+
+    const updateWithBalance = () => {
+        const id = withAssetSelect.value;
+        const balanceDiv = document.getElementById('with-asset-balance');
+        if (!id || !balanceDiv) return;
+        const asset = assets.find(a => a.id === id);
+        if (asset) {
+            balanceDiv.textContent = `Saldo disponible: ${formatCurrency(asset.investedAmount || 0, asset.currency)}`;
+        } else {
+            balanceDiv.textContent = '';
+        }
+        updateWithExchangeSection();
     };
 
     const updateWithExchangeSection = () => {
@@ -2766,7 +2945,7 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     if(withAccSelect) withAccSelect.addEventListener('change', updateWithExchangeSection);
-    if(withAssetSelect) withAssetSelect.addEventListener('change', updateWithExchangeSection);
+    if(withAssetSelect) withAssetSelect.addEventListener('change', updateWithBalance);
     if(withAmountInput) withAmountInput.addEventListener('input', calculateWithFinalAmount);
     if(withExchangeRateInput) withExchangeRateInput.addEventListener('input', calculateWithFinalAmount);
 
@@ -2779,7 +2958,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const accId = withAccSelect.value;
             const assetId = withAssetSelect.value;
-            const amount = parseFloat(withAmountInput.value) || 0; // Amount in ASSET currency
+            const amount = parseFloat(withAmountInput.value) || 0;
             const dateVal = document.getElementById('with-date').value;
             const rate = parseFloat(withExchangeRateInput.value) || 0;
             const finalAccountAmount = parseFloat(withFinalAmountInput.value) || amount;
@@ -2792,8 +2971,13 @@ document.addEventListener('DOMContentLoaded', function () {
             const acc = accountsData.find(a => a.id === accId);
             const asset = assets.find(a => a.id === assetId);
             
+            if (!asset || amount > (asset.investedAmount || 0)) {
+                Swal.fire('Error', 'El monto a retirar excede el saldo disponible en este activo.', 'error');
+                return;
+            }
+
             if (acc && asset && acc.currency !== asset.currency && rate <= 0) {
-                Swal.fire('Error', 'Ingrese la tasa de cambio para la conversión.', 'warning');
+                Swal.fire('Error', 'Ingrese la tasa de cambio.', 'warning');
                 return;
             }
 
@@ -2805,17 +2989,18 @@ document.addEventListener('DOMContentLoaded', function () {
                     type: 'WITHDRAWAL',
                     accountId: accId,
                     assetId: assetId,
-                    amount: finalAccountAmount, // Amount in ACCOUNT currency (Money IN)
+                    amount: finalAccountAmount, // In Account currency
                     exchangeRate: rate > 0 ? rate : 1,
-                    assetAmount: amount, // Amount deducted from ASSET
+                    assetAmount: amount, // In Asset currency
                     date: firebase.firestore.Timestamp.fromDate(new Date(dateVal)),
-                    category: 'Retiro de Inversión',
+                    category: 'Retiro Inversión',
                     status: 'PAID',
                     description: document.getElementById('with-description').value || 'Retiro de activo',
                     createdAt: new Date(),
-                    createdBy: getUIDSafe(),
-                    currency: acc ? acc.currency : 'ARS'
+                    createdBy: getUIDSafe()
                 };
+
+                if(acc) txData.currency = acc.currency;
 
                 const batch = db.batch();
                 batch.set(db.collection('transactions').doc(), txData);
@@ -2826,10 +3011,155 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 await batch.commit();
                 modalWithdrawal.hide();
-                Swal.fire('Éxito', 'Retiro registrado y fondos acreditados en cuenta.', 'success');
+                Swal.fire('Éxito', 'Retiro registrado.', 'success');
             } catch (err) {
                 console.error(err);
-                Swal.fire('Error', 'No se pudo registrar el retiro.', 'error');
+                Swal.fire('Error', 'No se pudo realizar el retiro.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        });
+    }
+
+    // ==========================================
+    // 14. Asset Transfer Logic (NEW)
+    // ==========================================
+    window.openAssetTransferModal = function() {
+        if(!transAccSrcSelect || !transAccDstSelect) return;
+        
+        transAccSrcSelect.innerHTML = '<option value="">Activo Origen...</option>';
+        transAccDstSelect.innerHTML = '<option value="">Activo Destino...</option>';
+
+        assets.forEach(ass => {
+            const opt = `<option value="${ass.id}">${ass.name} (${ass.currency})</option>`;
+            transAccSrcSelect.innerHTML += opt;
+            transAccDstSelect.innerHTML += opt;
+        });
+
+        document.getElementById('trans-asset-src-balance').textContent = '';
+        document.getElementById('trans-exchange-section').style.display = 'none';
+        document.getElementById('form-asset-transfer').reset();
+        modalAssetTransfer.show();
+    };
+
+    const updateTransBalance = () => {
+        const id = transAccSrcSelect.value;
+        const balanceDiv = document.getElementById('trans-asset-src-balance');
+        if (!id || !balanceDiv) return;
+        const asset = assets.find(a => a.id === id);
+        if (asset) {
+            balanceDiv.textContent = `Saldo disponible: ${formatCurrency(asset.investedAmount || 0, asset.currency)}`;
+        } else {
+            balanceDiv.textContent = '';
+        }
+        updateTransExchangeSection();
+    };
+
+    const updateTransExchangeSection = () => {
+        const srcId = transAccSrcSelect.value;
+        const dstId = transAccDstSelect.value;
+        const exchangeSection = document.getElementById('trans-exchange-section');
+        
+        if (!srcId || !dstId || !exchangeSection) return;
+
+        const src = assets.find(a => a.id === srcId);
+        const dst = assets.find(a => a.id === dstId);
+
+        if (src && dst && src.currency !== dst.currency) {
+            exchangeSection.style.display = 'block';
+            document.getElementById('trans-src-curr').innerText = src.currency;
+            document.getElementById('trans-dst-curr').innerText = dst.currency;
+            calculateTransFinalAmount();
+        } else {
+            exchangeSection.style.display = 'none';
+        }
+    };
+
+    const calculateTransFinalAmount = () => {
+        const amount = parseFloat(transAmountInput.value) || 0;
+        const rate = parseFloat(transExchangeRateInput.value) || 0;
+        if (amount > 0 && rate > 0) {
+            transFinalAmountInput.value = (amount * rate).toFixed(2);
+        } else {
+            transFinalAmountInput.value = '';
+        }
+    };
+
+    if(transAccSrcSelect) transAccSrcSelect.addEventListener('change', updateTransBalance);
+    if(transAccDstSelect) transAccDstSelect.addEventListener('change', updateTransExchangeSection);
+    if(transAmountInput) transAmountInput.addEventListener('input', calculateTransFinalAmount);
+    if(transExchangeRateInput) transExchangeRateInput.addEventListener('input', calculateTransFinalAmount);
+
+    const formAssetTransfer = document.getElementById('form-asset-transfer');
+    if (formAssetTransfer) {
+        formAssetTransfer.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+
+            const srcId = transAccSrcSelect.value;
+            const dstId = transAccDstSelect.value;
+            const amount = parseFloat(transAmountInput.value) || 0; // In SRC currency
+            const dateVal = document.getElementById('trans-date').value;
+            const rate = parseFloat(transExchangeRateInput.value) || 0;
+            const finalDstAmount = parseFloat(transFinalAmountInput.value) || amount; // In DST currency
+            
+            if (!srcId || !dstId || amount <= 0 || !dateVal || srcId === dstId) {
+                Swal.fire('Error', 'Complete los campos correctamente. Origen y destino deben ser diferentes.', 'warning');
+                return;
+            }
+
+            const src = assets.find(a => a.id === srcId);
+            const dst = assets.find(a => a.id === dstId);
+            
+            if (!src || amount > (src.investedAmount || 0)) {
+                Swal.fire('Error', 'Monto insuficiente en el activo de origen.', 'error');
+                return;
+            }
+
+            if (src && dst && src.currency !== dst.currency && rate <= 0) {
+                Swal.fire('Error', 'Ingrese la tasa de cambio.', 'warning');
+                return;
+            }
+
+            try {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="bx bx-loader bx-spin"></i>';
+
+                const txData = {
+                    type: 'ASSET_TRANSFER',
+                    assetId: srcId,
+                    assetDstId: dstId,
+                    amount: amount, // In SRC currency
+                    exchangeRate: rate > 0 ? rate : 1,
+                    assetAmount: finalDstAmount, // In DST currency (value added to destination)
+                    date: firebase.firestore.Timestamp.fromDate(new Date(dateVal)),
+                    category: 'Transferencia Activos',
+                    status: 'PAID',
+                    description: document.getElementById('trans-description').value || 'Transferencia entre activos',
+                    createdAt: new Date(),
+                    createdBy: getUIDSafe(),
+                    currency: src.currency
+                };
+
+                const batch = db.batch();
+                batch.set(db.collection('transactions').doc(), txData);
+                batch.update(db.collection('cashflow_assets').doc(srcId), { 
+                    investedAmount: firebase.firestore.FieldValue.increment(-amount),
+                    updatedAt: new Date()
+                });
+                batch.update(db.collection('cashflow_assets').doc(dstId), { 
+                    investedAmount: firebase.firestore.FieldValue.increment(finalDstAmount),
+                    updatedAt: new Date()
+                });
+
+                await batch.commit();
+                modalAssetTransfer.hide();
+                Swal.fire('Éxito', 'Transferencia realizada.', 'success');
+            } catch (err) {
+                console.error(err);
+                Swal.fire('Error', 'No se pudo realizar la transferencia.', 'error');
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = originalText;

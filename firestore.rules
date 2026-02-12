@@ -152,6 +152,9 @@ service cloud.firestore {
     match /cashflow_assets/{docId} {
          allow read, write: if isAuthenticated();
     }
+    match /cashflow_asset_types/{docId} {
+         allow read, write: if isAuthenticated();
+    }
 
     // SETTINGS (For dynamic categories etc)
     match /settings/{docId} {

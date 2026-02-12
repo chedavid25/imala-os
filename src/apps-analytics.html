@@ -70,42 +70,30 @@
 
                         <!-- Tabs & Filters -->
                         <div class="row align-items-center mb-4">
-                            <div class="col-md-6">
+                            <div class="col-md-5">
                                 <ul class="nav nav-pills nav-custom-pills" role="tablist">
                                     <li class="nav-item">
                                         <a class="nav-link active" data-bs-toggle="tab" href="#tab-billing" role="tab" onclick="appAnalytics.switchTab('BILLING')">
-                                            Facturación
+                                            Resultados Operativos
                                         </a>
                                     </li>
                                     <li class="nav-item">
                                         <a class="nav-link" data-bs-toggle="tab" href="#tab-savings" role="tab" onclick="appAnalytics.switchTab('SAVINGS')">
-                                            Análisis de Ahorros
+                                            Patrimonio & Inversiones
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" data-bs-toggle="tab" href="#tab-crm" role="tab" onclick="appAnalytics.switchTab('CRM')">
+                                            Clientes & Tareas
                                         </a>
                                     </li>
                                 </ul>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-7">
                                 <div class="d-flex flex-wrap justify-content-end gap-2 align-items-center">
-                                    <span class="text-muted">Filtros:</span>
+                                    <span class="text-muted small">Filtros:</span>
                                     
-                                    <!-- Year Selector -->
-                                    <select class="form-select w-auto form-select-sm" id="analytics-year" onchange="appAnalytics.applyFilters()">
-                                        <option value="2025" selected>2025</option>
-                                        <option value="2024">2024</option>
-                                    </select>
-
-                                    <!-- Specific Period Selectors (Hidden by default) -->
-                                    <select class="form-select w-auto form-select-sm d-none" id="analytics-semester" onchange="appAnalytics.applyFilters()">
-                                        <option value="1">1er Semestre</option>
-                                        <option value="2">2do Semestre</option>
-                                    </select>
-
-                                    <select class="form-select w-auto form-select-sm d-none" id="analytics-quarter" onchange="appAnalytics.applyFilters()">
-                                        <option value="1">Q1 (Ene-Mar)</option>
-                                        <option value="2">Q2 (Abr-Jun)</option>
-                                        <option value="3">Q3 (Jul-Sep)</option>
-                                        <option value="4">Q4 (Oct-Dic)</option>
-                                    </select>
+                                    <select class="form-select w-auto form-select-sm" id="analytics-year" onchange="appAnalytics.applyFilters()"></select>
 
                                     <select class="form-select w-auto form-select-sm d-none" id="analytics-month" onchange="appAnalytics.applyFilters()">
                                         <option value="0">Enero</option>
@@ -122,23 +110,32 @@
                                         <option value="11">Diciembre</option>
                                     </select>
 
-                                    <!-- Account Selector -->
+                                    <select class="form-select w-auto form-select-sm d-none" id="analytics-quarter" onchange="appAnalytics.applyFilters()">
+                                        <option value="1">Q1 (Ene-Mar)</option>
+                                        <option value="2">Q2 (Abr-Jun)</option>
+                                        <option value="3">Q3 (Jul-Sep)</option>
+                                        <option value="4">Q4 (Oct-Dic)</option>
+                                    </select>
+
+                                    <select class="form-select w-auto form-select-sm d-none" id="analytics-semester" onchange="appAnalytics.applyFilters()">
+                                        <option value="1">S1 (Ene-Jun)</option>
+                                        <option value="2">S2 (Jul-Dic)</option>
+                                    </select>
+
                                     <select class="form-select w-auto form-select-sm" id="analytics-account" onchange="appAnalytics.applyFilters()">
                                         <option value="ALL">Todas las Cuentas</option>
                                     </select>
-                                    
+
                                     <div class="btn-group btn-group-sm ms-2" role="group">
                                         <input type="radio" class="btn-check" name="currency-switch" id="currency-ars" autocomplete="off" checked onclick="appAnalytics.setCurrency('ARS')">
-                                        <label class="btn btn-outline-success" for="currency-ars">ARS</label>
+                                        <label class="btn btn-outline-success px-3" for="currency-ars">ARS</label>
 
                                         <input type="radio" class="btn-check" name="currency-switch" id="currency-usd" autocomplete="off" onclick="appAnalytics.setCurrency('USD')">
-                                        <label class="btn btn-outline-success" for="currency-usd">USD</label>
+                                        <label class="btn btn-outline-success px-3" for="currency-usd">USD</label>
                                     </div>
 
                                     <div class="btn-group btn-group-sm ms-2" role="group">
                                         <button type="button" class="btn btn-outline-primary active" onclick="appAnalytics.setPeriod('YEAR')" id="btn-period-year">Anual</button>
-                                        <button type="button" class="btn btn-outline-primary" onclick="appAnalytics.setPeriod('SEMESTER')" id="btn-period-semester">Semestral</button>
-                                        <button type="button" class="btn btn-outline-primary" onclick="appAnalytics.setPeriod('QUARTER')" id="btn-period-quarter">Trimestral</button>
                                         <button type="button" class="btn btn-outline-primary" onclick="appAnalytics.setPeriod('MONTH')" id="btn-period-month">Mensual</button>
                                     </div>
                                 </div>
@@ -146,24 +143,28 @@
                         </div>
 
                         <div class="tab-content">
-                            <!-- BILLING TAB -->
+                            <!-- TAB 1: RESULTADOS OPERATIVOS -->
                             <div class="tab-pane active" id="tab-billing" role="tabpanel">
                                 
-                                <!-- KPIs -->
+                                <!-- Operative KPIs -->
                                 <div class="row">
                                     <div class="col-xl-3 col-md-6">
                                         <div class="card card-h-100">
                                             <div class="card-body">
                                                 <div class="d-flex align-items-center">
                                                     <div class="flex-grow-1">
-                                                        <span class="text-muted mb-3 lh-1 d-block text-truncate">Total Facturado</span>
+                                                        <span class="text-muted mb-3 lh-1 d-block text-truncate">Facturación Total</span>
                                                         <h4 class="mb-3">
-                                                            <span class="counter-value" id="kpi-billed">0</span>
+                                                            <span id="kpi-billed">0</span>
                                                             <small class="text-muted font-size-12 currency-label">ARS</small>
                                                         </h4>
                                                     </div>
                                                     <div class="flex-shrink-0 text-end dash-widget">
-                                                        <div id="mini-chart1" data-colors='["#5156be"]' class="apex-charts"></div>
+                                                        <div class="avatar-sm mx-auto">
+                                                            <div class="avatar-title rounded-circle bg-success bg-opacity-10 text-success font-size-20">
+                                                                <i class="mdi mdi-arrow-up"></i>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -175,14 +176,18 @@
                                             <div class="card-body">
                                                 <div class="d-flex align-items-center">
                                                     <div class="flex-grow-1">
-                                                        <span class="text-muted mb-3 lh-1 d-block text-truncate">Gastos Totales</span>
+                                                        <span class="text-muted mb-3 lh-1 d-block text-truncate">Gastos Operativos</span>
                                                         <h4 class="mb-3">
-                                                            <span class="counter-value" id="kpi-expenses">0</span>
+                                                            <span id="kpi-expenses">0</span>
                                                             <small class="text-muted font-size-12 currency-label">ARS</small>
                                                         </h4>
                                                     </div>
                                                     <div class="flex-shrink-0 text-end dash-widget">
-                                                        <div id="mini-chart2" data-colors='["#fd625e"]' class="apex-charts"></div>
+                                                        <div class="avatar-sm mx-auto">
+                                                            <div class="avatar-title rounded-circle bg-danger bg-opacity-10 text-danger font-size-20">
+                                                                <i class="mdi mdi-arrow-down"></i>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -194,257 +199,245 @@
                                             <div class="card-body">
                                                 <div class="d-flex align-items-center">
                                                     <div class="flex-grow-1">
-                                                        <span class="text-muted mb-3 lh-1 d-block text-truncate">Beneficio Neto</span>
+                                                        <span class="text-muted mb-3 lh-1 d-block text-truncate">Resultado (Neto)</span>
                                                         <h4 class="mb-3">
-                                                            <span class="counter-value" id="kpi-profit">0</span>
+                                                            <span id="kpi-profit">0</span>
                                                             <small class="text-muted font-size-12 currency-label">ARS</small>
                                                         </h4>
                                                     </div>
                                                     <div class="flex-shrink-0 text-end dash-widget">
-                                                        <div id="mini-chart3" data-colors='["#2ab57d"]' class="apex-charts"></div>
+                                                        <div class="avatar-sm mx-auto">
+                                                            <div class="avatar-title rounded-circle bg-info bg-opacity-10 text-info font-size-20">
+                                                                <i class="mdi mdi-calculator"></i>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-
+                                    
                                     <div class="col-xl-3 col-md-6">
                                         <div class="card card-h-100 bg-primary bg-opacity-10 border-primary border-opacity-25">
                                             <div class="card-body">
                                                 <div class="d-flex align-items-center">
                                                     <div class="flex-grow-1">
-                                                        <span class="text-primary mb-3 lh-1 d-block text-truncate fw-bold">Patrimonio Real (Cash + Res)</span>
+                                                        <span class="text-primary mb-3 lh-1 d-block text-truncate fw-bold">Margen de Ahorro</span>
                                                         <h4 class="mb-3">
-                                                            <span class="counter-value" id="kpi-total-wealth">0</span>
-                                                            <small class="text-muted font-size-12 currency-label">ARS</small>
+                                                            <span id="kpi-savings-rate">0</span>%
                                                         </h4>
                                                     </div>
                                                     <div class="flex-shrink-0 text-end dash-widget">
+                                                        <i data-feather="pie-chart" class="icon-lg text-primary"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Operative Row 1 -->
+                                <div class="row">
+                                    <div class="col-xl-8">
+                                        <div class="card card-h-100">
+                                            <div class="card-header border-0 align-items-center d-flex">
+                                                <h4 class="card-title mb-0 flex-grow-1">Run Rate (Ingresos vs Gastos)</h4>
+                                                <div class="flex-shrink-0">
+                                                    <button type="button" class="btn btn-sm btn-soft-info" onclick="appAnalytics.showChartHelp('RUN_RATE')">
+                                                        <i class="mdi mdi-help-circle-outline"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="card-body p-0">
+                                                <canvas id="chart-billing-trend" class="px-3" height="350"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-xl-4">
+                                        <div class="card card-h-100">
+                                            <div class="card-header border-0 align-items-center d-flex">
+                                                <h4 class="card-title mb-0 flex-grow-1">Estructura de Costos</h4>
+                                                <div class="flex-shrink-0">
+                                                    <button type="button" class="btn btn-sm btn-soft-info" onclick="appAnalytics.showChartHelp('COST_STRUCTURE')">
+                                                        <i class="mdi mdi-help-circle-outline"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <canvas id="chart-expenses-dist" height="300"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Operative Row 2 -->
+                                <div class="row mt-4">
+                                    <div class="col-xl-12">
+                                        <div class="card">
+                                            <div class="card-header border-0 align-items-center d-flex">
+                                                <h4 class="card-title mb-0 flex-grow-1">Tendencia de Ingresos (Anual)</h4>
+                                                <div class="flex-shrink-0">
+                                                    <button type="button" class="btn btn-sm btn-soft-info" onclick="appAnalytics.showChartHelp('INCOME_TREND')">
+                                                        <i class="mdi mdi-help-circle-outline"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <canvas id="chart-income-trend" height="250"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- TAB 2: PATRIMONIO & INVERSIONES -->
+                            <div class="tab-pane" id="tab-savings" role="tabpanel">
+                                
+                                <!-- Wealth KPIs -->
+                                <div class="row">
+                                    <div class="col-xl-3 col-md-6">
+                                        <div class="card card-h-100 bg-soft-primary border border-primary border-opacity-25">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="flex-grow-1">
+                                                        <span class="text-primary mb-3 lh-1 d-block text-truncate fw-bold">Patrimonio Neto Total</span>
+                                                        <h4 class="mb-3 text-primary">
+                                                            <span id="kpi-total-wealth">0</span>
+                                                            <small class="text-muted font-size-12 currency-label">ARS</small>
+                                                        </h4>
+                                                    </div>
+                                                    <div class="flex-shrink-0 text-end">
                                                         <i data-feather="briefcase" class="icon-lg text-primary"></i>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                                <!-- end KPI row -->
 
-                                <!-- Charts Row 1: Trend -->
-                                <div class="row">
-                                    <div class="col-xl-12">
-                                        <div class="card">
-                                            <div class="card-header">
-                                                <h4 class="card-title mb-0">Evolución de Ingresos y Gastos</h4>
-                                            </div>
-                                            <div class="card-body">
-                                                <canvas id="chart-billing-trend" class="chartjs-chart" height="300" data-colors='["#5156be", "#fd625e"]'></canvas>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Charts Row 2: Distributions -->
-                                <div class="row">
-                                    <div class="col-xl-6">
-                                        <div class="card">
-                                            <div class="card-header">
-                                                <h4 class="card-title mb-0">Distribución de Ingresos (Categorías)</h4>
-                                            </div>
-                                            <div class="card-body">
-                                                <canvas id="chart-income-dist" class="chartjs-chart" height="300" data-colors='["#5156be", "#2ab57d", "#fd625e", "#ffbf53", "#4ba6ef"]'></canvas>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-xl-6">
-                                        <div class="card">
-                                            <div class="card-header">
-                                                <h4 class="card-title mb-0">Distribución de Gastos (Categorías)</h4>
-                                            </div>
-                                            <div class="card-body">
-                                                <canvas id="chart-expenses-dist" class="chartjs-chart" height="300" data-colors='["#fd625e", "#ffbf53", "#4ba6ef", "#5156be", "#2ab57d"]'></canvas>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Charts Row 3: Metrics -->
-                                <div class="row">
-                                    <div class="col-xl-6">
-                                        <div class="card">
-                                            <div class="card-header">
-                                                <h4 class="card-title mb-0">Ingresos Acumulados (YTD)</h4>
-                                            </div>
-                                            <div class="card-body">
-                                                <canvas id="chart-ytd" class="chartjs-chart" height="250" data-colors='["#2ab57d"]'></canvas>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-xl-6">
-                                        <div class="card">
-                                            <div class="card-header">
-                                                <h4 class="card-title mb-0">Porcentaje de Cobranza (Pagado vs Pendiente)</h4>
-                                            </div>
-                                            <div class="card-body">
-                                                <canvas id="chart-collection-rate" class="chartjs-chart" height="250" data-colors='["#2ab57d", "#ffbf53"]'></canvas>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                            </div>
-
-                            <!-- SAVINGS TAB -->
-                            <div class="tab-pane" id="tab-savings" role="tabpanel">
-                                <!-- Savings KPIs -->
-                                <div class="row">
                                     <div class="col-xl-3 col-md-6">
                                         <div class="card card-h-100">
                                             <div class="card-body">
                                                 <div class="d-flex align-items-center">
                                                     <div class="flex-grow-1">
-                                                        <span class="text-muted mb-3 lh-1 d-block text-truncate">Total en Reservas</span>
+                                                        <span class="text-muted mb-3 lh-1 d-block text-truncate">Posición Líquida (Caja)</span>
                                                         <h4 class="mb-3">
-                                                            <span class="counter-value" id="kpi-savings-total">0</span>
+                                                            <span id="kpi-liquidity">0</span>
                                                             <small class="text-muted font-size-12 currency-label">ARS</small>
                                                         </h4>
                                                     </div>
-                                                    <div class="flex-shrink-0 text-end dash-widget">
-                                                        <i data-feather="shield" class="icon-lg text-success"></i>
+                                                    <div class="flex-shrink-0 text-end">
+                                                        <i data-feather="dollar-sign" class="icon-lg text-success"></i>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
+
                                     <div class="col-xl-3 col-md-6">
                                         <div class="card card-h-100">
                                             <div class="card-body">
                                                 <div class="d-flex align-items-center">
                                                     <div class="flex-grow-1">
-                                                        <span class="text-muted mb-3 lh-1 d-block text-truncate">Ahorro del Periodo</span>
+                                                        <span class="text-muted mb-3 lh-1 d-block text-truncate">Capital Invertido</span>
                                                         <h4 class="mb-3">
-                                                            <span class="counter-value" id="kpi-savings-period">0</span>
+                                                            <span id="kpi-invested">0</span>
                                                             <small class="text-muted font-size-12 currency-label">ARS</small>
                                                         </h4>
                                                     </div>
-                                                    <div class="flex-shrink-0 text-end dash-widget">
+                                                    <div class="flex-shrink-0 text-end">
                                                         <i data-feather="trending-up" class="icon-lg text-info"></i>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
+
                                     <div class="col-xl-3 col-md-6">
+                                        <div class="card card-h-100 bg-soft-info border border-info border-opacity-25">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="flex-grow-1">
+                                                        <span class="text-info mb-3 lh-1 d-block text-truncate fw-bold">Runway (Supervivencia)</span>
+                                                        <h4 class="mb-3 text-info">
+                                                            <span id="kpi-survival-months">0</span>
+                                                            <small class="font-size-12">Meses</small>
+                                                        </h4>
+                                                    </div>
+                                                    <div class="flex-shrink-0 text-end">
+                                                        <i data-feather="clock" class="icon-lg text-info"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Wealth Page Rows -->
+                                <div class="row">
+                                    <div class="col-xl-6">
                                         <div class="card card-h-100">
-                                            <div class="card-body">
-                                                <div class="d-flex align-items-center">
-                                                    <div class="flex-grow-1">
-                                                        <span class="text-muted mb-3 lh-1 d-block text-truncate">Tasa de Ahorro</span>
-                                                        <h4 class="mb-3">
-                                                            <span class="counter-value" id="kpi-savings-rate">0</span>
-                                                            <small class="text-muted font-size-12">% s/Ingresos</small>
-                                                        </h4>
-                                                    </div>
-                                                    <div class="flex-shrink-0 text-end dash-widget">
-                                                        <i data-feather="pie-chart" class="icon-lg text-warning"></i>
-                                                    </div>
+                                            <div class="card-header border-0 align-items-center d-flex">
+                                                <h4 class="card-title mb-0 flex-grow-1">Asignación de Activos</h4>
+                                                <div class="flex-shrink-0">
+                                                    <button type="button" class="btn btn-sm btn-soft-info" onclick="appAnalytics.showChartHelp('ASSET_ALLOCATION')">
+                                                        <i class="mdi mdi-help-circle-outline"></i>
+                                                    </button>
                                                 </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <canvas id="chart-asset-allocation" height="300"></canvas>
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="col-xl-3 col-md-6">
-                                        <div class="card card-h-100 bg-info bg-opacity-10 border-info border-opacity-25">
-                                            <div class="card-body">
-                                                <div class="d-flex align-items-center">
-                                                    <div class="flex-grow-1">
-                                                        <div class="d-flex align-items-center mb-3">
-                                                            <span class="text-muted lh-1 d-block text-truncate mb-0">Supervivencia Estimada</span>
-                                                            <button class="btn btn-link btn-sm text-info p-0 ms-2" onclick="appAnalytics.showChartHelp('SURVIVAL_RATE')">
-                                                                <i class="mdi mdi-information-outline"></i>
-                                                            </button>
-                                                        </div>
-                                                        <h4 class="mb-3">
-                                                            <span class="counter-value" id="kpi-survival-months">0</span>
-                                                            <small class="text-muted font-size-12">Meses</small>
-                                                        </h4>
-                                                    </div>
-                                                    <div class="flex-shrink-0 text-end dash-widget">
-                                                        <i data-feather="heart" class="icon-lg text-danger"></i>
-                                                    </div>
+                                    <div class="col-xl-6">
+                                        <div class="card card-h-100">
+                                            <div class="card-header border-0 align-items-center d-flex">
+                                                <h4 class="card-title mb-0 flex-grow-1">Composición por Moneda</h4>
+                                                <div class="flex-shrink-0">
+                                                    <button type="button" class="btn btn-sm btn-soft-info" onclick="appAnalytics.showChartHelp('CURRENCY_COMPOSITION')">
+                                                        <i class="mdi mdi-help-circle-outline"></i>
+                                                    </button>
                                                 </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <canvas id="chart-currency-composition" height="300"></canvas>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <!-- Goals Progress Row -->
-                                <div class="row">
-                                    <div class="col-xl-12">
+                                <div class="row mt-4">
+                                    <div class="col-xl-6">
                                         <div class="card">
-                                            <div class="card-header d-flex align-items-center justify-content-between">
-                                                <h4 class="card-title mb-0">Progreso de Metas de Ahorro</h4>
-                                                <button class="btn btn-sm btn-soft-info" onclick="appAnalytics.showChartHelp('SAVINGS_PROGRESS')">
-                                                    <i class="mdi mdi-information-outline"></i>
-                                                </button>
+                                            <div class="card-header border-0 align-items-center d-flex">
+                                                <h4 class="card-title mb-0 flex-grow-1">Progreso de Metas</h4>
                                             </div>
                                             <div class="card-body">
-                                                <div id="goals-progress-container">
-                                                    <!-- Dynamic bars injected here -->
-                                                    <p class="text-muted text-center py-4">Calculando metas...</p>
+                                                <div id="goals-progress-container" style="min-height: 250px;">
+                                                    <p class="text-muted text-center pt-5">Cargando progreso de metas...</p>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-
-                                <!-- Savings Charts Row 1 -->
-                                <div class="row">
-                                    <div class="col-xl-8">
+                                    <div class="col-xl-6">
                                         <div class="card">
-                                            <div class="card-header d-flex align-items-center justify-content-between">
-                                                <h4 class="card-title mb-0">Evolución del Patrimonio (Caja vs Reservas)</h4>
-                                                <button class="btn btn-sm btn-soft-info" onclick="appAnalytics.showChartHelp('WEALTH_EVOLUTION')">
-                                                    <i class="mdi mdi-information-outline"></i>
-                                                </button>
+                                            <div class="card-header border-0 align-items-center d-flex">
+                                                <h4 class="card-title mb-0 flex-grow-1">Evolución Patrimonial (12 Meses)</h4>
+                                                <div class="flex-shrink-0">
+                                                    <button type="button" class="btn btn-sm btn-soft-info" onclick="appAnalytics.showChartHelp('WEALTH_EVOLUTION')">
+                                                        <i class="mdi mdi-help-circle-outline"></i>
+                                                    </button>
+                                                </div>
                                             </div>
                                             <div class="card-body">
-                                                <canvas id="chart-wealth-evolution" class="chartjs-chart" height="300"></canvas>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-xl-4">
-                                        <div class="card">
-                                            <div class="card-header d-flex align-items-center justify-content-between">
-                                                <h4 class="card-title mb-0">Distribución por Metas</h4>
-                                                <button class="btn btn-sm btn-soft-info" onclick="appAnalytics.showChartHelp('SAVINGS_DISTRIBUTION')">
-                                                    <i class="mdi mdi-information-outline"></i>
-                                                </button>
-                                            </div>
-                                            <div class="card-body">
-                                                <canvas id="chart-savings-distribution" class="chartjs-chart" height="300"></canvas>
+                                                <canvas id="chart-wealth-evolution" height="250"></canvas>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <!-- Savings Charts Row 2 -->
-                                <div class="row">
-                                    <div class="col-xl-12">
-                                        <div class="card">
-                                            <div class="card-header d-flex align-items-center justify-content-between">
-                                                <h4 class="card-title mb-0">Ahorro Mensual (Capitalización)</h4>
-                                                <button class="btn btn-sm btn-soft-info" onclick="appAnalytics.showChartHelp('MONTHLY_SAVINGS')">
-                                                    <i class="mdi mdi-information-outline"></i>
-                                                </button>
-                                            </div>
-                                            <div class="card-body">
-                                                <canvas id="chart-monthly-savings" class="chartjs-chart" height="250"></canvas>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
-
-                            <!-- CRM TAB (Placeholder for now, logic will be added via JS) -->
+                             <!-- TAB 3: CLIENTES & TAREAS -->
                             <div class="tab-pane" id="tab-crm" role="tabpanel">
                                 <!-- CRM KPIs -->
                                 <div class="row">
@@ -508,8 +501,13 @@
                                 <div class="row">
                                     <div class="col-xl-4">
                                         <div class="card">
-                                            <div class="card-header">
-                                                <h4 class="card-title mb-0">Estado de Tareas</h4>
+                                            <div class="card-header align-items-center d-flex">
+                                                <h4 class="card-title mb-0 flex-grow-1">Estado de Tareas</h4>
+                                                <div class="flex-shrink-0">
+                                                    <button type="button" class="btn btn-sm btn-soft-info" onclick="appAnalytics.showChartHelp('CRM_STATUS')">
+                                                        <i class="mdi mdi-help-circle-outline"></i>
+                                                    </button>
+                                                </div>
                                             </div>
                                             <div class="card-body">
                                                 <canvas id="chart-crm-status" class="chartjs-chart" height="300" data-colors='["#2ab57d", "#ffbf53", "#fd625e"]'></canvas>
@@ -518,8 +516,13 @@
                                     </div>
                                     <div class="col-xl-8">
                                         <div class="card">
-                                            <div class="card-header">
-                                                <h4 class="card-title mb-0">Top Clientes Activos</h4>
+                                            <div class="card-header align-items-center d-flex">
+                                                <h4 class="card-title mb-0 flex-grow-1">Top Clientes Activos</h4>
+                                                <div class="flex-shrink-0">
+                                                    <button type="button" class="btn btn-sm btn-soft-info" onclick="appAnalytics.showChartHelp('CRM_CLIENTS')">
+                                                        <i class="mdi mdi-help-circle-outline"></i>
+                                                    </button>
+                                                </div>
                                             </div>
                                             <div class="card-body">
                                                 <canvas id="chart-crm-clients" class="chartjs-chart" height="300" data-colors='["#5156be"]'></canvas>
@@ -532,8 +535,13 @@
                                 <div class="row">
                                     <div class="col-xl-12">
                                         <div class="card">
-                                            <div class="card-header">
-                                                <h4 class="card-title mb-0">Tendencia de Finalización de Tareas (Últimos 6 Meses)</h4>
+                                            <div class="card-header align-items-center d-flex">
+                                                <h4 class="card-title mb-0 flex-grow-1">Tendencia de Finalización de Tareas (Últimos 6 Meses)</h4>
+                                                <div class="flex-shrink-0">
+                                                    <button type="button" class="btn btn-sm btn-soft-info" onclick="appAnalytics.showChartHelp('CRM_TREND')">
+                                                        <i class="mdi mdi-help-circle-outline"></i>
+                                                    </button>
+                                                </div>
                                             </div>
                                             <div class="card-body">
                                                 <canvas id="chart-crm-trend" class="chartjs-chart" height="250" data-colors='["#2ab57d"]'></canvas>
