@@ -189,6 +189,16 @@ document.addEventListener('DOMContentLoaded', function () {
         else if (type === 'EXPENSE') selectId = 'ex-category';
         else if (type === 'SAVING') selectId = 'sav-category';
 
+        if (type === 'INCOME') {
+            const agrSelect = document.getElementById('agr-category');
+            if (agrSelect) {
+                agrSelect.innerHTML = '<option value="">Seleccione...</option>';
+                categories[type].forEach(c => {
+                    agrSelect.innerHTML += `<option value="${c}">${c}</option>`;
+                });
+            }
+        }
+
         const select = document.getElementById(selectId);
         if(!select) return;
         
@@ -1297,16 +1307,70 @@ document.addEventListener('DOMContentLoaded', function () {
         const pExpense = currentFilteredData.filter(t => t.type === 'EXPENSE');
 
         // Facturación Esperada
-        updateKPI('kpi-income-expected-ars', getSum(pIncome, 'ARS'));
-        updateKPI('kpi-income-expected-usd', getSum(pIncome, 'USD'));
-        updateKPI('kpi-income-pending-ars', getSum(pIncome.filter(t => t.status !== 'PAID'), 'ARS'));
-        updateKPI('kpi-income-pending-usd', getSum(pIncome.filter(t => t.status !== 'PAID'), 'USD'));
+        let incExpectedARS = getSum(pIncome, 'ARS');
+        let incExpectedUSD = getSum(pIncome, 'USD');
+        let incPendingARS = getSum(pIncome.filter(t => t.status !== 'PAID'), 'ARS');
+        let incPendingUSD = getSum(pIncome.filter(t => t.status !== 'PAID'), 'USD');
+
+        // --- ADD PENDING AGREEMENTS ---
+        const monthMap = { '01': 'Enero', '02': 'Febrero', '03': 'Marzo', '04': 'Abril', '05': 'Mayo', '06': 'Junio', '07': 'Julio', '08': 'Agosto', '09': 'Septiembre', '10': 'Octubre', '11': 'Noviembre', '12': 'Diciembre' };
+        if (monthMap[period]) {
+            const periodKey = `${year}-${period}`;
+            agreements.forEach(a => {
+                const isGen = a.invoices && a.invoices[periodKey] && a.invoices[periodKey].sent;
+                if (!isGen && a.isActive !== false) {
+                    if (a.currency === 'ARS') {
+                        incExpectedARS += (a.amount || 0);
+                        incPendingARS += (a.amount || 0);
+                    } else if (a.currency === 'USD') {
+                        incExpectedUSD += (a.amount || 0);
+                        incPendingUSD += (a.amount || 0);
+                    }
+                }
+            });
+        }
+
+        updateKPI('kpi-income-expected-ars', incExpectedARS);
+        updateKPI('kpi-income-expected-usd', incExpectedUSD);
+        updateKPI('kpi-income-pending-ars', incPendingARS);
+        updateKPI('kpi-income-pending-usd', incPendingUSD);
 
         // Gastos Esperados
-        updateKPI('kpi-expense-expected-ars', getSum(pExpense, 'ARS'));
-        updateKPI('kpi-expense-expected-usd', getSum(pExpense, 'USD'));
-        updateKPI('kpi-expense-pending-ars', getSum(pExpense.filter(t => t.status !== 'PAID'), 'ARS'));
-        updateKPI('kpi-expense-pending-usd', getSum(pExpense.filter(t => t.status !== 'PAID'), 'USD'));
+        let expExpectedARS = getSum(pExpense, 'ARS');
+        let expExpectedUSD = getSum(pExpense, 'USD');
+        let expPendingARS = getSum(pExpense.filter(t => t.status !== 'PAID'), 'ARS');
+        let expPendingUSD = getSum(pExpense.filter(t => t.status !== 'PAID'), 'USD');
+
+        // --- ADD PROJECTED RECURRING EXPENSES ---
+        const now = new Date();
+        const filterDate = new Date(parseInt(year), parseInt(period) - 1, 1);
+        const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        if (monthMap[period] && filterDate >= startOfCurrentMonth) {
+            const recurringParents = allTransactions.filter(t => t.isRecurring && !t.parentRecurringId && t.type === 'EXPENSE');
+            recurringParents.forEach(p => {
+                const childExists = allTransactions.find(t => 
+                    t.parentRecurringId === p.id && 
+                    parseDate(t.date).getMonth() === parseInt(period) - 1 &&
+                    parseDate(t.date).getFullYear() === parseInt(year)
+                );
+
+                if (!childExists) {
+                    if (p.currency === 'ARS') {
+                        expExpectedARS += (p.amount || 0);
+                        expPendingARS += (p.amount || 0);
+                    } else if (p.currency === 'USD') {
+                        expExpectedUSD += (p.amount || 0);
+                        expPendingUSD += (p.amount || 0);
+                    }
+                }
+            });
+        }
+
+        updateKPI('kpi-expense-expected-ars', expExpectedARS);
+        updateKPI('kpi-expense-expected-usd', expExpectedUSD);
+        updateKPI('kpi-expense-pending-ars', expPendingARS);
+        updateKPI('kpi-expense-pending-usd', expPendingUSD);
 
         // --- 2. GLOBAL WEALTH KPIs (Header) ---
         // A. LIQUIDITY (From Accounts)
@@ -1340,7 +1404,7 @@ document.addEventListener('DOMContentLoaded', function () {
         updateKPI('kpi-net-worth-ars', netWorthARS);
         updateKPI('kpi-net-worth-usd', netWorthUSD);
 
-        // --- 3. SURPLUS ASSISTANT (Preserved) ---
+        // --- 3. SURPLUS ASSISTANT ---
         const monthlyProfitARS = getSum(pIncome.filter(t => t.status === 'PAID'), 'ARS') - getSum(pExpense.filter(t => t.status === 'PAID'), 'ARS');
         const monthlyProfitUSD = getSum(pIncome.filter(t => t.status === 'PAID'), 'USD') - getSum(pExpense.filter(t => t.status === 'PAID'), 'USD');
 
@@ -1486,6 +1550,10 @@ document.addEventListener('DOMContentLoaded', function () {
             // If we re-introduce a History Table, we can uncomment/adapt.
             if (isSaving) return ''; 
 
+            // Get account name
+            const account = accountsData.find(a => a.id === t.accountId);
+            const accountName = account ? account.name : '-';
+
             // Normal Income/Expense
             const btnAction = t.status === 'PENDING' 
                 ? `<button class="btn btn-sm btn-soft-success" onclick="toggleStatus('${t.id}', 'PAID')" title="Marcar como Completado"><i class="bx bx-check"></i></button>`
@@ -1502,6 +1570,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         </small>
                     </td>
                     <td><span class="badge badge-soft-primary">${t.category}</span></td>
+                    <td><span class="badge badge-soft-secondary">${accountName}</span></td>
                     <td>${t.address || '-'}</td>
                     <td>${t.currency === 'ARS' ? amountStr : '-'}</td>
                     <td>${t.currency === 'USD' ? amountStr : '-'}</td>
@@ -1510,6 +1579,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     <td>
                         <div class="d-flex gap-2">
                             ${btnAction}
+                            <button class="btn btn-sm btn-soft-info" onclick="editTransaction('${t.id}')" title="Editar"><i class="mdi mdi-pencil"></i></button>
                             <button class="btn btn-sm btn-soft-danger" onclick="deleteTransaction('${t.id}')"><i class="mdi mdi-trash-can"></i></button>
                         </div>
                     </td>
@@ -1539,11 +1609,59 @@ document.addEventListener('DOMContentLoaded', function () {
     // 7. Global Actions
     // ==========================================
     
+    window.editTransaction = function(id) {
+        const tx = allTransactions.find(t => t.id === id);
+        if (!tx) return;
+
+        if (tx.type === 'INCOME') {
+            const form = document.getElementById('form-income');
+            form.reset();
+            document.getElementById('in-id').value = tx.id;
+            document.getElementById('in-entity-name').value = tx.entityName || '';
+            document.getElementById('in-cuit').value = tx.cuit || '';
+            document.getElementById('in-address').value = tx.address || '';
+            document.getElementById('in-category').value = tx.category || '';
+            document.getElementById('in-status').value = tx.status || 'PENDING';
+            document.getElementById('in-currency').value = tx.currency || 'ARS';
+            document.getElementById('in-account').value = tx.accountId || '';
+            document.getElementById('in-amount').value = tx.amount || 0;
+            document.getElementById('in-date').valueAsDate = parseDate(tx.date);
+            document.getElementById('in-recurring').checked = tx.isRecurring || false;
+            if (tx.isRecurring) {
+                document.getElementById('container-in-installments').style.display = 'block';
+                document.getElementById('in-installments').value = tx.installmentsTotal || '';
+            }
+            incomeModal.show();
+        } else if (tx.type === 'EXPENSE') {
+            const form = document.getElementById('form-expense');
+            form.reset();
+            document.getElementById('ex-id').value = tx.id;
+            document.getElementById('ex-entity-name').value = tx.entityName || '';
+            document.getElementById('ex-cuit').value = tx.cuit || '';
+            document.getElementById('ex-address').value = tx.address || '';
+            document.getElementById('ex-category').value = tx.category || '';
+            document.getElementById('ex-status').value = tx.status || 'PENDING';
+            document.getElementById('ex-currency').value = tx.currency || 'ARS';
+            document.getElementById('ex-account').value = tx.accountId || '';
+            document.getElementById('ex-amount').value = tx.amount || 0;
+            document.getElementById('ex-date').valueAsDate = parseDate(tx.date);
+            document.getElementById('ex-recurring').checked = tx.isRecurring || false;
+            if (tx.isRecurring) {
+                document.getElementById('container-ex-installments').style.display = 'block';
+                document.getElementById('ex-installments').value = tx.installmentsTotal || '';
+            }
+            expenseModal.show();
+        }
+    };
+
     window.toggleStatus = function(id, newStatus) {
          db.collection('transactions').doc(id).update({ status: newStatus });
     };
 
     window.deleteTransaction = async function(id) {
+        const tx = allTransactions.find(t => t.id === id);
+        if(!tx) return;
+
         const result = await Swal.fire({
             title: '¿Eliminar?',
             text: "No podrás revertir esto.",
@@ -1556,7 +1674,33 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (result.isConfirmed) {
             try {
-                await db.collection('transactions').doc(id).delete();
+                const batch = db.batch();
+                const txRef = db.collection('transactions').doc(id);
+                batch.delete(txRef);
+
+                // --- REVERSE ASSET BALANCES ---
+                if (tx.type === 'INVESTMENT' && tx.assetId) {
+                    const assetRef = db.collection('cashflow_assets').doc(tx.assetId);
+                    batch.update(assetRef, { 
+                        investedAmount: firebase.firestore.FieldValue.increment(-(tx.assetAmount || tx.amount))
+                    });
+                } else if (tx.type === 'WITHDRAWAL' && tx.assetId) {
+                    const assetRef = db.collection('cashflow_assets').doc(tx.assetId);
+                    batch.update(assetRef, { 
+                        investedAmount: firebase.firestore.FieldValue.increment(tx.assetAmount || tx.amount)
+                    });
+                } else if (tx.type === 'ASSET_TRANSFER' && tx.assetId && tx.assetDstId) {
+                    const srcRef = db.collection('cashflow_assets').doc(tx.assetId);
+                    const dstRef = db.collection('cashflow_assets').doc(tx.assetDstId);
+                    batch.update(srcRef, { 
+                        investedAmount: firebase.firestore.FieldValue.increment(tx.amount) 
+                    });
+                    batch.update(dstRef, { 
+                        investedAmount: firebase.firestore.FieldValue.increment(-(tx.assetAmount || tx.amount)) 
+                    });
+                }
+
+                await batch.commit();
                 Swal.fire({ 
                     toast: true, 
                     position: 'top-end', 
@@ -1659,6 +1803,7 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('agr-frequency').value = 'MONTHLY';
             document.getElementById('agr-account').value = '';
             document.getElementById('agr-hasInvoice').value = 'true';
+            document.getElementById('agr-category').value = 'Honorarios'; // Default consistent with old logic
             modalAgreements.show();
         });
     }
@@ -1703,6 +1848,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('agr-frequency').value = a.frequency || 'MONTHLY';
         document.getElementById('agr-currency').value = a.currency || 'ARS';
         document.getElementById('agr-account').value = a.accountId || '';
+        document.getElementById('agr-category').value = a.category || 'Honorarios';
         document.getElementById('agr-amount').value = a.amount;
         document.getElementById('agr-last-update').textContent = a.lastUpdate || '-';
         
@@ -1728,6 +1874,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 frequency: document.getElementById('agr-frequency').value,
                 currency: document.getElementById('agr-currency').value,
                 accountId: document.getElementById('agr-account').value,
+                category: document.getElementById('agr-category').value,
                 amount: parseFloat(document.getElementById('agr-amount').value) || 0,
                 lastUpdate: document.getElementById('agr-last-update').textContent,
                 isActive: true, // Soft delete logic
@@ -1906,12 +2053,15 @@ document.addEventListener('DOMContentLoaded', function () {
                           entityName: agreement.name + conversionNote,
                           cuit: agreement.cuit,
                           address: 'Facturación Mensual Automática', 
-                          category: 'Honorarios', 
-                          status: 'PAID',
+                          category: agreement.category || 'Honorarios', 
+                          status: 'PENDING',
                           currency: finalCurrency,
                           accountId: agreement.accountId || null,
                           amount: finalAmount,
-                          date: firebase.firestore.Timestamp.fromDate(new Date()), 
+                          date: firebase.firestore.Timestamp.fromDate((function(){
+                              const [yy, mm] = periodKey.split('-');
+                              return new Date(yy, mm - 1, 1, 12, 0, 0); // First day of the month at noon
+                          })()), 
                           isRecurring: false, 
                           agreementId: agreementId,
                           periodKey: periodKey,
@@ -2208,7 +2358,7 @@ document.addEventListener('DOMContentLoaded', function () {
         tbody.innerHTML = '';
 
         accountsData.forEach(acc => {
-            if (acc.isActive === false) return; // Only show active in management (or show all with toggle?)
+            if (acc.isActive === false) return; 
             
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -2231,8 +2381,17 @@ document.addEventListener('DOMContentLoaded', function () {
                     document.getElementById('acc-id').value = acc.id;
                     document.getElementById('acc-name').value = acc.name;
                     document.getElementById('acc-currency').value = acc.currency;
-                    document.getElementById('acc-initial-balance').value = acc.initialBalance;
+                    document.getElementById('acc-initial-balance').value = acc.initialBalance || 0;
                     document.getElementById('title-account-form').textContent = 'Editar Cuenta';
+                    
+                    // Focus on initial balance field for quick editing
+                    setTimeout(() => {
+                        const balanceField = document.getElementById('acc-initial-balance');
+                        if (balanceField) {
+                            balanceField.focus();
+                            balanceField.select();
+                        }
+                    }, 100);
                 }
             });
         });
@@ -2659,6 +2818,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('asset-currency').value = asset.currency;
                 document.getElementById('asset-target').value = asset.targetAmount;
                 document.getElementById('asset-valuation').value = asset.currentValuation;
+                if(document.getElementById('asset-invested')) document.getElementById('asset-invested').value = asset.investedAmount;
             }
         }
         modalAsset.show();
@@ -2679,6 +2839,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 currency: document.getElementById('asset-currency').value,
                 targetAmount: parseFloat(document.getElementById('asset-target').value) || 0,
                 currentValuation: parseFloat(document.getElementById('asset-valuation').value) || 0,
+                investedAmount: parseFloat(document.getElementById('asset-invested').value) || 0,
                 updatedAt: new Date()
             };
 
@@ -2690,7 +2851,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 } else {
                     data.uid = getUIDSafe();
                     data.createdAt = new Date();
-                    data.investedAmount = 0;
+                    // investedAmount is already in 'data' from the input
                     await db.collection('cashflow_assets').add(data);
                 }
                 modalAsset.hide();

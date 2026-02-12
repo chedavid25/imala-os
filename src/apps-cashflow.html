@@ -69,7 +69,8 @@
                                         <button class="btn btn-primary ms-2" id="btn-new-asset"><i class="mdi mdi-briefcase-plus-outline me-1"></i> Nuevo Activo</button>
                                         <button class="btn btn-soft-success ms-2" id="btn-new-investment" title="De Cuenta a Activo"><i class="mdi mdi-chart-line me-1"></i> Invertir</button>
                                         <button class="btn btn-soft-warning ms-2" id="btn-new-withdrawal" title="De Activo a Cuenta"><i class="mdi mdi-cash-minus me-1"></i> Retirar</button>
-                                        <button class="btn btn-soft-info ms-2" id="btn-new-asset-transfer" title="De Activo a Activo"><i class="mdi mdi-swap-horizontal me-1"></i> Transferir</button>
+                                        <button class="btn btn-soft-info ms-2" id="btn-new-asset-transfer" title="De Activo a Activo"><i class="mdi mdi-swap-horizontal me-1"></i> Transf. Activos</button>
+                                        <button class="btn btn-soft-primary ms-2" id="btn-transfer-saving" title="Transferir entre Cuentas"><i class="mdi mdi-bank-transfer me-1"></i> Transferir</button>
                                         <button class="btn btn-soft-secondary ms-2" id="btn-config-accounts" title="Configurar Cuentas"><i class="mdi mdi-cog-outline"></i></button>
                                     </div>
                                 </div>
@@ -389,6 +390,7 @@
                                                                 <th data-sort="date">Fecha</th>
                                                                 <th data-sort="entityName">Entidad / CUIT</th>
                                                                 <th data-sort="category">Categoría</th>
+                                                                <th>Cuenta</th>
                                                                 <th>Descripción</th>
                                                                 <th data-sort="amount">ARS</th>
                                                                 <th data-sort="amount">USD</th>
@@ -413,6 +415,7 @@
                                                                 <th data-sort="date">Fecha</th>
                                                                 <th data-sort="entityName">Proveedor / CUIT</th>
                                                                 <th data-sort="category">Categoría</th>
+                                                                <th>Cuenta</th>
                                                                 <th>Descripción</th>
                                                                 <th data-sort="amount">ARS</th>
                                                                 <th data-sort="amount">USD</th>
@@ -1031,6 +1034,13 @@
                                         </div>
                                     </div>
 
+                                    <div class="mb-3">
+                                        <label class="form-label text-warning"><i class="mdi mdi-tag-outline me-1"></i> Categoría de Ingreso</label>
+                                        <select class="form-select" id="agr-category" required>
+                                            <option value="">Seleccione...</option>
+                                        </select>
+                                    </div>
+
                                     <div class="mb-3" id="div-biller">
                                         <label class="form-label">Facturador</label>
                                         <select class="form-select" id="agr-biller">
@@ -1327,6 +1337,14 @@
                                     </div>
 
                                     <div class="row">
+                                        <div class="col-md-12 mb-3">
+                                            <label class="form-label text-info">Capital Invertido (Histórico)</label>
+                                            <input type="number" step="0.01" class="form-control" id="asset-invested" placeholder="Ej. 5000">
+                                            <small class="text-muted">Monto ya invertido previamente (No afecta tus cuentas).</small>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
                                         <div class="col-md-6 mb-3">
                                             <label class="form-label">Tipo de Inversión</label>
                                             <div class="input-group">
@@ -1581,7 +1599,55 @@
                     </div>
                 </div>
 
-                <!-- /Right-bar -->
+                <!-- 4. Account Transfer Modal (Unified) -->
+                <div class="modal fade" id="modal-transfer-unified" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content border-primary">
+                            <div class="modal-header bg-primary bg-opacity-10">
+                                <h5 class="modal-title text-primary"><i class="mdi mdi-bank-transfer me-1"></i> Transferencia entre Cuentas</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-hidden="true"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="form-account-transfer">
+                                    <div class="alert alert-primary font-size-13 py-2">
+                                        Mueve saldo entre tus cuentas de liquidez (Caja/Bancos).
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-12 mb-3">
+                                            <label class="form-label">Cuenta de Origen</label>
+                                            <select class="form-select account-select" id="acc-trans-source" required>
+                                                <option value="">Seleccione origen...</option>
+                                            </select>
+                                            <div id="acc-source-balance-info" class="text-muted small mt-1"></div>
+                                        </div>
+                                        <div class="col-md-12 mb-3">
+                                            <label class="form-label">Cuenta de Destino</label>
+                                            <select class="form-select account-select" id="acc-trans-dest" required>
+                                                <option value="">Seleccione destino...</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Monto</label>
+                                            <input type="number" class="form-control" id="acc-trans-amount" step="0.01" required placeholder="0.00">
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Fecha</label>
+                                            <input type="date" class="form-control" id="acc-trans-date" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="text-end">
+                                        <button type="button" class="btn btn-light me-1" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="submit" class="btn btn-primary">Realizar Transferencia</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- NEW: Manage Asset Types Modal -->
                 <div class="modal fade" id="modal-manage-asset-types" tabindex="-1" aria-hidden="true">

@@ -459,7 +459,8 @@ function calculateWealthKPIs() {
 
     // 2. Assets (Inversiones)
     assetsData.forEach(asset => {
-        let value = parseFloat(asset.amount) || 0;
+        // Use currentValuation if available, otherwise investedAmount
+        let value = parseFloat(asset.currentValuation) || parseFloat(asset.investedAmount) || parseFloat(asset.amount) || 0;
         if (asset.currency === 'USD' && filterCurrency === 'ARS') value *= EXCHANGE_RATE;
         if (asset.currency === 'ARS' && filterCurrency === 'USD') value /= EXCHANGE_RATE;
         totalInvested += value;
@@ -605,7 +606,7 @@ function renderWealthDashboard() {
     const assetCats = {};
     assetsData.forEach(asset => {
         const cat = asset.category || 'Inversión';
-        let value = parseFloat(asset.amount) || 0;
+        let value = parseFloat(asset.currentValuation) || parseFloat(asset.investedAmount) || parseFloat(asset.amount) || 0;
         if (asset.currency === 'USD' && filterCurrency === 'ARS') value *= EXCHANGE_RATE;
         if (asset.currency === 'ARS' && filterCurrency === 'USD') value /= EXCHANGE_RATE;
         assetCats[cat] = (assetCats[cat] || 0) + value;
@@ -623,9 +624,12 @@ function renderWealthDashboard() {
     let liqARS = 0;
     let liqUSD = 0;
     accountsData.forEach(acc => {
+        // Use updated balance if available, or try to derive it if possible
+        // Currently deriving balance in analytics is hard without recalculating whole history.
+        // We assume 'balance' field is kept up to date by apps-cashflow.js updates.
         let bal = parseFloat(acc.balance) || 0;
         if(acc.currency === 'ARS') liqARS += bal;
-        else if(acc.currency === 'USD') liqUSD += (bal * EXCHANGE_RATE); // Standardize to ARS for comparison scale
+        else if(acc.currency === 'USD') liqUSD += (bal * EXCHANGE_RATE); 
     });
     
     // If filter is USD, convert both to USD
@@ -664,7 +668,7 @@ function renderWealthDashboard() {
             container.innerHTML = '<p class="text-muted text-center pt-5">No hay activos con "Objetivo" definido.</p>';
         } else {
             goals.forEach(g => {
-                const amount = parseFloat(g.amount) || 0;
+                const amount = parseFloat(g.investedAmount) || parseFloat(g.amount) || 0;
                 const target = parseFloat(g.targetAmount) || 0;
                 const perc = Math.min(100, (amount / target) * 100);
                 const colorClass = perc < 30 ? 'bg-danger' : (perc < 70 ? 'bg-warning' : 'bg-success');
