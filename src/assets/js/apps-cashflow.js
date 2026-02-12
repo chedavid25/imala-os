@@ -1715,26 +1715,57 @@ document.addEventListener('DOMContentLoaded', function () {
                      }
                  }
 
-                 // Generate Income Transaction
-                 const newTx = {
-                      type: 'INCOME',
-                      entityName: agreement.name + conversionNote,
-                      cuit: agreement.cuit,
-                      address: 'Facturación Mensual Automática', 
-                      category: 'Honorarios', 
-                      status: 'PAID',
-                      currency: finalCurrency,
-                      accountId: agreement.accountId || null,
-                      amount: finalAmount,
-                      date: firebase.firestore.Timestamp.fromDate(new Date()), 
-                      isRecurring: false, 
-                      agreementId: agreementId,
-                      periodKey: periodKey,
-                      createdAt: new Date(),
-                      createdBy: getUIDSafe()
-                 };
-                 
-                 const docRef = await db.collection('transactions').add(newTx);
+
+                 // IDEMPOTENCY CHECK: Ensure we don't have a transaction for this period already
+                 const existingCheck = await db.collection('transactions')
+                     .where('agreementId', '==', agreementId)
+                     .where('periodKey', '==', periodKey)
+                     .get();
+
+                 let docRef;
+
+                 if (!existingCheck.empty) {
+                     // Found orphan transaction? Link it instead of creating new.
+                     docRef = existingCheck.docs[0];
+                     console.log("Found existing transaction for agreement period, linking...", docRef.id);
+                     
+                     // Optional: Update the existing one with new values if user changed something?
+                     // For now, just link it to avoid duplication.
+                     // But we calculated finalAmount above... if we link existing, we discard user input?
+                     // User intent was "Generate". If it exists, they probably didn't know.
+                     
+                     // We should notify user but auto-linking is safer than duplicating.
+                     Swal.fire({
+                         toast: true,
+                         position: 'top-end',
+                         icon: 'warning',
+                         title: 'Ingreso ya existía. Vinculado.',
+                         showConfirmButton: false,
+                         timer: 3000
+                     });
+                     
+                 } else {
+                     // Generate Income Transaction
+                     const newTx = {
+                          type: 'INCOME',
+                          entityName: agreement.name + conversionNote,
+                          cuit: agreement.cuit,
+                          address: 'Facturación Mensual Automática', 
+                          category: 'Honorarios', 
+                          status: 'PAID',
+                          currency: finalCurrency,
+                          accountId: agreement.accountId || null,
+                          amount: finalAmount,
+                          date: firebase.firestore.Timestamp.fromDate(new Date()), 
+                          isRecurring: false, 
+                          agreementId: agreementId,
+                          periodKey: periodKey,
+                          createdAt: new Date(),
+                          createdBy: getUIDSafe()
+                     };
+                     
+                     docRef = await db.collection('transactions').add(newTx);
+                 }
                      
                  // Mark in Agreement
                  const updateMap = {};
