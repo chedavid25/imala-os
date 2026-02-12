@@ -758,7 +758,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     initSortingListeners();
     function applyFilters() {
-        let filtered = [...allTransactions];
+        // Base Lists (Pre-Date Filter)
+        let baseList = [...allTransactions];
         
         const year = parseInt(filterYear.value);
         const period = filterPeriod.value;
@@ -766,58 +767,85 @@ document.addEventListener('DOMContentLoaded', function () {
         const cat = filterCategory.value;
         const onlyRecurring = filterOnlyRecurring.checked;
 
+        // 1. Apply Logic Filters (Recurring, Category, Search)
         if (onlyRecurring) {
-            // When "Only Recurring" is ON, we only show parents (rules).
-            // Robust check for isRecurring (handle boolean or string "true")
-            filtered = filtered.filter(t => (t.isRecurring === true || t.isRecurring === 'true') && !t.parentRecurringId);
-        } else {
-            // Normal behavior: Filter by Year and Period
-            const yearNum = parseInt(filterYear.value || new Date().getFullYear());
-            filtered = filtered.filter(t => {
-                const d = parseDate(t.date);
-                return d && d.getFullYear() === yearNum;
-            });
-
-            // Period Filter
-            if(period === 'YTD') {
-                 const now = new Date();
-                 filtered = filtered.filter(t => parseDate(t.date) <= now);
-            } else if(period !== 'ALL') {
-                 filtered = filtered.filter(t => {
-                     const d = parseDate(t.date);
-                     const m = d.getMonth() + 1; // 1-12
-                     
-                     if (period === 'Q1') return m >= 1 && m <= 3;
-                     if (period === 'Q2') return m >= 4 && m <= 6;
-                     if (period === 'Q3') return m >= 7 && m <= 9;
-                     if (period === 'Q4') return m >= 10 && m <= 12;
-                     if (period === 'S1') return m >= 1 && m <= 6;
-                     if (period === 'S2') return m >= 7 && m <= 12;
-                     
-                     // Specific Month (01-12)
-                     return m === parseInt(period);
-                 });
-            }
+            baseList = baseList.filter(t => (t.isRecurring === true || t.isRecurring === 'true') && !t.parentRecurringId);
         }
 
-        // Category Filter
-        if(cat !== 'ALL') filtered = filtered.filter(t => t.category === cat);
+        if(cat !== 'ALL') baseList = baseList.filter(t => t.category === cat);
 
-        // Search Filter
         if(search) {
-            filtered = filtered.filter(t => 
+            baseList = baseList.filter(t => 
                 t.entityName.toLowerCase().includes(search) || 
                 (t.address && t.address.toLowerCase().includes(search))
             );
         }
 
-        // --- SORTING LOGIC ---
+        // 2. Define Date Checking Logic
+        const yearNum = parseInt(filterYear.value || new Date().getFullYear());
+        
+        const isDateInPeriod = (t) => {
+            const d = parseDate(t.date);
+            if (!d || d.getFullYear() !== yearNum) return false;
+
+            if(period === 'ALL') return true;
+            if(period === 'YTD') {
+                 const now = new Date();
+                 return d <= now;
+            } 
+             
+            // Quarter/Semester/Month
+            const m = d.getMonth() + 1;
+            if (period === 'Q1') return m >= 1 && m <= 3;
+            if (period === 'Q2') return m >= 4 && m <= 6;
+            if (period === 'Q3') return m >= 7 && m <= 9;
+            if (period === 'Q4') return m >= 10 && m <= 12;
+            if (period === 'S1') return m >= 1 && m <= 6;
+            if (period === 'S2') return m >= 7 && m <= 12;
+            
+            // Specific Month
+            return m === parseInt(period);
+        };
+
+        // 3. Filter Incomes and Expenses (Strict Date Filter)
+        const filteredFlows = baseList.filter(t => {
+            if (t.type === 'SAVING') return false; // Handle savings separately
+            if (onlyRecurring) return true; // Recurring Rules don't have 'date' in the same sense, or we ignore date for rules list? 
+                                            // Actually, recurring rules have a creation date. 
+                                            // Usually we want to see ALL recurring rules, not just those created this month.
+                                            // If onlyRecurring is ON, we might want to skip date check? 
+                                            // Existing logic applied date check to recurring too. Let's keep consistent if strict.
+            
+            // If onlyRecurring is ON, we normally want to see the configuration, ignoring date.
+            // But previous code applied filters. Let's stick to previous behavior for Flows.
+            return isDateInPeriod(t);
+        });
+
+        // 4. Filter Savings (Active OR In Date)
+        const filteredSavings = baseList.filter(t => {
+            if (t.type !== 'SAVING') return false;
+            if (onlyRecurring) return true; // Show all recurring saving rules if checked
+            
+            // Always show ACTIVE savings (Portfolio View)
+            if (t.status === 'ACTIVE') return true;
+            
+            // If used/history, show only if in period
+            return isDateInPeriod(t);
+        });
+
+        // 5. Combine for KPIs (Pass only In-Period flows + In-Period Savings for strictness? or just Flows?)
+        // calculateKPIs uses 'currentFilteredData' for Period KPIs (Income/Expense). 
+        // It ignores Savings in that part.
+        // So passing filteredFlows is sufficient for KPIs. 
+        // But let's pass the strictly date-filtered list of everything to be safe/correct semantically.
+        const strictDateList = baseList.filter(t => isDateInPeriod(t));
+        
+        // --- SORTING ---
         const sortData = (data, config) => {
             return data.sort((a, b) => {
                 let valA = a[config.column];
                 let valB = b[config.column];
 
-                // Handle nesting or special field parsing
                 if (config.column === 'date') {
                     valA = parseDate(a.date).getTime();
                     valB = parseDate(b.date).getTime();
@@ -832,11 +860,11 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         };
 
-        const incomes = sortData(filtered.filter(t => t.type === 'INCOME'), sortConfig.INCOME);
-        const expenses = sortData(filtered.filter(t => t.type === 'EXPENSE'), sortConfig.EXPENSE);
-        const savings = sortData(filtered.filter(t => t.type === 'SAVING'), sortConfig.SAVING);
+        const incomes = sortData(filteredFlows.filter(t => t.type === 'INCOME'), sortConfig.INCOME);
+        const expenses = sortData(filteredFlows.filter(t => t.type === 'EXPENSE'), sortConfig.EXPENSE);
+        const savings = sortData(filteredSavings, sortConfig.SAVING);
 
-        calculateKPIs(filtered, year, period);
+        calculateKPIs(strictDateList, year, period);
         renderTables([...incomes, ...expenses, ...savings]);
         renderMonthlyControl(); 
         renderAgreementsList();
