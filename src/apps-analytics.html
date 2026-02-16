@@ -26,21 +26,19 @@
         <!-- Icons Css -->
         <link href="assets/css/icons.min.css" rel="stylesheet" type="text/css" />
         <!-- App Css-->
-        <link href="assets/css/app.min.css" id="app-style" rel="stylesheet" type="text/css" />
+        <link href="assets/css/app.min.css?v=11.1" id="app-style" rel="stylesheet" type="text/css" />
+        <link href="assets/css/custom-mobile.css?v=11.1" rel="stylesheet" type="text/css" />
 
     </head>
 
     <body>
 
-    <!-- <body data-layout="horizontal"> -->
-
         <!-- Begin page -->
         <div id="layout-wrapper">
-
             
-            @@include("partials/topbar.html")
-
-            @@include("partials/sidebar.html")
+            <div id="desktop-view">
+                @@include("partials/topbar.html")
+                @@include("partials/sidebar.html")
 
             <!-- ============================================================== -->
             <!-- Start right Content here -->
@@ -595,6 +593,133 @@
         </div>
 
         <!-- END layout-wrapper -->
+            </div><!-- end page-content -->
+        </div><!-- end desktop-view -->
+
+            <!-- Mobile View -->
+            <div id="mobile-view" class="mobile-app-container d-none">
+                <header class="mobile-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="user-info">
+                            <h4 class="mb-0 text-white">Analíticas</h4>
+                            <p class="mb-0 text-white-50 small">Rendimiento del Negocio</p>
+                        </div>
+                        <div class="mob-filters d-flex gap-2">
+                             <select class="form-select form-select-sm bg-white bg-opacity-20 border-0 text-white" style="width: 80px;" id="mob-analytics-year" onchange="syncFilters('year', this.value)"></select>
+                             <button class="btn btn-sm btn-white bg-white text-primary rounded-pill px-3" id="mob-currency-toggle" onclick="toggleMobCurrency()">ARS</button>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 overflow-auto pb-2 d-flex gap-2 mob-category-filters">
+                        <button class="btn btn-sm btn-white bg-white text-primary rounded-pill px-3 active" data-mob-tab="BILLING" onclick="switchMobTab('BILLING', this)">Operativo</button>
+                        <button class="btn btn-sm btn-outline-light rounded-pill px-3" data-mob-tab="SAVINGS" onclick="switchMobTab('SAVINGS', this)">Patrimonio</button>
+                        <button class="btn btn-sm btn-outline-light rounded-pill px-3" data-mob-tab="CRM" onclick="switchMobTab('CRM', this)">Clientes</button>
+                    </div>
+                </header>
+
+                <main class="mobile-body p-3">
+                    <!-- KPI Summary Slider/List -->
+                    <div class="row g-2 mb-3" id="mob-kpi-container">
+                        <div class="col-6">
+                            <div class="card p-3 rounded-4 shadow-sm h-100">
+                                <small class="text-muted d-block mb-1">Facturado</small>
+                                <h5 class="mb-0 text-success" id="mob-kpi-billed">$0</h5>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card p-3 rounded-4 shadow-sm h-100">
+                                <small class="text-muted d-block mb-1">Gastos</small>
+                                <h5 class="mb-0 text-danger" id="mob-kpi-expenses">$0</h5>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Area -->
+                    <div id="mob-charts-content">
+                        <!-- Tab Billing content (Default) -->
+                        <div class="mob-tab-pane" id="mob-tab-billing">
+                            <div class="card p-3 rounded-4 shadow-sm mb-3">
+                                <h6 class="fw-bold mb-3">Run Rate (Ingresos vs Gastos)</h6>
+                                <canvas id="mob-chart-run-rate" height="250"></canvas>
+                            </div>
+                            <div class="card p-3 rounded-4 shadow-sm mb-3">
+                                <h6 class="fw-bold mb-3">Distribución de Gastos</h6>
+                                <canvas id="mob-chart-expenses" height="250"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Tab Savings content (Hidden by default) -->
+                        <div class="mob-tab-pane d-none" id="mob-tab-savings">
+                            <div class="card p-3 rounded-4 shadow-sm mb-3">
+                                <h6 class="fw-bold mb-3">Composición de Activos</h6>
+                                <canvas id="mob-chart-assets" height="250"></canvas>
+                            </div>
+                            <div class="card p-3 rounded-4 shadow-sm mb-3">
+                                <h6 class="fw-bold mb-3">Crecimiento Neto Anual</h6>
+                                <canvas id="mob-chart-networth" height="250"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Tab CRM content (Hidden by default) -->
+                        <div class="mob-tab-pane d-none" id="mob-tab-crm">
+                            <div class="card p-3 rounded-4 shadow-sm mb-3">
+                                <h6 class="fw-bold mb-3">Estado de Tareas</h6>
+                                <canvas id="mob-chart-tasks" height="250"></canvas>
+                            </div>
+                            <div class="card p-3 rounded-4 shadow-sm mb-3">
+                                <h6 class="fw-bold mb-3">Pipeline de Clientes</h6>
+                                <canvas id="mob-chart-crm" height="250"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                <nav class="mobile-bottom-nav">
+                    <a href="index.html" class="nav-item"><i class="bx bx-home-alt-2"></i><span>Home</span></a>
+                    <a href="apps-analytics.html" class="nav-item active"><i class="bx bx-pie-chart-alt-2"></i><span>Reportes</span></a>
+                    <div class="fab-container">
+                        <button class="btn btn-primary rounded-circle shadow-lg p-0" id="mob-fab-main" onclick="openNewTaskModal()">
+                            <i class="mdi mdi-plus font-size-24"></i>
+                        </button>
+                    </div>
+                    <a href="apps-cashflow.html" class="nav-item"><i class="bx bx-wallet"></i><span>Cartera</span></a>
+                    <a href="apps-tareas.html" class="nav-item"><i class="bx bx-task"></i><span>Tareas</span></a>
+                </nav>
+            </div><!-- end mobile-view -->
+
+        <!-- END layout-wrapper -->
+
+        <!-- Help Modal -->
+        <div class="modal fade" id="modal-chart-help" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="help-title">Ayuda del Gráfico</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="text-center mb-4">
+                            <div class="avatar-md mx-auto">
+                                <div class="avatar-title rounded-circle bg-info bg-opacity-10 text-info display-6">
+                                    <i class="mdi mdi-information-outline"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="help-content">
+                            <!-- Content injected via JS -->
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Entendido</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- END layout-wrapper -->
+
+        <!-- Right Sidebar -->
+        @@include("partials/right-sidebar.html")
 
         <!-- JAVASCRIPT -->
         <script src="assets/libs/jquery/jquery.min.js"></script>
@@ -603,25 +728,32 @@
         <script src="assets/libs/simplebar/simplebar.min.js"></script>
         <script src="assets/libs/node-waves/waves.min.js"></script>
         <script src="assets/libs/feather-icons/feather.min.js"></script>
+        <!-- pace js -->
         <script src="assets/libs/pace-js/pace.min.js"></script>
 
-        <!-- Chart JS -->
+        <!-- Chart.js -->
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 
-        <!-- Firebase -->
+        <!-- SweetAlert2 -->
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+        <!-- Firebase CDNs -->
         <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
         <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
         <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
         <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
         <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
-        
-        <!-- App Logic -->
+
+        <!-- Imala Config -->
         <script src="assets/js/config.js"></script>
         <script src="assets/js/firebase-config.js"></script>
         <script src="assets/js/imala-auth.js"></script>
-        <script src="assets/js/apps-analytics.js"></script> <!-- Main Logic -->
         
+        <!-- App js -->
         <script src="assets/js/app.js"></script>
+
+        <script src="assets/js/apps-analytics.js?v=11.1"></script>
 
     </body>
 </html>

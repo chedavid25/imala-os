@@ -37,26 +37,47 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    let isLoggingIn = false;
+
     if (googleBtn) {
         googleBtn.addEventListener('click', (e) => {
             e.preventDefault();
+            
+            if (isLoggingIn) return; // Prevent multiple clicks
+            
             console.log("Google Login Clicked");
 
             if (!window.Imala || !window.Imala.auth) {
                 alert("Error Crítico: Firebase no se ha iniciado. Revisa tu conexión o la consola.");
-                console.error("window.Imala is missing:", window.Imala);
                 return;
             }
 
+            isLoggingIn = true;
+            googleBtn.style.opacity = '0.5';
+            googleBtn.style.pointerEvents = 'none';
+
             const provider = new firebase.auth.GoogleAuthProvider();
+            
+            // For better mobile experience, we could detect mobile and use redirect,
+            // but let's first fix the double-trigger issue.
             window.Imala.auth.signInWithPopup(provider)
                 .then((result) => {
                     console.log("Google Sign In:", result.user);
-                    // Check if user exists in Firestore 'users' collection, if not create it
                     checkAndCreateUser(result.user);
                 }).catch((error) => {
+                    isLoggingIn = false;
+                    googleBtn.style.opacity = '1';
+                    googleBtn.style.pointerEvents = 'auto';
+                    
                     console.error("Login Error:", error);
-                    alert("Google Sign In Error: " + error.message);
+                    
+                    if (error.code === 'auth/cancelled-popup-request') {
+                        console.warn("Popup request was cancelled by a conflict. This usually happens on double click.");
+                    } else if (error.code === 'auth/popup-closed-by-user') {
+                        // Silent fail if user closed it
+                    } else {
+                        alert("Error al iniciar sesión con Google: " + error.message);
+                    }
                 });
         });
     }

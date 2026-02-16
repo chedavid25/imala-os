@@ -30,7 +30,19 @@
         <!-- Icons Css -->
         <link href="assets/css/icons.min.css" rel="stylesheet" type="text/css" />
         <!-- App Css-->
-        <link href="assets/css/app.min.css" id="app-style" rel="stylesheet" type="text/css" />
+        <link href="assets/css/app.min.css?v=11.1" id="app-style" rel="stylesheet" type="text/css" />
+        <link href="assets/css/custom-mobile.css?v=11.1" rel="stylesheet" type="text/css" />
+        
+        <style>
+            .privacy-blur {
+                filter: blur(8px);
+                user-select: none;
+                transition: filter 0.3s ease;
+            }
+            .backdrop-blur {
+                backdrop-filter: blur(10px);
+            }
+        </style>
 
     </head>
 
@@ -41,283 +53,552 @@
         <!-- Begin page -->
         <div id="layout-wrapper">
 
-            
-            @@include("partials/topbar.html")
+            <!-- Desktop View -->
+            <div id="desktop-view">
+                @@include("partials/topbar.html")
 
-            <!-- ========== Left Sidebar Start ========== -->
-            @@include("partials/sidebar.html")
+                <!-- ========== Left Sidebar Start ========== -->
+                @@include("partials/sidebar.html")
 
-            
+                
 
-            <!-- ============================================================== -->
-            <!-- Start right Content here -->
-            <!-- ============================================================== -->
-            <div class="main-content">
+                <!-- ============================================================== -->
+                <!-- Start right Content here -->
+                <!-- ============================================================== -->
+                <div class="main-content">
 
-                <div class="page-content">
-                    <div class="container-fluid">
+                    <div class="page-content">
+                        <div class="container-fluid">
 
-                        <!-- start page title -->
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="page-title-box d-sm-flex align-items-center justify-content-between">
-                                    <h4 class="mb-sm-0 font-size-18">Dashboard</h4>
+                            <!-- start page title -->
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+                                        <h4 class="mb-sm-0 font-size-18">Dashboard</h4>
 
-                                    <div class="page-title-right">
-                                        <ol class="breadcrumb m-0">
-                                            <li class="breadcrumb-item active">Bienvenido a Imalá OS</li>
-                                        </ol>
-                                    </div>
-
-                                </div>
-                            </div>
-                        </div>
-                        <!-- end page title -->
-
-                        <!-- Hero Section -->
-                        <div class="row">
-                            <div class="col-lg-12">
-                                <div class="card overflow-hidden bg-primary text-white p-3" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px;">
-                                    <div class="card-body">
-                                        <div class="row align-items-center">
-                                            <div class="col-lg-8">
-                                                <h4 class="text-white mb-2">¡Hola, <span id="dashboard-user-name">Usuario</span>! 👋</h4>
-                                                <p class="mb-0 text-white-50">Aquí tienes un resumen de tu actividad reciente. Tienes tareas pendientes que requieren tu atención.</p>
-                                            </div>
-                                            <div class="col-lg-4 text-end d-none d-lg-block">
-                                                 <!-- <img src="assets/images/dashboard-hero.png" height="80" alt=""> -->
-                                            </div>
+                                        <div class="page-title-right">
+                                            <ol class="breadcrumb m-0">
+                                                <li class="breadcrumb-item active">Bienvenido a Imalá OS</li>
+                                            </ol>
                                         </div>
+
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                            <!-- end page title -->
 
-                        <!-- Summary Cards -->
-                        <div class="row">
-                            <!-- Tasks Card -->
-                            <div class="col-xl-3 col-md-6">
-                                <a href="apps-tareas.html" class="text-decoration-none">
-                                    <div class="card card-h-100 border-start border-4 border-primary shadow-sm hover-shadow-lg transition-all">
-                                        <div class="card-body">
-                                            <div class="d-flex align-items-center">
-                                                <div class="flex-grow-1">
-                                                    <span class="text-muted mb-3 lh-1 d-block text-truncate text-uppercase font-size-11 fw-bold">Mis Tareas del día</span>
-                                                    <h4 class="mb-3">
-                                                        <span class="counter-value" id="kpi-tasks-pending">0</span>
-                                                        <span class="text-muted font-size-12 fw-normal ms-1">Pendientes</span>
-                                                    </h4>
-                                                    <div class="text-nowrap">
-                                                        <span class="badge bg-danger-subtle text-danger font-size-10" id="kpi-tasks-late-badge">0 Atrasadas</span>
-                                                    </div>
-                                                </div>
-                                                <div class="flex-shrink-0 text-end dash-widget">
-                                                    <div class="avatar-sm flex-shrink-0">
-                                                        <span class="avatar-title bg-primary-subtle text-primary rounded-3 font-size-22">
-                                                            <i class="bx bx-check-square"></i>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </a>
-                            </div>
+                            <!-- ================================ -->
+                            <!-- MOBILE DASHBOARD (STARTS HERE) -->
+                            <!-- ================================ -->
+                            <div class="d-block d-lg-none bg-light min-vh-100 pb-5 mb-5">
 
-                            <!-- Clients Card -->
-                            <div class="col-xl-3 col-md-6">
-                                <a href="apps-clients.html" class="text-decoration-none">
-                                    <div class="card card-h-100 border-start border-4 border-success shadow-sm hover-shadow-lg transition-all">
-                                        <div class="card-body">
-                                            <div class="d-flex align-items-center">
-                                                <div class="flex-grow-1">
-                                                    <span class="text-muted mb-3 lh-1 d-block text-truncate text-uppercase font-size-11 fw-bold">Clientes Activos</span>
-                                                    <h4 class="mb-3">
-                                                        <span class="counter-value" id="kpi-clients-count">--</span>
-                                                    </h4>
-                                                    <div class="text-nowrap">
-                                                        <span class="text-success font-size-12"><i class="mdi mdi-arrow-up-bold"></i> Ver base de datos</span>
-                                                    </div>
-                                                </div>
-                                                <div class="flex-shrink-0 text-end dash-widget">
-                                                    <div class="avatar-sm flex-shrink-0">
-                                                        <span class="avatar-title bg-success-subtle text-success rounded-3 font-size-22">
-                                                            <i class="bx bx-user-circle"></i>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                <!-- Header: Bienvenida + Avatar -->
+                                <div class="px-4 pt-4 pb-2 d-flex justify-content-between align-items-center bg-white">
+                                    <div>
+                                        <p class="text-muted font-size-12 mb-0">Hola de nuevo,</p>
+                                        <h4 class="mb-0 text-dark fw-bold" id="mob-user-name">Usuario</h4>
                                     </div>
-                                </a>
-                            </div>
-
-                            <!-- Cashflow Card -->
-                            <div class="col-xl-3 col-md-6">
-                                <a href="apps-cashflow.html" class="text-decoration-none">
-                                    <div class="card card-h-100 border-start border-4 border-warning shadow-sm hover-shadow-lg transition-all">
-                                        <div class="card-body">
-                                            <div class="d-flex align-items-center">
-                                                <div class="flex-grow-1">
-                                                    <span class="text-muted mb-3 lh-1 d-block text-truncate text-uppercase font-size-11 fw-bold">Cashflow</span>
-                                                    <h4 class="mb-3">Gestión</h4>
-                                                    <div class="text-nowrap">
-                                                        <span class="text-muted font-size-12">Ingresos y Egresos</span>
-                                                    </div>
-                                                </div>
-                                                <div class="flex-shrink-0 text-end dash-widget">
-                                                    <div class="avatar-sm flex-shrink-0">
-                                                        <span class="avatar-title bg-warning-subtle text-warning rounded-3 font-size-22">
-                                                            <i class="bx bx-dollar-circle"></i>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </a>
-                            </div>
-
-                            <!-- Analytics Card -->
-                            <div class="col-xl-3 col-md-6">
-                                <a href="apps-analytics.html" class="text-decoration-none">
-                                    <div class="card card-h-100 border-start border-4 border-info shadow-sm hover-shadow-lg transition-all">
-                                        <div class="card-body">
-                                            <div class="d-flex align-items-center">
-                                                <div class="flex-grow-1">
-                                                    <span class="text-muted mb-3 lh-1 d-block text-truncate text-uppercase font-size-11 fw-bold">Analytics</span>
-                                                    <h4 class="mb-3">Reportes</h4>
-                                                    <div class="text-nowrap">
-                                                        <span class="text-muted font-size-12">KPIs y Estadísticas</span>
-                                                    </div>
-                                                </div>
-                                                <div class="flex-shrink-0 text-end dash-widget">
-                                                    <div class="avatar-sm flex-shrink-0">
-                                                        <span class="avatar-title bg-info-subtle text-info rounded-3 font-size-22">
-                                                            <i class="bx bx-pie-chart-alt-2"></i>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </a>
-                            </div>
-                        </div>
-                        <!-- end row -->
-
-                        <div class="row">
-                            <!-- Main Tasks Column -->
-                            <div class="col-xl-8">
-                                <div class="card">
-                                    <div class="card-header align-items-center d-flex">
-                                        <h4 class="card-title mb-0 flex-grow-1">Mis Tareas Prioritarias</h4>
-                                        <div class="flex-shrink-0">
-                                            <a href="apps-tareas.html" class="btn btn-sm btn-light">Ver Todas <i class="mdi mdi-arrow-right ms-1"></i></a>
-                                        </div>
-                                    </div>
-                                    <div class="card-body px-0 pt-2">
-                                        <div class="table-responsive px-3" data-simplebar style="max-height: 380px;">
-                                            <table class="table table-hover align-middle table-nowrap mb-0">
-                                                <thead class="table-light">
-                                                    <tr>
-                                                        <th style="width: 20px;">#</th>
-                                                        <th>Tarea</th>
-                                                        <th>Asignado</th>
-                                                        <th>Vencimiento</th>
-                                                        <th>Estado</th>
-                                                        <th>Acción</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody id="dashboard-tasks-list">
-                                                    <tr>
-                                                        <td colspan="5" class="text-center p-4">
-                                                            <div class="spinner-border text-primary m-1" role="status">
-                                                                <span class="sr-only">Cargando...</span>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
+                                    <a href="apps-perfil.html">
+                                        <img src="assets/images/users/avatar-1.jpg" class="avatar-sm rounded-circle border border-2 border-primary p-1" id="mob-user-avatar">
+                                    </a>
                                 </div>
-                            </div>
 
-                            <!-- Quick Actions Sidebar -->
-                            <div class="col-xl-4">
-                                <!-- Quick Actions -->
-                                <div class="card">
-                                    <div class="card-header bg-transparent border-bottom">
-                                        <h5 class="card-title mb-0">Acciones Rápidas</h5>
+                                <!-- ⚠️ PRIORITY: Tareas Urgentes (HOY + Atrasadas) -->
+                                <div class="px-4 mt-3">
+                                    <div class="d-flex justify-content-between align-items-end mb-3">
+                                        <h6 class="text-muted font-size-12 mb-0 text-uppercase fw-bold">⚠️ Tareas Urgentes</h6>
+                                        <a href="apps-tareas.html" class="font-size-11 text-primary">Ver todas</a>
                                     </div>
-                                    <div class="card-body">
-                                        <div class="d-grid gap-2">
-                                            <a href="apps-tareas.html" class="btn btn-primary waves-effect waves-light btn-lg text-start">
-                                                <i class="bx bx-plus-circle font-size-18 align-middle me-2"></i> Nueva Tarea
-                                            </a>
-                                            <a href="apps-clients.html" class="btn btn-soft-success waves-effect waves-light btn-lg text-start">
-                                                <i class="bx bx-user-plus font-size-18 align-middle me-2"></i> Nuevo Cliente
-                                            </a>
-                                            <a href="apps-cashflow.html" class="btn btn-soft-secondary waves-effect waves-light btn-lg text-start">
-                                                <i class="bx bx-transfer-alt font-size-18 align-middle me-2"></i> Registrar Movimiento
-                                            </a>
+                                    
+                                    <div class="card border-0 shadow-sm rounded-4" id="mob-urgent-tasks-card">
+                                        <div class="card-body p-0">
+                                            <div class="list-group list-group-flush rounded-4" id="mob-urgent-tasks-list">
+                                                <!-- Tareas urgentes se renderizan aquí vía JS -->
+                                                <div class="text-center p-4 text-muted">
+                                                    <i class="bx bx-check-circle font-size-24 d-block mb-2 opacity-50"></i>
+                                                    <span class="font-size-12">Sin tareas urgentes</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <!-- System/Notifications Widget -->
-                                <div class="card">
-                                    <div class="card-header align-items-center d-flex">
-                                        <h5 class="card-title mb-0 flex-grow-1">Actividad Reciente</h5>
+                                <!-- Tarjeta Héroe: Liquidez Total -->
+                                <div class="px-3 mt-3">
+                                    <div class="card bg-primary border-0 rounded-4 shadow-lg text-white" style="background: linear-gradient(135deg, #556ee6 0%, #34c38f 100%);">
+                                        <div class="card-body p-4">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <span class="opacity-75 font-size-13"><i class="mdi mdi-wallet me-1"></i> Liquidez Total</span>
+                                                <button class="btn btn-sm text-white p-0 opacity-75" onclick="togglePrivacy()" id="btn-privacy">
+                                                    <i class="mdi mdi-eye" id="privacy-icon"></i>
+                                                </button>
+                                            </div>
+                                            
+                                            <h1 class="mt-3 mb-1 fw-bold text-white display-5">
+                                                <span class="privacy-blur" id="mob-home-balance">$ 0</span>
+                                            </h1>
+                                            <p class="mb-4 opacity-75 font-size-12">Total disponible en cuentas</p>
+
+                                            <div class="row g-2">
+                                                <div class="col-6">
+                                                    <div class="bg-white bg-opacity-10 rounded-3 p-2 text-center backdrop-blur">
+                                                        <small class="d-block opacity-75 font-size-10">Ingresos (Mes)</small>
+                                                        <span class="fw-bold font-size-13 privacy-blur text-white" id="mob-month-inc">+$ 0</span>
+                                                    </div>
+                                                </div>
+                                                <div class="col-6">
+                                                    <div class="bg-white bg-opacity-10 rounded-3 p-2 text-center backdrop-blur">
+                                                        <small class="d-block opacity-75 font-size-10">Gastos (Mes)</small>
+                                                        <span class="fw-bold font-size-13 privacy-blur text-white" id="mob-month-exp">-$ 0</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="card-body">
-                                        <ul class="list-unstyled activity-wid mb-0" id="dashboard-noti-list-widget">
-                                            <li class="activity-list activity-border">
-                                                <div class="activity-icon avatar-md">
-                                                    <span class="avatar-title bg-soft-primary text-primary rounded-circle">
-                                                        <i class="bx bx-info-circle font-size-20"></i>
+                                </div>
+
+                                <!-- Accesos Rápidos -->
+                                <div class="px-4 mt-3">
+                                    <h6 class="text-muted font-size-12 mb-3 text-uppercase fw-bold">Accesos Rápidos</h6>
+                                    <div class="row g-3 text-center">
+                                        <div class="col-3">
+                                            <a href="apps-contactos.html" class="d-block text-decoration-none">
+                                                <div class="avatar-sm mx-auto mb-2">
+                                                    <span class="avatar-title rounded-circle bg-white text-primary shadow-sm font-size-20">
+                                                        <i class="bx bx-user"></i>
                                                     </span>
                                                 </div>
-                                                <div class="timeline-list-item">
-                                                    <div class="d-flex">
-                                                        <div class="flex-grow-1 overflow-hidden me-4">
-                                                            <h5 class="font-size-14 mb-1">Sistema</h5>
-                                                            <p class="text-truncate text-muted font-size-13">Bienvenido a la nueva versión de Imalá OS.</p>
+                                                <span class="text-dark font-size-11 fw-medium">Contactos</span>
+                                            </a>
+                                        </div>
+                                        <div class="col-3">
+                                            <a href="apps-tareas.html" class="d-block text-decoration-none">
+                                                <div class="avatar-sm mx-auto mb-2">
+                                                    <span class="avatar-title rounded-circle bg-white text-warning shadow-sm font-size-20">
+                                                        <i class="bx bx-task"></i>
+                                                    </span>
+                                                </div>
+                                                <span class="text-dark font-size-11 fw-medium">Tareas</span>
+                                            </a>
+                                        </div>
+                                        <div class="col-3">
+                                            <a href="apps-propiedades.html" class="d-block text-decoration-none">
+                                                <div class="avatar-sm mx-auto mb-2">
+                                                    <span class="avatar-title rounded-circle bg-white text-success shadow-sm font-size-20">
+                                                        <i class="bx bx-home"></i>
+                                                    </span>
+                                                </div>
+                                                <span class="text-dark font-size-11 fw-medium">Propiedades</span>
+                                            </a>
+                                        </div>
+                                        <div class="col-3">
+                                            <a href="apps-cashflow.html" class="d-block text-decoration-none">
+                                                <div class="avatar-sm mx-auto mb-2">
+                                                    <span class="avatar-title rounded-circle bg-white text-info shadow-sm font-size-20">
+                                                        <i class="bx bx-dollar"></i>
+                                                    </span>
+                                                </div>
+                                                <span class="text-dark font-size-11 fw-medium">Cashflow</span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Últimos Movimientos -->
+                                <div class="px-3 mt-4">
+                                    <div class="d-flex justify-content-between align-items-end mb-3 px-1">
+                                        <h6 class="text-muted font-size-12 mb-0 text-uppercase fw-bold">Últimos Movimientos</h6>
+                                        <a href="apps-cashflow.html" class="font-size-11 text-primary">Ver todo</a>
+                                    </div>
+                                    
+                                    <div class="card border-0 shadow-sm rounded-4">
+                                        <div class="card-body p-0">
+                                            <div class="list-group list-group-flush rounded-4" id="mob-recent-transactions">
+                                                <!-- Últimas transacciones se renderizan aquí vía JS -->
+                                                <div class="text-center p-4 text-muted">
+                                                    <i class="bx bx-receipt font-size-24 d-block mb-2 opacity-50"></i>
+                                                    <span class="font-size-12">Sin movimientos recientes</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Spacer para bottom nav -->
+                                <div style="height: 80px;"></div>
+
+                            </div>
+                            <!-- ================================ -->
+                            <!-- MOBILE DASHBOARD (ENDS HERE) -->
+                            <!-- ================================ -->
+
+                            <!-- Desktop Dashboard (Hidden on Mobile) -->
+                            <div class="d-none d-lg-block">
+                            <!-- Hero Section -->
+                            <div class="row">
+                                <div class="col-lg-12">
+                                    <div class="card overflow-hidden bg-primary text-white p-3" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px;">
+                                        <div class="card-body">
+                                            <div class="row align-items-center">
+                                                <div class="col-lg-8">
+                                                    <h4 class="text-white mb-2">¡Hola, <span id="dashboard-user-name">Usuario</span>! 👋</h4>
+                                                    <p class="mb-0 text-white-50">Aquí tienes un resumen de tu actividad reciente. Tienes tareas pendientes que requieren tu atención.</p>
+                                                </div>
+                                                <div class="col-lg-4 text-end d-none d-lg-block">
+                                                     <!-- <img src="assets/images/dashboard-hero.png" height="80" alt=""> -->
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Summary Cards -->
+                            <div class="row">
+                                <!-- Tasks Card -->
+                                <div class="col-xl-3 col-md-6">
+                                    <a href="apps-tareas.html" class="text-decoration-none">
+                                        <div class="card card-h-100 border-start border-4 border-primary shadow-sm hover-shadow-lg transition-all">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="flex-grow-1">
+                                                        <span class="text-muted mb-3 lh-1 d-block text-truncate text-uppercase font-size-11 fw-bold">Mis Tareas del día</span>
+                                                        <h4 class="mb-3">
+                                                            <span class="counter-value" id="kpi-tasks-pending">0</span>
+                                                            <span class="text-muted font-size-12 fw-normal ms-1">Pendientes</span>
+                                                        </h4>
+                                                        <div class="text-nowrap">
+                                                            <span class="badge bg-danger-subtle text-danger font-size-10" id="kpi-tasks-late-badge">0 Atrasadas</span>
                                                         </div>
-                                                        <div class="flex-shrink-0 text-end">
-                                                            <span class="font-size-11">Ahora</span>
+                                                    </div>
+                                                    <div class="flex-shrink-0 text-end dash-widget">
+                                                        <div class="avatar-sm flex-shrink-0">
+                                                            <span class="avatar-title bg-primary-subtle text-primary rounded-3 font-size-22">
+                                                                <i class="bx bx-check-square"></i>
+                                                            </span>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </li>
-                                        </ul>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+
+                                <!-- Clients Card -->
+                                <div class="col-xl-3 col-md-6">
+                                    <a href="apps-clients.html" class="text-decoration-none">
+                                        <div class="card card-h-100 border-start border-4 border-success shadow-sm hover-shadow-lg transition-all">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="flex-grow-1">
+                                                        <span class="text-muted mb-3 lh-1 d-block text-truncate text-uppercase font-size-11 fw-bold">Clientes Activos</span>
+                                                        <h4 class="mb-3">
+                                                            <span class="counter-value" id="kpi-clients-count">--</span>
+                                                        </h4>
+                                                        <div class="text-nowrap">
+                                                            <span class="text-success font-size-12"><i class="mdi mdi-arrow-up-bold"></i> Ver base de datos</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex-shrink-0 text-end dash-widget">
+                                                        <div class="avatar-sm flex-shrink-0">
+                                                            <span class="avatar-title bg-success-subtle text-success rounded-3 font-size-22">
+                                                                <i class="bx bx-user-circle"></i>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+
+                                <!-- Cashflow Card -->
+                                <div class="col-xl-3 col-md-6">
+                                    <a href="apps-cashflow.html" class="text-decoration-none">
+                                        <div class="card card-h-100 border-start border-4 border-warning shadow-sm hover-shadow-lg transition-all">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="flex-grow-1">
+                                                        <span class="text-muted mb-3 lh-1 d-block text-truncate text-uppercase font-size-11 fw-bold">Cashflow</span>
+                                                        <h4 class="mb-3">Gestión</h4>
+                                                        <div class="text-nowrap">
+                                                            <span class="text-muted font-size-12">Ingresos y Egresos</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex-shrink-0 text-end dash-widget">
+                                                        <div class="avatar-sm flex-shrink-0">
+                                                            <span class="avatar-title bg-warning-subtle text-warning rounded-3 font-size-22">
+                                                                <i class="bx bx-dollar-circle"></i>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+
+                                <!-- Analytics Card -->
+                                <div class="col-xl-3 col-md-6">
+                                    <a href="apps-analytics.html" class="text-decoration-none">
+                                        <div class="card card-h-100 border-start border-4 border-info shadow-sm hover-shadow-lg transition-all">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="flex-grow-1">
+                                                        <span class="text-muted mb-3 lh-1 d-block text-truncate text-uppercase font-size-11 fw-bold">Analytics</span>
+                                                        <h4 class="mb-3">Reportes</h4>
+                                                        <div class="text-nowrap">
+                                                            <span class="text-muted font-size-12">KPIs y Estadísticas</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex-shrink-0 text-end dash-widget">
+                                                        <div class="avatar-sm flex-shrink-0">
+                                                            <span class="avatar-title bg-info-subtle text-info rounded-3 font-size-22">
+                                                                <i class="bx bx-pie-chart-alt-2"></i>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
+                            <!-- end row -->
+
+                            <div class="row">
+                                <!-- Main Tasks Column -->
+                                <div class="col-xl-8">
+                                    <div class="card">
+                                        <div class="card-header align-items-center d-flex">
+                                            <h4 class="card-title mb-0 flex-grow-1">Mis Tareas Prioritarias</h4>
+                                            <div class="flex-shrink-0">
+                                                <a href="apps-tareas.html" class="btn btn-sm btn-light">Ver Todas <i class="mdi mdi-arrow-right ms-1"></i></a>
+                                            </div>
+                                        </div>
+                                        <div class="card-body px-0 pt-2">
+                                            <div class="table-responsive px-3" data-simplebar style="max-height: 380px;">
+                                                <table class="table table-hover align-middle table-nowrap mb-0">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th style="width: 20px;">#</th>
+                                                            <th>Tarea</th>
+                                                            <th>Asignado</th>
+                                                            <th>Vencimiento</th>
+                                                            <th>Estado</th>
+                                                            <th>Acción</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="dashboard-tasks-list">
+                                                        <tr>
+                                                            <td colspan="5" class="text-center p-4">
+                                                                <div class="spinner-border text-primary m-1" role="status">
+                                                                    <span class="sr-only">Cargando...</span>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Quick Actions Sidebar -->
+                                <div class="col-xl-4">
+                                    <!-- Quick Actions -->
+                                    <div class="card">
+                                        <div class="card-header bg-transparent border-bottom">
+                                            <h5 class="card-title mb-0">Acciones Rápidas</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="d-grid gap-2">
+                                                <a href="apps-tareas.html" class="btn btn-primary waves-effect waves-light btn-lg text-start">
+                                                    <i class="bx bx-plus-circle font-size-18 align-middle me-2"></i> Nueva Tarea
+                                                </a>
+                                                <a href="apps-clients.html" class="btn btn-soft-success waves-effect waves-light btn-lg text-start">
+                                                    <i class="bx bx-user-plus font-size-18 align-middle me-2"></i> Nuevo Cliente
+                                                </a>
+                                                <a href="apps-cashflow.html" class="btn btn-soft-secondary waves-effect waves-light btn-lg text-start">
+                                                    <i class="bx bx-transfer-alt font-size-18 align-middle me-2"></i> Registrar Movimiento
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- System/Notifications Widget -->
+                                    <div class="card">
+                                        <div class="card-header align-items-center d-flex">
+                                            <h5 class="card-title mb-0 flex-grow-1">Actividad Reciente</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <ul class="list-unstyled activity-wid mb-0" id="dashboard-noti-list-widget">
+                                                <li class="activity-list activity-border">
+                                                    <div class="activity-icon avatar-md">
+                                                        <span class="avatar-title bg-soft-primary text-primary rounded-circle">
+                                                            <i class="bx bx-info-circle font-size-20"></i>
+                                                        </span>
+                                                    </div>
+                                                    <div class="timeline-list-item">
+                                                        <div class="d-flex">
+                                                            <div class="flex-grow-1 overflow-hidden me-4">
+                                                                <h5 class="font-size-14 mb-1">Sistema</h5>
+                                                                <p class="text-truncate text-muted font-size-13">Bienvenido a la nueva versión de Imalá OS.</p>
+                                                            </div>
+                                                            <div class="flex-shrink-0 text-end">
+                                                                <span class="font-size-11">Ahora</span>
+                                                            </div>
+                                                        </div>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- end row -->
+
+                            </div>
+                            </div>
+                            <!-- End Desktop Dashboard -->
+                            <!-- container-fluid -->
+                        </div>
+                        <!-- End Page-content -->
+
+                        <footer class="footer">
+                            <div class="container-fluid">
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <script>document.write(new Date().getFullYear())</script> © Imalá.
+                                    </div>
+                                    <div class="col-sm-6 text-sm-end">
+                                        Design & Develop by <a href="#!" class="text-decoration-underline">Imalá Team</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </footer>
+                    </div>
+                    <!-- end main content-->
+                </div><!-- end desktop-view -->
+
+                <!-- Mobile View -->
+                <div id="mobile-view" class="mobile-app-container d-none">
+                    <!-- Mobile Header -->
+                    <header class="mobile-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="user-info">
+                                <h4 class="mb-0 text-white">¡Hola, <span class="mob-user-name">Usuario</span>!</h4>
+                                <p class="mb-0 text-white-50 small">Dashboard Principal</p>
+                            </div>
+                            <div class="mob-date-badge bg-white bg-opacity-10 rounded px-2 py-1 text-center">
+                                <span class="d-block text-white-50 font-size-10 text-uppercase" id="mob-month-name">--</span>
+                                <span class="d-block text-white fw-bold font-size-16" id="mob-day-number">--</span>
+                            </div>
+                        </div>
+
+                        <!-- Mobile Highlights Tiles -->
+                        <div class="row mt-4 mob-highlights">
+                            <div class="col-6">
+                                <div class="mob-tile">
+                                    <span class="mob-tile-label">Tareas Hoy</span>
+                                    <h3 class="mob-tile-value" id="mob-kpi-tasks">0</h3>
+                                    <div class="mob-tile-footer">
+                                        <span class="badge bg-danger-subtle text-danger" id="mob-kpi-late">0 Atrasadas</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="mob-tile">
+                                    <span class="mob-tile-label">Clientes</span>
+                                    <h3 class="mob-tile-value" id="mob-kpi-clients">0</h3>
+                                    <div class="mob-tile-footer">
+                                        <span class="text-success small"><i class="bx bx-trending-up"></i> Ver todos</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <!-- end row -->
+                    </header>
 
-                    </div>
-                    <!-- container-fluid -->
-                </div>
-                <!-- End Page-content -->
-
-                <!-- Task Detail Modal -->
-                <!-- Task Detail Modal -->
-                <div class="modal fade" id="task-detail-modal" tabindex="-1">
-                    <div class="modal-dialog modal-dialog-centered modal-lg">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="detail-title">Detalles de Tarea</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-hidden="true"></button>
+                    <main class="mobile-body p-3">
+                        <!-- Quick Access Section -->
+                        <section class="mb-4">
+                            <h6 class="section-title mb-3">Accesos Directos</h6>
+                            <div class="d-flex gap-3 overflow-auto pb-2 mob-shortcuts">
+                                <a href="apps-tareas.html" class="shortcut-item">
+                                    <div class="icon-circle bg-primary-subtle text-primary">
+                                        <i class="bx bx-check-square"></i>
+                                    </div>
+                                    <span>Tareas</span>
+                                </a>
+                                <a href="apps-clients.html" class="shortcut-item">
+                                    <div class="icon-circle bg-success-subtle text-success">
+                                        <i class="bx bx-group"></i>
+                                    </div>
+                                    <span>Clientes</span>
+                                </a>
+                                <a href="apps-cashflow.html" class="shortcut-item">
+                                    <div class="icon-circle bg-warning-subtle text-warning">
+                                        <i class="bx bx-wallet"></i>
+                                    </div>
+                                    <span>Cartera</span>
+                                </a>
                             </div>
-                            <div class="modal-body">
+                        </section>
+
+                        <!-- Recent Activity Section -->
+                        <section>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="section-title mb-0">Actividad Reciente</h6>
+                            </div>
+                            <div id="mob-recent-activity" class="mobile-activity-list">
+                                <!-- Injected via JS -->
+                                <div class="text-center p-5">
+                                    <div class="spinner-border spinner-border-sm text-primary"></div>
+                                </div>
+                            </div>
+                        </section>
+                    </main>
+
+                    <!-- FAB Navigation -->
+                    <nav class="mobile-bottom-nav">
+                        <a href="index.html" class="nav-item active"><i class="bx bx-home-alt-2"></i><span>Home</span></a>
+                        <a href="apps-analytics.html" class="nav-item"><i class="bx bx-pie-chart-alt-2"></i><span>Reportes</span></a>
+                        
+                        <div class="fab-container">
+                            <button class="btn btn-primary rounded-circle shadow-lg p-0" id="mob-fab-main" onclick="openNewTaskModal()">
+                                <i class="mdi mdi-plus font-size-24"></i>
+                            </button>
+                        </div>
+
+                        <a href="apps-cashflow.html" class="nav-item"><i class="bx bx-wallet"></i><span>Cartera</span></a>
+                        <a href="apps-perfil.html" class="nav-item"><i class="bx bx-user"></i><span>Perfil</span></a>
+                    </nav>
+                </div><!-- end mobile-view -->
+            </div>
+            <!-- END layout-wrapper -->
+
+            <!-- Task Detail Modal -->
+            <div class="modal fade" id="task-detail-modal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="detail-title">Detalles de Tarea</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-hidden="true"></button>
+                        </div>
+                        <div class="modal-body">
+                            
+                            <!-- Nav tabs -->
+                            <ul class="nav nav-tabs nav-tabs-custom mb-3">
+                                <li class="nav-item">
+                                    <a class="nav-link active" data-bs-toggle="tab" href="#tab-detail-info" role="tab">Información</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" data-bs-toggle="tab" href="#tab-detail-chat" role="tab">Bitácora <span class="badge bg-danger rounded-pill" id="chat-badge" style="display:none">!</span></a>
+                                </li>
+                            </ul>
+
+                            <!-- Tab panes -->
+                            <div class="tab-content text-muted">
                                 
-                                <!-- Nav tabs -->
-                                <ul class="nav nav-tabs nav-tabs-custom mb-3">
-                                    <li class="nav-item">
-                                        <a class="nav-link active" data-bs-toggle="tab" href="#tab-detail-info" role="tab">Información</a>
                                     </li>
                                     <li class="nav-item">
                                         <a class="nav-link" data-bs-toggle="tab" href="#tab-detail-chat" role="tab">Bitácora <span class="badge bg-danger rounded-pill" id="chat-badge" style="display:none">!</span></a>
@@ -393,7 +674,253 @@
                             </div>
                         </div>
                     </div>
+                </div> <!-- end main-content -->
+            </div><!-- end desktop-view -->
+
+            <!-- Mobile View -->
+            <div id="mobile-view" class="mobile-app-container d-none">
+                <!-- MOBILE HEADER PREMIUM (BLUE) -->
+                <div class="p-4 text-white position-relative" style="background: #5156be; border-radius: 0 0 40px 40px; min-height: 220px; box-shadow: 0 10px 30px rgba(81, 86, 190, 0.2);">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h6 class="text-white-50 mb-1 fw-medium" style="letter-spacing: 0.5px;">Saldo Patrimonio Total</h6>
+                            <h2 class="fw-bold mb-0" style="font-size: 2.2rem;">$<span id="mob-total-balance">0.00</span></h2>
+                        </div>
+                        <div class="avatar-sm">
+                            <span class="avatar-title rounded-circle bg-white bg-opacity-10">
+                                <i class="bx bx-trending-up font-size-24"></i>
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="d-flex align-items-center bg-white bg-opacity-10 p-3" style="border-radius: 20px; backdrop-filter: blur(5px);">
+                                <div class="avatar-xs me-2">
+                                    <span class="avatar-title rounded-circle bg-success bg-opacity-20 text-success">
+                                        <i class="bx bx-up-arrow-alt"></i>
+                                    </span>
+                                </div>
+                                <div>
+                                    <p class="text-white-50 small mb-0">Ingresos</p>
+                                    <h5 class="text-white mb-0 font-size-14 fw-bold">$<span id="mob-total-income">0.00</span></h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="d-flex align-items-center bg-white bg-opacity-10 p-3" style="border-radius: 20px; backdrop-filter: blur(5px);">
+                                <div class="avatar-xs me-2">
+                                    <span class="avatar-title rounded-circle bg-danger bg-opacity-20 text-danger">
+                                        <i class="bx bx-down-arrow-alt"></i>
+                                    </span>
+                                </div>
+                                <div>
+                                    <p class="text-white-50 small mb-0">Gastos</p>
+                                    <h5 class="text-white mb-0 font-size-14 fw-bold">$<span id="mob-total-expense">0.00</span></h5>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- BALANCE CARDS (OVERLAPPING) -->
+                <div class="px-3" style="margin-top: -30px;">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <div class="card border-0 shadow-lg" style="border-radius: 20px;">
+                                <div class="card-body p-3 text-center">
+                                    <div class="avatar-sm mx-auto mb-2">
+                                        <span class="avatar-title rounded-circle bg-soft-primary text-primary">
+                                            <i class="bx bx-wallet font-size-18"></i>
+                                        </span>
+                                    </div>
+                                    <h6 class="text-muted mb-1 font-size-11 fw-medium text-uppercase">Liquidez</h6>
+                                    <h5 class="fw-bold mb-0 font-size-15">$<span id="mob-total-liquidity">0.00</span></h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card border-0 shadow-lg" style="border-radius: 20px;">
+                                <div class="card-body p-3 text-center">
+                                    <div class="avatar-sm mx-auto mb-2">
+                                        <span class="avatar-title rounded-circle bg-soft-info text-info">
+                                            <i class="bx bx-dollar font-size-18"></i>
+                                        </span>
+                                    </div>
+                                    <h6 class="text-muted mb-1 font-size-11 fw-medium text-uppercase">USD Total</h6>
+                                    <h5 class="fw-bold mb-0 font-size-15">$<span id="mob-total-invested">0.00</span></h5>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <main class="mobile-body p-3">
+                    
+                    <!-- QUICK ACCESS CARDS -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-4">
+                            <a href="apps-cashflow.html" class="card border-0 shadow-sm text-center py-3 text-decoration-none h-100" style="border-radius: 16px;">
+                                <div class="avatar-sm mx-auto mb-2">
+                                    <span class="avatar-title rounded-circle bg-soft-primary text-primary">
+                                        <i class="bx bx-wallet font-size-20"></i>
+                                    </span>
+                                </div>
+                                <h6 class="text-dark font-size-12 mb-0 fw-bold">Cartera</h6>
+                            </a>
+                        </div>
+                        <div class="col-4">
+                            <a href="apps-tareas.html" class="card border-0 shadow-sm text-center py-3 text-decoration-none h-100" style="border-radius: 16px;">
+                                <div class="avatar-sm mx-auto mb-2">
+                                    <span class="avatar-title rounded-circle bg-soft-success text-success">
+                                        <i class="bx bx-task font-size-20"></i>
+                                    </span>
+                                </div>
+                                <h6 class="text-dark font-size-12 mb-0 fw-bold">Tareas</h6>
+                            </a>
+                        </div>
+                        <div class="col-4">
+                            <a href="apps-analytics.html" class="card border-0 shadow-sm text-center py-3 text-decoration-none h-100" style="border-radius: 16px;">
+                                <div class="avatar-sm mx-auto mb-2">
+                                    <span class="avatar-title rounded-circle bg-soft-info text-info">
+                                        <i class="bx bx-pie-chart-alt-2 font-size-20"></i>
+                                    </span>
+                                </div>
+                                <h6 class="text-dark font-size-12 mb-0 fw-bold">Reportes</h6>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <h6 class="fw-bold mb-3">Accesos Rápidos</h6>
+                    <div class="row g-2 mb-4">
+                        <div class="col-3 text-center">
+                            <a href="index.html" class="mob-action-btn active">
+                                <div class="icon-circle shadow-sm bg-primary bg-opacity-10 text-primary mx-auto mb-2">
+                                    <i class="bx bx-home-alt-2 font-size-22"></i>
+                                </div>
+                                <span class="small fw-bold">Home</span>
+                            </a>
+                        </div>
+                        <div class="col-3 text-center">
+                            <a href="apps-tareas.html" class="mob-action-btn">
+                                <div class="icon-circle shadow-sm bg-success bg-opacity-10 text-success mx-auto mb-2">
+                                    <i class="bx bx-check-square font-size-22"></i>
+                                </div>
+                                <span class="small fw-bold">Tareas</span>
+                            </a>
+                        </div>
+                        <div class="col-3 text-center">
+                            <a href="apps-analytics.html" class="mob-action-btn">
+                                <div class="icon-circle shadow-sm bg-info bg-opacity-10 text-info mx-auto mb-2">
+                                    <i class="bx bx-pie-chart-alt-2 font-size-22"></i>
+                                </div>
+                                <span class="small fw-bold">Reportes</span>
+                            </a>
+                        </div>
+                        <div class="col-3 text-center">
+                            <a href="apps-cashflow.html" class="mob-action-btn">
+                                <div class="icon-circle shadow-sm bg-warning bg-opacity-10 text-warning mx-auto mb-2">
+                                    <i class="bx bx-wallet font-size-22"></i>
+                                </div>
+                                <span class="small fw-bold">Cartera</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold mb-0">Actividad Reciente</h6>
+                        <a href="#" class="small text-primary">Ver todas</a>
+                    </div>
+                    <div id="mob-recent-activity">
+                        <!-- Dynamic items -->
+                        <div class="text-center p-4"><div class="spinner-border text-primary spinner-border-sm"></div></div>
+                    </div>
+                </main>
+
+                <!-- NEW TASK MODAL (SYNCED WITH APPS-TAREAS) -->
+                <div class="modal fade" id="new-task-modal" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+                            <div class="modal-header border-0 pb-0">
+                                <h5 class="modal-title fw-bold" id="task-modal-title">Nueva Tarea</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form id="task-form">
+                                <input type="hidden" id="task-id">
+                                <div class="modal-body p-4">
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold text-uppercase text-muted" style="letter-spacing: 0.5px;">Título</label>
+                                        <input type="text" id="task-title" class="form-control form-control-lg bg-light border-0" placeholder="Ej: Pago de impuestos" required style="border-radius: 12px;">
+                                    </div>
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-6">
+                                            <label class="form-label small fw-bold text-uppercase text-muted" style="letter-spacing: 0.5px;">Vencimiento</label>
+                                            <input type="date" id="task-due-date" class="form-control bg-light border-0 py-2" required style="border-radius: 10px;">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label small fw-bold text-uppercase text-muted" style="letter-spacing: 0.5px;">Hora</label>
+                                            <input type="time" id="task-due-time" class="form-control bg-light border-0 py-2" style="border-radius: 10px;">
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold text-uppercase text-muted" style="letter-spacing: 0.5px;">Prioridad</label>
+                                        <div class="d-flex gap-2">
+                                            <input type="radio" class="btn-check" name="priority" id="p-low" value="LOW" checked>
+                                            <label class="btn btn-soft-success flex-grow-1 border-0" for="p-low" style="border-radius: 10px;">Baja</label>
+                                            <input type="radio" class="btn-check" name="priority" id="p-med" value="MEDIUM">
+                                            <label class="btn btn-soft-warning flex-grow-1 border-0" for="p-med" style="border-radius: 10px;">Media</label>
+                                            <input type="radio" class="btn-check" name="priority" id="p-high" value="HIGH">
+                                            <label class="btn btn-soft-danger flex-grow-1 border-0" for="p-high" style="border-radius: 10px;">Alta</label>
+                                        </div>
+                                    </div>
+
+                                    <div class="text-end mb-3">
+                                        <a href="javascript:void(0);" class="small fw-medium text-primary" id="btn-toggle-task-fields" onclick="toggleTaskMoreFields()">Ver más campos...</a>
+                                    </div>
+
+                                    <div id="task-more-fields" class="collapse">
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-bold text-uppercase text-muted">Asignar a</label>
+                                            <select id="task-assigned-to" class="form-select bg-light border-0 py-2" style="border-radius: 10px;">
+                                                <option value="David">David</option>
+                                                <option value="Lucre">Lucre</option>
+                                                <option value="Ambos">Ambos</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-bold text-uppercase text-muted">Cliente</label>
+                                            <select id="task-client-id" class="form-select bg-light border-0 py-2" style="border-radius: 10px;">
+                                                <option value="">Sin Cliente</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-bold text-uppercase text-muted">Descripción</label>
+                                            <textarea id="task-desc" class="form-control bg-light border-0" rows="3" style="border-radius: 10px;"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer border-0 pt-0 px-4 pb-4">
+                                    <button type="submit" class="btn btn-primary btn-lg w-100 rounded-pill shadow-sm py-3 fw-bold"><span id="task-save-text">Crear Tarea</span></button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <nav class="mobile-bottom-nav">
+                    <a href="index.html" class="nav-item active"><i class="bx bx-home-alt-2"></i><span>Home</span></a>
+                    <a href="apps-analytics.html" class="nav-item"><i class="bx bx-pie-chart-alt-2"></i><span>Reportes</span></a>
+                    <div class="fab-container">
+                        <button class="btn btn-primary rounded-circle shadow-lg p-0" id="mob-fab-main" onclick="openNewTaskModal()">
+                            <i class="mdi mdi-plus font-size-24"></i>
+                        </button>
+                    </div>
+                    <a href="apps-cashflow.html" class="nav-item"><i class="bx bx-wallet"></i><span>Cartera</span></a>
+                    <a href="apps-tareas.html" class="nav-item"><i class="bx bx-task"></i><span>Tareas</span></a>
+                </nav>
+            </div><!-- end mobile-view -->
 
                 <!-- Tarea Modal -->
                 <div class="modal fade" id="event-modal" tabindex="-1">
@@ -690,7 +1217,7 @@
         <script src="assets/js/firebase-config.js"></script>
         <script src="assets/js/imala-auth.js"></script>
 
-        <script src="assets/js/index.js"></script>
+        <script src="assets/js/index.js?v=11.1"></script>
 
     </body>
 

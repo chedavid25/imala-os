@@ -32,17 +32,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Populate Years dynamically
     populateYearSelect();
+    populateMobYearSelect();
 
     // Set UI Defaults for other filters
-    document.getElementById('analytics-month').value = filterMonth;
+    if(document.getElementById('analytics-month')) document.getElementById('analytics-month').value = filterMonth;
     
     // Set Active Button
     updatePeriodButtons();
     updateSelectorsVisibility();
 
     window.Imala.auth.checkAuth(user => {
-        console.log("Analytics Auth:", user);
         loadData();
+    });
+
+    window.addEventListener('resize', () => {
+        updateDashboard();
     });
 });
 
@@ -51,8 +55,8 @@ function populateYearSelect() {
     if(!select) return;
     
     select.innerHTML = '';
-    const startYear = 2024; // Project start
-    const endYear = filterYear + 1; // Current year + 1 for flexibility
+    const startYear = 2024; 
+    const endYear = new Date().getFullYear() + 1;
 
     for(let y = endYear; y >= startYear; y--) {
         const opt = document.createElement('option');
@@ -62,6 +66,59 @@ function populateYearSelect() {
         select.appendChild(opt);
     }
 }
+
+function populateMobYearSelect() {
+    const select = document.getElementById('mob-analytics-year');
+    if(!select) return;
+    
+    select.innerHTML = '';
+    const startYear = 2024;
+    const endYear = new Date().getFullYear() + 1;
+
+    for(let y = endYear; y >= startYear; y--) {
+        const opt = document.createElement('option');
+        opt.value = y;
+        opt.textContent = y;
+        if(y === filterYear) opt.selected = true;
+        select.appendChild(opt);
+    }
+}
+
+window.syncFilters = function(type, val) {
+    if(type === 'year') {
+        filterYear = parseInt(val);
+        const desktopYear = document.getElementById('analytics-year');
+        const mobileYear = document.getElementById('mob-analytics-year');
+        if(desktopYear) desktopYear.value = val;
+        if(mobileYear) mobileYear.value = val;
+    }
+    updateDashboard();
+};
+
+window.toggleMobCurrency = function() {
+    const newCurr = filterCurrency === 'ARS' ? 'USD' : 'ARS';
+    appAnalytics.setCurrency(newCurr);
+    const btn = document.getElementById('mob-currency-toggle');
+    if(btn) btn.textContent = newCurr;
+};
+
+window.switchMobTab = function(tabName, btn) {
+    // UI Update
+    document.querySelectorAll('[data-mob-tab]').forEach(b => {
+        b.classList.remove('btn-white', 'bg-white', 'text-primary', 'active');
+        b.classList.add('btn-outline-light');
+    });
+    btn.classList.remove('btn-outline-light');
+    btn.classList.add('btn-white', 'bg-white', 'text-primary', 'active');
+
+    // Content Update
+    document.querySelectorAll('.mob-tab-pane').forEach(p => p.classList.add('d-none'));
+    const pane = document.getElementById(`mob-tab-${tabName.toLowerCase()}`);
+    if(pane) pane.classList.remove('d-none');
+
+    currentTab = tabName;
+    updateDashboard();
+};
 
 // --- Data Loading ---
 function loadData() {
@@ -163,6 +220,10 @@ const appAnalytics = {
         // Update UI Labels
         document.querySelectorAll('.currency-label').forEach(el => el.innerText = curr);
         
+        // Mobile Toggle Button Sync
+        const mobCurrBtn = document.getElementById('mob-currency-toggle');
+        if(mobCurrBtn) mobCurrBtn.textContent = curr;
+
         // Update selection state if needed
         const btnArs = document.getElementById('currency-ars');
         const btnUsd = document.getElementById('currency-usd');
@@ -382,6 +443,8 @@ function updateSelectorsVisibility() {
     if (filterPeriod === 'SEMESTER' && s) s.classList.remove('d-none');
 }
 function updateDashboard() {
+    const isMobile = window.innerWidth < 992;
+    
     // 1. Filter Transactions (Operations)
     let filteredTx = invoicesData;
     if (filterAccount !== 'ALL') {
@@ -398,51 +461,53 @@ function updateDashboard() {
     });
 
     // 2. Calculate KPIs
-    calculateOperativeKPIs(periodData);
-    calculateWealthKPIs();
+    calculateOperativeKPIs(periodData, isMobile);
+    calculateWealthKPIs(isMobile);
     
     // 3. Render Charts based on Tab
     if (currentTab === 'BILLING') {
-        renderOperativeDashboard(yearTx); 
+        renderOperativeDashboard(yearTx, isMobile); 
     } else if (currentTab === 'SAVINGS') {
-        renderWealthDashboard();
+        renderWealthDashboard(isMobile);
     } else if (currentTab === 'CRM') {
-        updateCRMDashboard();
+        updateCRMDashboard(isMobile);
     }
 }
 
-function calculateOperativeKPIs(periodData) {
+function calculateOperativeKPIs(periodData, isMobile) {
     let income = 0;
     let expenses = 0;
     let savings = 0;
 
     periodData.forEach(tx => {
         let amount = parseFloat(tx.amount) || 0;
-        
-        // Convert to Filter Currency if needed
         if (tx.currency === 'USD' && filterCurrency === 'ARS') amount *= EXCHANGE_RATE;
         if (tx.currency === 'ARS' && filterCurrency === 'USD') amount /= EXCHANGE_RATE;
 
-        if (tx.type === 'INCOME') {
-            income += amount;
-        } else if (tx.type === 'EXPENSE') {
-            // EXCLUDE INVESTMENT from Operating Expenses
-            if (tx.category !== 'INVESTMENT') {
-                expenses += amount;
-            }
-        } else if (tx.type === 'SAVING') {
-            savings += amount;
-        }
+        if (tx.type === 'INCOME') income += amount;
+        else if (tx.type === 'EXPENSE' && tx.category !== 'INVESTMENT') expenses += amount;
+        else if (tx.type === 'SAVING') savings += amount;
     });
 
     const profit = income - expenses;
     const savingsRate = income > 0 ? (savings / income) * 100 : 0;
 
-    // Update UI
-    if(document.getElementById('kpi-billed')) document.getElementById('kpi-billed').innerText = formatCurrency(income);
-    if(document.getElementById('kpi-expenses')) document.getElementById('kpi-expenses').innerText = formatCurrency(expenses);
-    if(document.getElementById('kpi-profit')) document.getElementById('kpi-profit').innerText = formatCurrency(profit);
-    if(document.getElementById('kpi-savings-rate')) document.getElementById('kpi-savings-rate').innerText = savingsRate.toFixed(1);
+    // Update Desktop UI
+    const kpiBilled = document.getElementById('kpi-billed');
+    const kpiExpenses = document.getElementById('kpi-expenses');
+    const kpiProfit = document.getElementById('kpi-profit');
+    const kpiSavings = document.getElementById('kpi-savings-rate');
+
+    if(kpiBilled) kpiBilled.innerText = formatCurrency(income);
+    if(kpiExpenses) kpiExpenses.innerText = formatCurrency(expenses);
+    if(kpiProfit) kpiProfit.innerText = formatCurrency(profit);
+    if(kpiSavings) kpiSavings.innerText = savingsRate.toFixed(1);
+
+    // Update Mobile UI
+    const mobBilled = document.getElementById('mob-kpi-billed');
+    const mobExpenses = document.getElementById('mob-kpi-expenses');
+    if(mobBilled) mobBilled.innerText = formatCurrency(income);
+    if(mobExpenses) mobExpenses.innerText = formatCurrency(expenses);
 }
 
 function calculateWealthKPIs() {
@@ -498,13 +563,12 @@ function calculateWealthKPIs() {
 
 // --- Chart Rendering ---
 
-function renderOperativeDashboard(yearTx) {
+function renderOperativeDashboard(yearTx, isMobile) {
     const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
     const incomeByMonth = new Array(12).fill(0);
     const expenseByMonth = new Array(12).fill(0);
     const prevYearIncome = new Array(12).fill(0);
 
-    // Current Year Data
     yearTx.forEach(tx => {
         const m = tx.dateObj.getMonth();
         let amount = parseFloat(tx.amount) || 0;
@@ -515,21 +579,8 @@ function renderOperativeDashboard(yearTx) {
         else if (tx.type === 'EXPENSE' && tx.category !== 'INVESTMENT') expenseByMonth[m] += amount;
     });
 
-    // Previous Year Income (for comparison)
-    invoicesData.filter(tx => 
-        tx.dateObj.getFullYear() === (filterYear - 1) && 
-        tx.type === 'INCOME' &&
-        (filterAccount === 'ALL' || tx.accountId === filterAccount)
-    ).forEach(tx => {
-        const m = tx.dateObj.getMonth();
-        let amount = parseFloat(tx.amount) || 0;
-        if (tx.currency === 'USD' && filterCurrency === 'ARS') amount *= EXCHANGE_RATE;
-        if (tx.currency === 'ARS' && filterCurrency === 'USD') amount /= EXCHANGE_RATE;
-        prevYearIncome[m] += amount;
-    });
-
-    // 1. Run Rate Chart
-    createChart('chart-billing-trend', 'bar', {
+    // Charts Config
+    const runRateConfig = {
         labels: months,
         datasets: [
             {
@@ -545,64 +596,41 @@ function renderOperativeDashboard(yearTx) {
                 borderRadius: 5
             }
         ]
-    });
+    };
 
-    // 2. Cost Structure (Doughnut)
-    const expenseCats = {};
+    if (isMobile) {
+        createChart('mob-chart-run-rate', 'bar', runRateConfig);
+        renderExpenseDistribution(yearTx, true);
+    } else {
+        createChart('chart-billing-trend', 'bar', runRateConfig);
+        renderExpenseDistribution(yearTx, false);
+        renderIncomeTrend(yearTx);
+    }
+}
+
+function renderExpenseDistribution(yearTx, isMobile) {
+    const expenseData = {};
     yearTx.filter(tx => tx.type === 'EXPENSE' && tx.category !== 'INVESTMENT').forEach(tx => {
-        const cat = tx.category || 'Varios';
+        const cat = tx.category || 'Otros';
         let amount = parseFloat(tx.amount) || 0;
         if (tx.currency === 'USD' && filterCurrency === 'ARS') amount *= EXCHANGE_RATE;
         if (tx.currency === 'ARS' && filterCurrency === 'USD') amount /= EXCHANGE_RATE;
-        expenseCats[cat] = (expenseCats[cat] || 0) + amount;
+        expenseData[cat] = (expenseData[cat] || 0) + amount;
     });
 
-    // Get Top 5 + Others
-    const sortedCats = Object.entries(expenseCats).sort((a,b) => b[1] - a[1]);
-    const top5 = sortedCats.slice(0, 5);
-    const others = sortedCats.slice(5).reduce((sum, current) => sum + current[1], 0);
-    
-    const finalLabels = top5.map(c => c[0]);
-    const finalData = top5.map(c => c[1]);
-    if(others > 0) {
-        finalLabels.push('Otros');
-        finalData.push(others);
-    }
-
-    createChart('chart-expenses-dist', 'doughnut', {
-        labels: finalLabels,
+    const config = {
+        labels: Object.keys(expenseData),
         datasets: [{
-            data: finalData,
-            backgroundColor: ["#fd625e", "#ffbf53", "#4ba6ef", "#5156be", "#2ab57d", "#ced4da"]
+            data: Object.values(expenseData),
+            backgroundColor: ["#5156be", "#2ab57d", "#fd625e", "#ffbf53", "#4ba6ef", "#ff813e", "#e83e8c"]
         }]
-    });
+    };
 
-    // 3. Income Trend (Interanual)
-    createChart('chart-income-trend', 'line', {
-        labels: months,
-        datasets: [
-            {
-                label: 'Ingresos ' + filterYear,
-                data: incomeByMonth,
-                borderColor: '#5156be',
-                backgroundColor: 'rgba(81, 86, 190, 0.1)',
-                fill: true,
-                tension: 0.4
-            },
-            {
-                label: 'Ingresos ' + (filterYear - 1),
-                data: prevYearIncome,
-                borderColor: '#ced4da',
-                borderDash: [5, 5],
-                fill: false,
-                tension: 0.4
-            }
-        ]
-    });
+    const canvasId = isMobile ? 'mob-chart-expenses' : 'chart-expenses-dist';
+    createChart(canvasId, 'doughnut', config);
 }
 
-function renderWealthDashboard() {
-    // 1. Asset Allocation (By Category)
+function renderWealthDashboard(isMobile) {
     const assetCats = {};
     assetsData.forEach(asset => {
         const cat = asset.category || 'Inversión';
@@ -612,53 +640,24 @@ function renderWealthDashboard() {
         assetCats[cat] = (assetCats[cat] || 0) + value;
     });
 
-    createChart('chart-asset-allocation', 'doughnut', {
+    const config = {
         labels: Object.keys(assetCats),
         datasets: [{
             data: Object.values(assetCats),
             backgroundColor: ["#5156be", "#2ab57d", "#ffbf53", "#fd625e", "#4ba6ef"]
         }]
-    });
+    };
 
-    // 2. Currency Composition (Stacked Bar: Liquidity)
-    let liqARS = 0;
-    let liqUSD = 0;
-    accountsData.forEach(acc => {
-        // Use updated balance if available, or try to derive it if possible
-        // Currently deriving balance in analytics is hard without recalculating whole history.
-        // We assume 'balance' field is kept up to date by apps-cashflow.js updates.
-        let bal = parseFloat(acc.balance) || 0;
-        if(acc.currency === 'ARS') liqARS += bal;
-        else if(acc.currency === 'USD') liqUSD += (bal * EXCHANGE_RATE); 
-    });
-    
-    // If filter is USD, convert both to USD
-    if(filterCurrency === 'USD') {
-        liqARS /= EXCHANGE_RATE;
-        liqUSD /= EXCHANGE_RATE;
+    if (isMobile) {
+        createChart('mob-chart-assets', 'doughnut', config);
+        renderNetWorthEvolution(true);
+    } else {
+        createChart('chart-asset-allocation', 'doughnut', config);
+        renderCurrencyComposition();
+        renderNetWorthEvolution(false);
     }
 
-    createChart('chart-currency-composition', 'bar', {
-        labels: ['Liquidez (Caja)'],
-        datasets: [
-            {
-                label: 'ARS',
-                data: [liqARS],
-                backgroundColor: '#2ab57d'
-            },
-            {
-                label: 'USD',
-                data: [liqUSD],
-                backgroundColor: '#5156be'
-            }
-        ]
-    }, {
-        indexAxis: 'y',
-        plugins: { legend: { display: true } },
-        scales: { x: { stacked: true }, y: { stacked: true } }
-    });
-
-    // 3. Progress Bars (Goals)
+    // Progress Bars (Goals)
     const container = document.getElementById('goals-progress-container');
     if (container) {
         container.innerHTML = '';
@@ -692,20 +691,47 @@ function renderWealthDashboard() {
             });
         }
     }
+}
 
-    // 4. Wealth Evolution (Line) - Simulated trend based on last 6 months transactions if historical snapshots missing
-    // For now, let's use a simple trend of the current month vs previous months totals if possible
+function renderCurrencyComposition() {
+    let liqARS = 0;
+    let liqUSD = 0;
+    accountsData.forEach(acc => {
+        let bal = parseFloat(acc.balance) || 0;
+        if(acc.currency === 'ARS') liqARS += bal;
+        else if(acc.currency === 'USD') liqUSD += (bal * EXCHANGE_RATE); 
+    });
+    
+    if(filterCurrency === 'USD') {
+        liqARS /= EXCHANGE_RATE;
+        liqUSD /= EXCHANGE_RATE;
+    }
+
+    createChart('chart-currency-composition', 'bar', {
+        labels: ['Liquidez (Caja)'],
+        datasets: [
+            { label: 'ARS', data: [liqARS], backgroundColor: '#2ab57d' },
+            { label: 'USD', data: [liqUSD], backgroundColor: '#5156be' }
+        ]
+    }, {
+        indexAxis: 'y',
+        plugins: { legend: { display: true } },
+        scales: { x: { stacked: true }, y: { stacked: true } }
+    });
+}
+
+function renderNetWorthEvolution(isMobile) {
     const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
     const wealthTrend = new Array(12).fill(0);
-    // Simple logic: cumulative wealth based on transactions (imperfect but better than flat line)
-    // We would need snapshots for 100% accuracy, but we can simulate by subtracting/adding transactions backwards.
-    // Given the complexity and potential errors, a simpler approach is to show current for now.
-    // IMPROVEMENT: Fill only up to current month with current total.
     const currentM = new Date().getMonth();
-    const currentTotal = parseFloat(document.getElementById('kpi-total-wealth').innerText.replace(/[^0-9.-]+/g,"")) || 0;
+    
+    const kpiEl = document.getElementById('kpi-total-wealth');
+    const currentTotal = kpiEl ? parseFloat(kpiEl.innerText.replace(/[^0-9.-]+/g,"")) || 0 : 0;
+    
     for(let i=0; i<=currentM; i++) wealthTrend[i] = currentTotal;
 
-    createChart('chart-wealth-evolution', 'line', {
+    const canvasId = isMobile ? 'mob-chart-networth' : 'chart-wealth-evolution';
+    createChart(canvasId, 'line', {
         labels: months,
         datasets: [{
             label: 'Patrimonio Neto',
@@ -724,38 +750,15 @@ function renderWealthDashboard() {
 
 // --- CRM Logic ---
 
-function updateCRMDashboard() {
-    // Filter Tasks based on Year/Period filters? 
-    // Usually CRM is more "Current State", but "Tasks Completed" could be filtered.
-    // Let's filter tasks by the global date filter for trend/completion analysis.
-    // For "Active Tasks" and "Active Clients", we usually want the CURRENT status, regardless of date filter,
-    // OR we can show "Active during that period". 
-    // For simplicity: Status & Active Clients = Current Snapshot interaction. 
-    // Completed Tasks = Filtered by selected period.
-
-    const filteredTasks = tasksData.filter(t => {
-        if (!t.dateObj) return false;
-        // Basic Year Filter
-        return t.dateObj.getFullYear() === filterYear;
-    });
-
-    calculateCRMKPIs(tasksData, clientsData); // Pass ALL data for current status
-    renderCRMCharts(tasksData, clientsData);
+function updateCRMDashboard(isMobile) {
+    calculateCRMKPIs(tasksData, clientsData, isMobile); 
+    renderCRMCharts(tasksData, clientsData, isMobile);
 }
 
-function calculateCRMKPIs(allTasks, allClients) {
-    // 1. Total Active Clients
-    // Simple count of clients collection? Or clients with active tasks?
-    // Let's use total clients count for now.
+function calculateCRMKPIs(allTasks, allClients, isMobile) {
     const totalClients = allClients.length;
+    const activeTasks = allTasks.filter(t => t.status !== 'Completada' && t.status !== 'COMPLETED' && t.status !== 'Cancelada').length;
 
-    // 2. Active Tasks
-    const activeTasks = allTasks.filter(t => t.status !== 'Completada' && t.status !== 'Cancelada').length;
-
-    // 3. Completed Tasks (This Month - regardless of global filter for this specific KPI card usually, 
-    //    but let's respect global filter if 'MONTH' is selected? 
-    //    Standard usage: This Month defaults.
-    // 3. Completed Tasks (This Month)
     const nowLocal = new Date();
     const completedTasksThisMonth = allTasks.filter(t => {
         const isCompleted = (t.status === 'Completada' || t.status === 'COMPLETED');
@@ -765,22 +768,29 @@ function calculateCRMKPIs(allTasks, allClients) {
                t.dateObj.getFullYear() === nowLocal.getFullYear();
     }).length;
 
-    document.getElementById('kpi-crm-clients').innerText = totalClients;
-    document.getElementById('kpi-crm-active-tasks').innerText = activeTasks;
-    document.getElementById('kpi-crm-completed-tasks').innerText = completedTasksThisMonth;
+    // Desktop
+    const kpiClients = document.getElementById('kpi-crm-clients');
+    const kpiActive = document.getElementById('kpi-crm-active-tasks');
+    const kpiDone = document.getElementById('kpi-crm-completed-tasks');
+
+    if(kpiClients) kpiClients.innerText = totalClients;
+    if(kpiActive) kpiActive.innerText = activeTasks;
+    if(kpiDone) kpiDone.innerText = completedTasksThisMonth;
+
+    // Mobile (using same container IDs or specific ones if added)
+    // Currently mobile just show billed/expenses in main kpi card.
 }
 
-function renderCRMCharts(allTasks, allClients) {
-    // 1. Task Status Distribution (Current Snapshot)
+function renderCRMCharts(allTasks, allClients, isMobile) {
     const statusCounts = {};
     allTasks.forEach(t => {
         const s = t.status || 'Sin Estado';
         statusCounts[s] = (statusCounts[s] || 0) + 1;
     });
 
-    createChart('chart-crm-status', 'doughnut', {
+    const statusConfig = {
         labels: Object.keys(statusCounts).map(s => {
-            if(s === 'TODO') return 'Pendiente';
+            if(s === 'TODO' || s === 'PENDIENTE') return 'Pendiente';
             if(s === 'COMPLETED' || s === 'Completada') return 'Completado';
             if(s === 'LATE') return 'Atrasado';
             return s;
@@ -789,9 +799,19 @@ function renderCRMCharts(allTasks, allClients) {
             data: Object.values(statusCounts),
             backgroundColor: ["#5156be", "#2ab57d", "#fd625e", "#ffbf53", "#4ba6ef"]
         }]
-    }, { noCurrency: true });
+    };
 
-    // 2. Top Active Clients (Clients with most ACTIVE tasks)
+    if (isMobile) {
+        createChart('mob-chart-tasks', 'doughnut', statusConfig, { noCurrency: true });
+        // renderCRMLeadSource or similar for mob-chart-crm?
+    } else {
+        createChart('chart-crm-status', 'doughnut', statusConfig, { noCurrency: true });
+        renderTopClientsChart(allTasks, allClients);
+        renderCompletionTrendChart(allTasks);
+    }
+}
+
+function renderTopClientsChart(allTasks, allClients) {
     const clientTaskCounts = {};
     const clientMap = {};
     allClients.forEach(c => {
@@ -808,54 +828,30 @@ function renderCRMCharts(allTasks, allClients) {
         }
     });
 
-    // Sort and get Top 5
-    const topClients = Object.entries(clientTaskCounts)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5);
+    const topClients = Object.entries(clientTaskCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
     createChart('chart-crm-clients', 'bar', {
         labels: topClients.map(x => x[0]),
-        datasets: [{
-            label: 'Tareas Activas',
-            data: topClients.map(x => x[1]),
-            backgroundColor: '#5156be',
-            borderRadius: 5
-        }]
+        datasets: [{ label: 'Tareas Activas', data: topClients.map(x => x[1]), backgroundColor: '#5156be', borderRadius: 5 }]
     }, { noCurrency: true });
+}
 
-    // 3. Task Completion Trend (Last 6 Months from now)
-    // Regardless of filter, usually "Last 6 Months" is a fixed standard view or YTD.
-    // Let's do Last 6 Months.
+function renderCompletionTrendChart(allTasks) {
     const months = [];
     const completedCounts = [];
-    
     for(let i=5; i>=0; i--) {
         const d = new Date();
         d.setMonth(d.getMonth() - i);
-        const mName = d.toLocaleString('es-ES', { month: 'short' });
-        months.push(mName);
-        
-        // Count completed in this month/year (Unified statuses)
+        months.push(d.toLocaleString('es-ES', { month: 'short' }));
         const count = allTasks.filter(t => {
             const isCompleted = (t.status === 'Completada' || t.status === 'COMPLETED');
-            return isCompleted && 
-                   t.dateObj && 
-                   t.dateObj.getMonth() === d.getMonth() && 
-                   t.dateObj.getFullYear() === d.getFullYear();
+            return isCompleted && t.dateObj && t.dateObj.getMonth() === d.getMonth() && t.dateObj.getFullYear() === d.getFullYear();
         }).length;
         completedCounts.push(count);
     }
-
     createChart('chart-crm-trend', 'line', {
         labels: months,
-        datasets: [{
-            label: 'Tareas Completadas',
-            data: completedCounts,
-            borderColor: '#2ab57d',
-            fill: true,
-            backgroundColor: 'rgba(42, 181, 125, 0.1)',
-            tension: 0.4
-        }]
+        datasets: [{ label: 'Tareas Completadas', data: completedCounts, borderColor: '#2ab57d', fill: true, backgroundColor: 'rgba(42, 181, 125, 0.1)', tension: 0.4 }]
     }, { noCurrency: true });
 }
 
@@ -867,11 +863,23 @@ function createChart(canvasId, type, dataConfig, extraOptions = {}) {
         chartInstances[canvasId].destroy();
     }
 
+    const isMobile = window.innerWidth < 992;
+
     const chartOptions = {
         responsive: true,
-        maintainAspectRatio: false,
+        maintainAspectRatio: true,
+        layout: {
+            padding: isMobile ? { top: 10, bottom: 10, left: 5, right: 5 } : 20
+        },
         plugins: {
-            legend: { position: 'bottom' },
+            legend: { 
+                display: isMobile ? (type === 'pie' || type === 'doughnut' ? true : false) : true,
+                position: 'bottom',
+                labels: {
+                    boxWidth: 12,
+                    font: { size: isMobile ? 10 : 12 }
+                }
+            },
             tooltip: {
                 callbacks: {
                     label: function(context) {
@@ -899,6 +907,7 @@ function createChart(canvasId, type, dataConfig, extraOptions = {}) {
                 beginAtZero: true,
                 grid: { color: 'rgba(0,0,0,0.05)' },
                 ticks: {
+                    font: { size: isMobile ? 9 : 11 },
                     callback: function(value) {
                         if (extraOptions.noCurrency) return value;
                         if (value >= 1000) return formatCurrency(value);
@@ -907,7 +916,12 @@ function createChart(canvasId, type, dataConfig, extraOptions = {}) {
                 }
             },
             x: {
-                grid: { display: false }
+                grid: { display: false },
+                ticks: {
+                    font: { size: isMobile ? 9 : 11 },
+                    maxRotation: isMobile ? 45 : 0,
+                    minRotation: isMobile ? 45 : 0
+                }
             }
         } : {}
     };

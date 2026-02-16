@@ -10,61 +10,47 @@ document.addEventListener('DOMContentLoaded', function () {
     let categories = ['General', 'Ventas', 'Marketing']; 
     let currentFilter = 'TODAY'; 
     let currentSearch = '';
-    let currentMonthFilter = '';
-    let currentCategoryFilter = 'ALL'; 
-    let teamMembers = []; // New State for Users
-    let clientsList = []; // New State for Clients
+    let currentMobFilter = 'TODAY'; // New state for mobile
+    let teamMembers = []; 
+    let clientsList = []; 
     let drake = null; 
 
     const db = window.Imala.db;
     const auth = window.Imala.auth;
 
-    // Check if elements exist before initializing Modals to prevent errors on other pages
-    const modalEl = document.getElementById('event-modal');
-    if (!modalEl) return; // Exit if we are not on the tasks page
-
-    const taskModal = new bootstrap.Modal(modalEl);
-    const catsModalEl = document.getElementById('categories-modal');
-    const catsModal = catsModalEl ? new bootstrap.Modal(catsModalEl) : null;
-
-    const form = document.getElementById('form-event');
-
-    const containerTodo = document.getElementById('kanban-todo');
-    const containerLate = document.getElementById('kanban-late');
-    const containerCompleted = document.getElementById('kanban-completed');
+    // Modals
+    const detailModal = new bootstrap.Modal(document.getElementById('task-detail-modal'));
+    const newTaskModal = new bootstrap.Modal(document.getElementById('new-task-modal'));
+    
+    // Elements
+    const containerTodo = document.getElementById('todo-list');
+    const containerDone = document.getElementById('done-list');
     const filterButtons = document.querySelectorAll('.filter-bar button');
+    const mobFilterButtons = document.querySelectorAll('[data-mob-filter]');
+    // Mobile View Elements (Global for functions)
+    const dateStrip = document.getElementById('mob-date-strip');
+    const stdList = document.getElementById('mob-tasks-list');
+    const agendaList = document.getElementById('mob-agenda-list');
+    const mobStdFilters = document.getElementById('mob-std-filters');
     
-    const topSearchInput = document.getElementById('top-search-input');
-    const monthFilterInput = document.getElementById('filter-month-history');
+    const desktopSearch = document.getElementById('task-search');
+    const mobileSearch = document.getElementById('mob-task-search');
 
-    // MOBILE OPTIMIZATION: Default to List View on small screens
-    if (window.innerWidth < 768) {
-        const kanbanTab = document.querySelector('a[href="#tab-kanban"]');
-        const listTab = document.querySelector('a[href="#tab-list"]');
-        const kanbanPane = document.getElementById('tab-kanban');
-        const listPane = document.getElementById('tab-list');
-        
-        if (kanbanTab && listTab && kanbanPane && listPane) {
-            kanbanTab.classList.remove('active');
-            listTab.classList.add('active');
-            kanbanPane.classList.remove('active');
-            listPane.classList.add('active');
-        }
-    }
-
-    // ==========================================
-    // 2. Load Data & Filters
-    // ==========================================
-    
+    // 1. Auth & Data Load
     auth.onAuthStateChanged(user => {
         if (user) {
+            // Mobile Title Personalization
+            const mobTitle = document.getElementById('mob-task-title');
+            if(mobTitle && user.displayName) {
+                const firstName = user.displayName.split(' ')[0];
+                mobTitle.textContent = `Tareas de ${firstName}`;
+            }
+
             loadCategories();
-            loadCategories();
-            loadTeamMembers(); // Fetch Users
-            loadClientsList(); // Fetch Clients
+            loadTeamMembers();
+            loadClientsList();
             loadTasks(user.uid);
         } else {
-            console.log("No User - Redirecting");
             window.location.href = 'auth-login.html';
         }
     });
@@ -115,29 +101,16 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     
     function updateAssignmentSelect() {
-        const sel = document.getElementById('event-assignedTo');
+        const sel = document.getElementById('task-assigned-to');
         if(!sel) return;
         
-        // Preserve "Ambos" and legacy hardcoded if desired, or replace?
-        // Let's Keep "David", "Lucre" legacy if they exist in DB, otherwise clean slate.
-        // Actually, let's append real users after "Ambos".
-        
-        // Clear but keep Defaults?
-        // For this OS, let's render standard options:
+        // Fixed options only
         sel.innerHTML = `
-            <option value="David">David (Default)</option>
+            <option value="">Sin asignar</option>
+            <option value="David">David</option>
+            <option value="Lucre">Lucre</option>
             <option value="Ambos">Ambos</option>
         `;
-        
-        teamMembers.forEach(m => {
-            // Avoid duplicates if David is in DB with same name
-            if(m.name !== 'David') {
-                const opt = document.createElement('option');
-                opt.value = m.name; // Storing Name for now to match legacy
-                opt.textContent = m.name;
-                sel.appendChild(opt);
-            }
-        });
     }
 
     // Load available Clients for assignment
@@ -152,10 +125,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function updateClientSelect() {
-        const sel = document.getElementById('event-client-id');
+        const sel = document.getElementById('task-client-id');
         if(!sel) return;
         const current = sel.value;
-        sel.innerHTML = '<option value="">- Ninguno -</option>';
+        sel.innerHTML = '<option value="">Sin Cliente</option>';
         clientsList.forEach(c => {
              const opt = document.createElement('option');
              opt.value = c.id;
@@ -167,73 +140,152 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // --- Search & Filters ---
 
-    if(topSearchInput) {
-        topSearchInput.addEventListener('input', (e) => {
-            currentSearch = e.target.value.toLowerCase();
-            renderAllViews();
-        });
+    function handleSearch(val) {
+        currentSearch = val.toLowerCase();
+        renderAllViews();
     }
 
-    if(monthFilterInput) {
-        monthFilterInput.addEventListener('change', (e) => {
-            currentMonthFilter = e.target.value; // YYYY-MM
-            if(currentMonthFilter) {
-                filterButtons.forEach(b => b.classList.remove('active'));
-                currentFilter = 'HISTORY'; 
-            } else {
-                currentFilter = 'ALL';
-                document.querySelector('[data-filter="ALL"]').classList.add('active');
-            }
-            renderAllViews();
-        });
-    }
+    if(desktopSearch) desktopSearch.addEventListener('input', (e) => handleSearch(e.target.value));
+    if(mobileSearch) mobileSearch.addEventListener('input', (e) => handleSearch(e.target.value));
 
-    function getFilteredTasks() {
+    window.addEventListener('resize', () => {
+        renderAllViews();
+    });
+
+    function getFilteredTasks(isMobile = false) {
         const today = new Date();
         today.setHours(0,0,0,0);
+        const filter = isMobile ? currentMobFilter : currentFilter;
         
         return tasks.filter(t => {
-            // 1. Text Search
+            // Text Search
             if (currentSearch) {
                 const textMatch = (t.title && t.title.toLowerCase().includes(currentSearch)) || 
                                   (t.description && t.description.toLowerCase().includes(currentSearch));
                 if (!textMatch) return false;
             }
 
-            // 2. Month Filter
-            if (currentMonthFilter && currentFilter === 'HISTORY') {
-                if (!t.dueDate) return false;
-                return t.dueDate.startsWith(currentMonthFilter);
+            // Mobile Specific Logic
+            if (isMobile) {
+                if (filter === 'COMPLETED') {
+                    return t.status === 'COMPLETED';
+                }
+                // For all other mobile filters (TODAY, WEEK, ALL), hide completed tasks
+                if (t.status === 'COMPLETED') return false;
             }
 
-            // 3. Button Filters
-            if (currentFilter === 'ALL') return true;
-            if (currentFilter === 'LATE') return t.status === 'LATE';
-            if (currentFilter === 'COMPLETED') return t.status === 'COMPLETED';
+            // Button Filters
+            if (filter === 'ALL') return true;
+            if (filter === 'LATE') return t.status === 'LATE';
+            if (filter === 'COMPLETED') return t.status === 'COMPLETED'; // Desktop fallback
             
             if (!t.dueDate) return false;
             const taskDate = new Date(t.dueDate + 'T00:00:00'); 
             
-            if (currentFilter === 'TODAY') {
+            if (filter === 'TODAY') {
                 return taskDate.getTime() === today.getTime();
             }
-            if (currentFilter === 'WEEK') {
+            if (filter === 'WEEK') {
                 const oneWeek = new Date(today);
                 oneWeek.setDate(today.getDate() + 7);
                 return taskDate >= today && taskDate <= oneWeek;
             }
-            if (currentFilter === 'MONTH') {
-                return taskDate.getMonth() === today.getMonth() && taskDate.getFullYear() === today.getFullYear();
-            }
             return true;
+        }).sort((a, b) => {
+            // Sort by Date Descending (Most Recent first)
+            const dateA = new Date(a.dueDate + (a.dueTime ? 'T' + a.dueTime : 'T00:00:00'));
+            const dateB = new Date(b.dueDate + (b.dueTime ? 'T' + b.dueTime : 'T00:00:00'));
+            return dateB - dateA;
         });
     }
 
     function renderAllViews() {
-        const filtered = getFilteredTasks();
-        renderKanban(filtered); 
-        renderList(filtered);
-        renderCalendar(filtered);
+        const isMobile = window.innerWidth < 992;
+        const filtered = getFilteredTasks(isMobile);
+
+        if (isMobile) {
+            renderMobileTasks(filtered);
+        } else {
+            renderKanban(filtered); 
+            renderList(filtered);
+            renderCalendar(filtered);
+        }
+    }
+
+    function getTaskStatusColor(t) {
+        if (t.status === 'COMPLETED') return 'success';
+        if (t.status === 'LATE') return 'danger';
+        return 'warning';
+    }
+
+    function renderMobileTasks(filtered) {
+        const container = document.getElementById('mob-tasks-list');
+        const summaryEl = document.getElementById('mob-tasks-summary');
+        if (!container) return;
+
+        container.innerHTML = '';
+        
+        if (filtered.length === 0) {
+            container.innerHTML = '<div class="text-center p-5 text-muted">No hay tareas para este filtro</div>';
+            if (summaryEl) summaryEl.textContent = 'Sin tareas';
+            return;
+        }
+
+        const lateCount = filtered.filter(t => t.status === 'LATE').length;
+        if (summaryEl) summaryEl.textContent = `${filtered.length} tareas (${lateCount} atrasadas)`;
+
+        filtered.forEach(t => {
+            const item = document.createElement('div');
+            item.className = `mobile-card mb-3 p-3 rounded-4 shadow-sm bg-white border-start border-4 border-${getTaskStatusColor(t)}`;
+            
+            const isDone = t.status === 'COMPLETED';
+            const icon = isDone ? 'bx-check-circle text-success' : 'bx-circle text-muted';
+            const titleClass = isDone ? 'text-decoration-line-through text-muted' : 'fw-bold';
+
+            item.innerHTML = `
+                <div class="d-flex align-items-start gap-3">
+                    <div class="status-check" onclick="event.stopPropagation(); toggleTaskStatus('${t.id}', '${t.status}')">
+                        <i class="bx ${icon} font-size-24"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1 ${titleClass}">${t.title}</h6>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="badge bg-light text-muted rounded-pill fs-11">${t.category || 'General'}</span>
+                            <span class="text-muted fs-11"><i class="bx bx-calendar me-1"></i>${formatDate(t.dueDate)}</span>
+                            ${t.dueTime ? `<span class="text-muted fs-11"><i class="bx bx-time-five me-1"></i>${t.dueTime}</span>` : ''}
+                        </div>
+                        <p class="mb-0 text-muted fs-11"><i class="bx bx-user-circle me-1"></i>Asignado a: <span class="fw-bold">${t.assignedTo || 'Sin asignar'}</span></p>
+                        ${t.clientName ? `<p class="mb-0 text-primary fs-11 fw-medium"><i class="bx bx-user me-1"></i>${t.clientName}</p>` : ''}
+                    </div>
+                    <div class="dropdown" onclick="event.stopPropagation()">
+                        <button class="btn btn-link p-0 text-muted" data-bs-toggle="dropdown"><i class="bx bx-dots-vertical-rounded"></i></button>
+                        <div class="dropdown-menu dropdown-menu-end">
+                            <a class="dropdown-item" href="javascript:void(0)" onclick="openEditModal('${t.id}')"><i class="bx bx-edit me-1"></i> Editar</a>
+                            <a class="dropdown-item text-danger" href="javascript:void(0)" onclick="deleteTask('${t.id}')"><i class="bx bx-trash me-1"></i> Eliminar</a>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            item.onclick = () => openEditModal(t.id);
+            container.appendChild(item);
+        });
+    }
+
+    // Exposed to windows for onclick handlers
+    window.toggleTaskStatus = function(id, currentStatus) {
+        const newStatus = currentStatus === 'COMPLETED' ? 'PENDIENTE' : 'COMPLETED';
+        updateTaskStatus(id, newStatus);
+    };
+
+    window.openNewTaskModal = openNewTaskModal;
+    window.openEditModal = openEditModal;
+    window.deleteTask = deleteTask;
+
+    function getPriorityColor(p) {
+        if (p === 'HIGH') return 'danger';
+        if (p === 'MEDIUM') return 'warning';
+        return 'success';
     }
 
     filterButtons.forEach(btn => {
@@ -241,55 +293,283 @@ document.addEventListener('DOMContentLoaded', function () {
             filterButtons.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentFilter = btn.dataset.filter;
-            if(monthFilterInput) monthFilterInput.value = '';
-            currentMonthFilter = '';
-            
             renderAllViews();
         });
     });
+
+    mobFilterButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+             mobFilterButtons.forEach(b => {
+                 b.classList.remove('btn-white', 'bg-white', 'text-primary', 'active');
+                 b.classList.add('btn-outline-light', 'text-white');
+             });
+             btn.classList.remove('btn-outline-light', 'text-white');
+             btn.classList.add('btn-white', 'bg-white', 'text-primary', 'active');
+             currentMobFilter = btn.dataset.mobFilter;
+             renderAllViews();
+        });
+    });
+
+
+
+    // ==========================================
+    // Mobile Calendar / Agenda View Logic
+    // ==========================================
+    let isCalendarView = false;
+    
+    function initMobileToggle() {
+        // Re-fetch to be safe
+        const viewToggleBtn = document.getElementById('btn-mob-view-mode');
+        
+        // Globals are now used: dateStrip, stdList, agendaList
+
+        if (viewToggleBtn) {
+            // Remove old listeners by cloning
+            const newBtn = viewToggleBtn.cloneNode(true);
+            viewToggleBtn.parentNode.replaceChild(newBtn, viewToggleBtn);
+            
+            const newIcon = document.getElementById('icon-mob-view-mode'); 
+
+            newBtn.addEventListener('click', () => {
+                 isCalendarView = !isCalendarView;
+                 
+                 // Toggle UI
+                 if (isCalendarView) {
+                     // Switch to Calendar
+                     if(newIcon) newIcon.className = 'bx bx-list-ul font-size-16 align-middle'; 
+                     
+                     document.querySelectorAll('[data-mob-filter]').forEach(el => el.classList.add('d-none'));
+                     
+                     if(dateStrip) {
+                        dateStrip.classList.remove('d-none');
+                        dateStrip.classList.add('d-flex', 'gap-3', 'flex-nowrap', 'overflow-auto');
+                     }
+
+                     if(stdList) stdList.classList.add('d-none');
+                     if(agendaList) agendaList.classList.remove('d-none');
+                     
+                     renderDateStrip();
+                     renderAgendaView();
+
+                 } else {
+                     // Switch to List
+                     if(newIcon) newIcon.className = 'bx bx-calendar font-size-16 align-middle'; 
+                     
+                     document.querySelectorAll('[data-mob-filter]').forEach(el => el.classList.remove('d-none'));
+
+                     if(dateStrip) {
+                        dateStrip.classList.add('d-none');
+                        dateStrip.classList.remove('d-flex', 'gap-3', 'flex-nowrap', 'overflow-auto');
+                     }
+
+                     if(stdList) stdList.classList.remove('d-none');
+                     if(agendaList) agendaList.classList.add('d-none');
+                     
+                     renderAllViews(); 
+                 }
+            });
+        }
+    }
+    setTimeout(initMobileToggle, 500);
+
+    // ... (rest of code) ...
+
+    function renderDateStrip() {
+        if(!dateStrip) return;
+        dateStrip.innerHTML = '';
+        const today = new Date();
+        const days = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+        
+        // Generate range: -2 days to +30 days (User Request)
+        for (let i = -2; i <= 30; i++) {
+            const date = new Date();
+            date.setDate(today.getDate() + i);
+            
+            const isToday = i === 0;
+            const dayName = days[date.getDay()];
+            const dayNum = date.getDate();
+            
+            // FIX: Use LOCAL date components to match DB keys (YYYY-MM-DD)
+            // toISOString() uses UTC and causes mismatch
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const dateStr = `${year}-${month}-${day}`;
+
+            const el = document.createElement('div');
+            // Added flex-shrink-0 so items don't squash
+            el.className = `date-item text-center cursor-pointer flex-shrink-0 ${isToday ? 'bg-white text-primary rounded-3 active-date' : 'text-white opacity-75'}`;
+            el.style.minWidth = '45px';
+            el.style.padding = '5px 0';
+            
+            el.innerHTML = `
+                <div style="font-size: 10px;">${dayName}</div>
+                <div class="fw-bold fs-16">${dayNum}</div>
+            `;
+            
+            // Allow clicking to scroll to that date in Agenda
+            el.onclick = () => {
+                // 1. Visual Selection
+                document.querySelectorAll('.date-item').forEach(item => {
+                    item.className = 'date-item text-center cursor-pointer flex-shrink-0 text-white opacity-75';
+                });
+                el.className = 'date-item text-center cursor-pointer flex-shrink-0 bg-white text-primary rounded-3 active-date';
+
+                // 2. Scroll to Section
+                const target = document.getElementById(`agenda-date-${dateStr}`);
+                if(target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            };
+
+            dateStrip.appendChild(el);
+        }
+    }
+
+    function renderAgendaView() {
+        if(!agendaList) return;
+        agendaList.innerHTML = '';
+
+        // 1. Group Tasks by Date
+        // Unfinished tasks only? User said "what is in each date", implying an agenda.
+        // Let's filter out completed for now, or maybe show them crossed out?
+        // User previously asked to hide completed in filters. Let's keep Agenda focusing on PENDING.
+        // 1. Group Tasks by Date - INCLUDE COMPLETED
+        const allTasks = tasks.sort((a,b) => {
+             const da = a.dueDate ? new Date(a.dueDate) : new Date(8640000000000000); 
+             const db = b.dueDate ? new Date(b.dueDate) : new Date(8640000000000000);
+             return da - db;
+        });
+
+        // Grouping
+        const groups = {};
+        const noDate = [];
+        // Helper to get local YYYY-MM-DD
+        const getLocalISO = (d) => {
+             const year = d.getFullYear();
+             const month = String(d.getMonth() + 1).padStart(2, '0');
+             const day = String(d.getDate()).padStart(2, '0');
+             return `${year}-${month}-${day}`;
+        };
+        const todayStr = getLocalISO(new Date());
+
+        allTasks.forEach(t => {
+            if(!t.dueDate) {
+                noDate.push(t);
+            } else if (t.status === 'LATE') {
+                 // Push to LATE group or specific date?
+                 // "Late" status usually implies date < today.
+                 // Let's group by date anyway to be accurate to calendar, 
+                 // BUT maybe put all past dates in a "Atrasado" bucket?
+                 // Let's group by Date strictly.
+                 if (!groups[t.dueDate]) groups[t.dueDate] = [];
+                 groups[t.dueDate].push(t);
+            } else {
+                 if (!groups[t.dueDate]) groups[t.dueDate] = [];
+                 groups[t.dueDate].push(t);
+            }
+        });
+
+        // 2. Render Groups
+        
+        // Helper to render a card
+        const renderTaskCard = (t) => `
+            <div class="mobile-card mb-2 p-3 rounded-4 shadow-sm bg-white border-start border-4 border-${getTaskStatusColor(t)}" onclick="openEditModal('${t.id}')">
+                 <div class="d-flex align-items-center gap-3">
+                    <div class="status-check" onclick="event.stopPropagation(); toggleTaskStatus('${t.id}', '${t.status}')">
+                        <i class="bx ${t.status === 'COMPLETED' ? 'bx-check-circle text-success' : 'bx-circle text-muted'} font-size-24"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1 fw-bold ${t.status === 'COMPLETED' ? 'text-decoration-line-through text-muted' : ''}">${t.title}</h6>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-light text-muted rounded-pill fs-11">${t.category||'General'}</span>
+                            ${t.dueTime ? `<span class="text-muted fs-11"><i class="bx bx-time-five me-1"></i>${t.dueTime}</span>` : ''}
+                        </div>
+                        <p class="mb-0 text-muted fs-11 mt-1"><i class="bx bx-user-circle me-1"></i>${t.assignedTo || 'Sin asignar'}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Sort Dates
+        const sortedDates = Object.keys(groups).sort();
+
+        sortedDates.forEach(date => {
+            const dateObj = new Date(date + 'T00:00:00');
+            const dayName = dateObj.toLocaleDateString('es-ES', { weekday: 'long' });
+            const dayNum = dateObj.getDate();
+            const monthName = dateObj.toLocaleDateString('es-ES', { month: 'long' });
+
+            let headerText = `${dayName} ${dayNum} de ${monthName}`;
+            if (date === todayStr) headerText = `<span class="text-primary">Hoy</span> · ${headerText}`;
+
+            const section = document.createElement('div');
+            section.id = `agenda-date-${date}`; // For anchor scrolling
+            section.className = 'mb-4';
+            
+            let html = `<h6 class="text-muted mb-3 text-capitalize">${headerText}</h6>`;
+            groups[date].forEach(t => {
+                html += renderTaskCard(t);
+            });
+            section.innerHTML = html;
+            agendaList.appendChild(section);
+        });
+
+        // No Date Section
+        if(noDate.length > 0) {
+             const section = document.createElement('div');
+             section.className = 'mb-4 pt-3 border-top';
+             let html = `<h6 class="text-muted mb-3">Sin Fecha</h6>`;
+             noDate.forEach(t => {
+                html += renderTaskCard(t);
+            });
+            section.innerHTML = html;
+            agendaList.appendChild(section);
+        }
+
+        if(sortedDates.length === 0 && noDate.length === 0) {
+            agendaList.innerHTML = '<div class="text-center p-5 text-muted">No hay tareas pendientes</div>';
+        }
+    }
 
     // ==========================================
     // 3. Kanban View
     // ==========================================
 
     function renderKanban(filteredTasks) {
-        if(!containerTodo) return; // Guard clause
+        if(!containerTodo) return;
 
         if (drake) {
             drake.destroy();
         }
 
         containerTodo.innerHTML = '';
-        containerLate.innerHTML = '';
-        containerCompleted.innerHTML = '';
+        containerDone.innerHTML = '';
 
         filteredTasks.forEach(t => {
             const card = createKanbanCard(t);
-            if (t.status === 'TODO') containerTodo.appendChild(card);
-            else if (t.status === 'LATE') containerLate.appendChild(card);
-            else if (t.status === 'COMPLETED') containerCompleted.appendChild(card);
-            else containerTodo.appendChild(card);
+            if (t.status === 'COMPLETED') {
+                containerDone.appendChild(card);
+            } else {
+                containerTodo.appendChild(card);
+            }
         });
 
-        // Robust Configuration
-        drake = dragula([containerTodo, containerLate, containerCompleted], {
+        drake = dragula([containerTodo, containerDone], {
             moves: function (el, container, handle) {
-                return true; // Always allow move
+                return true;
             },
             accepts: function (el, target, source, sibling) {
-                return true; // Always allow drop
+                return true;
             }
         });
 
         drake.on('drop', function (el, target, source, sibling) {
             if(!target) return;
             const taskId = el.getAttribute('data-id');
-            const newStatus = target.getAttribute('data-status');
+            const newStatus = target.id === 'done-list' ? 'COMPLETED' : 'PENDIENTE';
             
             updateTaskStatus(taskId, newStatus);
-             if (newStatus === 'COMPLETED') {
-                 checkAndCreateRecurrence(taskId);
-            }
         });
     }
 
@@ -591,81 +871,93 @@ document.addEventListener('DOMContentLoaded', function () {
     // 7. Modals
     // ==========================================
 
-    function openEditModal(taskId = null) {
-        updateCategorySelects();
-        updateClientSelect(); // Refresh Clients options
-
-        if (taskId) {
-            const task = tasks.find(t => t.id === taskId);
-            document.getElementById('task-id').value = taskId;
-            document.getElementById('event-title').value = task.title;
-            document.getElementById('event-description').value = task.description || '';
-            document.getElementById('event-category').value = task.category || 'General';
-            document.getElementById('event-status').value = task.status || 'TODO';
-            document.getElementById('event-priority').value = task.priority || 'MEDIUM';
-            document.getElementById('event-assignedTo').value = task.assignedTo || 'David';
-             document.getElementById('event-assignedTo').value = task.assignedTo || 'David';
-             document.getElementById('event-recurrence').value = task.recurrence || 'NONE';
-             document.getElementById('event-client-id').value = task.clientId || '';
-             // ...
-            document.getElementById('event-dueDate').value = task.dueDate || getTodayStr();
-            document.getElementById('event-dueTime').value = task.dueTime || '';
+    function openNewTaskModal() {
+        document.getElementById('task-form').reset();
+        document.getElementById('task-id').value = '';
+        document.getElementById('task-modal-title').textContent = 'Nueva Tarea';
+        document.getElementById('task-save-text').textContent = 'Crear Tarea';
+        
+        updateClientSelect();
+        newTaskModal.show();
+    }
+    
+    // Set defaults when modal is fully shown (after reset)
+    document.getElementById('new-task-modal').addEventListener('shown.bs.modal', function() {
+        const taskId = document.getElementById('task-id').value;
+        // Only set defaults for new tasks (not edits)
+        if (!taskId) {
+            document.getElementById('task-assigned-to').value = ''; // Default to Sin asignar
             
-            document.getElementById('btn-delete-event').style.display = 'block';
-            document.getElementById('modal-title').textContent = 'Editar Tarea';
-        } else {
-            form.reset();
-            document.getElementById('task-id').value = '';
-            document.getElementById('event-dueDate').value = getTodayStr();
-            document.getElementById('event-status').value = 'TODO';
-            document.getElementById('event-priority').value = 'MEDIUM';
-            document.getElementById('event-assignedTo').value = 'David';
-            document.getElementById('event-client-id').value = '';
-            
-            document.getElementById('btn-delete-event').style.display = 'none';
-            document.getElementById('modal-title').textContent = 'Nueva Tarea';
+            // Auto-set Date to Today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('task-due-date').value = today;
         }
-        taskModal.show();
+    });
+
+    function openEditModal(taskId) {
+        const t = tasks.find(x => x.id === taskId);
+        if(!t) return;
+        
+        document.getElementById('task-id').value = t.id;
+        document.getElementById('task-title').value = t.title || '';
+        document.getElementById('task-due-date').value = t.dueDate || '';
+        document.getElementById('task-due-time').value = t.dueTime || '';
+        document.getElementById('task-desc').value = t.description || '';
+        document.getElementById('task-assigned-to').value = t.assignedTo || 'David';
+        document.getElementById('task-client-id').value = t.clientId || '';
+        
+        // Priority Radios
+        const priority = t.priority || 'LOW';
+        const radio = document.querySelector(`input[name="priority"][value="${priority}"]`);
+        if(radio) radio.checked = true;
+
+        document.getElementById('task-modal-title').textContent = 'Editar Tarea';
+        document.getElementById('task-save-text').textContent = 'Guardar Cambios';
+        
+        updateClientSelect();
+        newTaskModal.show();
     }
 
-    form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const id = document.getElementById('task-id').value;
-        const taskData = {
-            title: document.getElementById('event-title').value,
-            description: document.getElementById('event-description').value,
-            category: document.getElementById('event-category').value,
-            priority: document.getElementById('event-priority').value,
-            status: document.getElementById('event-status').value,
-            assignedTo: document.getElementById('event-assignedTo').value,
-            recurrence: document.getElementById('event-recurrence').value,
-            dueDate: document.getElementById('event-dueDate').value,
-            dueTime: document.getElementById('event-dueTime').value,
-            dueTime: document.getElementById('event-dueTime').value,
-            clientId: document.getElementById('event-client-id').value || null,
-            updatedAt: new Date()
-        };
+    const taskForm = document.getElementById('task-form');
+    if(taskForm) {
+        taskForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const id = document.getElementById('task-id').value;
+            const priorityVal = document.querySelector('input[name="priority"]:checked').value;
 
-        // Add Client Name if ID selected
-        if(taskData.clientId) {
-            const c = clientsList.find(x => x.id === taskData.clientId);
-            if(c) taskData.clientName = c.name;
-        }
+            const taskData = {
+                title: document.getElementById('task-title').value,
+                dueDate: document.getElementById('task-due-date').value,
+                dueTime: document.getElementById('task-due-time').value,
+                priority: priorityVal,
+                assignedTo: document.getElementById('task-assigned-to').value,
+                clientId: document.getElementById('task-client-id').value || null,
+                description: document.getElementById('task-desc').value,
+                updatedAt: new Date()
+            };
 
-        if (id) {
-            db.collection('tasks').doc(id).update(taskData).then(() => taskModal.hide());
-            if (taskData.status === 'COMPLETED') checkAndCreateRecurrence(id);
-        } else {
-            taskData.createdAt = new Date();
-            db.collection('tasks').add(taskData).then(() => taskModal.hide());
-        }
-    });
+            if(taskData.clientId) {
+                const c = clientsList.find(x => x.id === taskData.clientId);
+                if(c) taskData.clientName = c.name;
+            }
 
-    document.getElementById('btn-delete-event').addEventListener('click', () => {
-        if(confirm('¿Eliminar?')) {
-            db.collection('tasks').doc(document.getElementById('task-id').value).delete().then(() => taskModal.hide());
-        }
-    });
+            if (id) {
+                db.collection('tasks').doc(id).update(taskData).then(() => newTaskModal.hide());
+            } else {
+                taskData.status = 'PENDIENTE';
+                taskData.createdAt = new Date();
+                db.collection('tasks').add(taskData).then(() => newTaskModal.hide());
+            }
+        });
+    }
+
+    const btnDelete = document.getElementById('btn-delete-task');
+    if(btnDelete) {
+        btnDelete.addEventListener('click', () => {
+             const id = document.getElementById('task-id').value;
+             if(id) deleteTask(id);
+        });
+    }
 
     // Categories Logic
     if (document.getElementById('btn-edit-cats-modal')) {
@@ -740,7 +1032,24 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     
     function deleteTask(id) {
-        if(confirm('¿Seguro?')) db.collection('tasks').doc(id).delete();
+        Swal.fire({
+            title: '¿Estás seguro?',
+            text: "No podrás revertir esta acción",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                db.collection('tasks').doc(id).delete().then(() => {
+                    newTaskModal.hide();
+                    detailModal.hide();
+                    Swal.fire('Eliminado', 'La tarea ha sido borrada.', 'success');
+                });
+            }
+        });
     }
 
     // Helpers
@@ -1173,6 +1482,38 @@ document.addEventListener('DOMContentLoaded', function () {
             trendEl.innerHTML = `<span class="text-muted"><i class="mdi mdi-minus"></i> 0%</span>`;
         }
     }
+
+    // Unified Task Modal Logic
+    window.openNewTaskModal = function() {
+        const form = document.getElementById('task-form');
+        if(form) form.reset();
+        document.getElementById('task-id').value = '';
+        document.getElementById('task-modal-title').textContent = 'Nueva Tarea';
+        document.getElementById('task-save-text').textContent = 'Crear Tarea';
+        
+        // Reset collapse
+        const moreFields = document.getElementById('task-more-fields');
+        if(moreFields) moreFields.classList.remove('show');
+        const toggleBtn = document.getElementById('btn-toggle-task-fields');
+        if(toggleBtn) toggleBtn.textContent = 'Ver más campos...';
+
+        newTaskModal.show();
+    };
+
+    window.toggleTaskMoreFields = function() {
+        const moreFields = document.getElementById('task-more-fields');
+        const btn = document.getElementById('btn-toggle-task-fields');
+        if(moreFields) {
+            const isShown = moreFields.classList.contains('show');
+            if(isShown) {
+                moreFields.classList.remove('show');
+                btn.textContent = 'Ver más campos...';
+            } else {
+                moreFields.classList.add('show');
+                btn.textContent = 'Ver menos campos';
+            }
+        }
+    };
 
     // Check periodically (every 5 minutes)
     setInterval(checkAutoCompletion, 300000); // 5 mins in ms

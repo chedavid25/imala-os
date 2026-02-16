@@ -1,4 +1,12 @@
 /* Custom Mobile Optimization for Tareas */
+
+/* Global Visibility Toggle */
+#mobile-view { display: none; }
+@media (max-width: 991.98px) {
+    #desktop-view { display: none !important; }
+    #mobile-view { display: block !important; }
+}
+
 @media screen and (max-width: 768px) {
     
     /* GLOBAL MOBILE SPACING OVERRIDES */
@@ -175,28 +183,168 @@
         width: 100%;
     }
 
-    /* === CASHFLOW MOBILE APPS === */
-    /* Stack Action Buttons in Header */
-    .page-title-right {
+    /* === CASHFLOW MOBILE APPS (Mobills Style) === */
+    .mobile-app-container {
+        background-color: #f8f9fa;
+        min-height: 100vh;
+        padding-bottom: 80px; /* Space for bottom nav */
+    }
+
+    .mobile-header {
+        border-radius: 0 0 30px 30px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .mt-n4 {
+        margin-top: -1.5rem !important;
+    }
+
+    .rounded-4 {
+        border-radius: 1.25rem !important;
+    }
+
+    .mobile-bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: #fff;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        height: 70px;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+        z-index: 1000;
+        padding: 0 10px;
+    }
+
+    .mobile-bottom-nav .nav-item {
         display: flex;
         flex-direction: column;
-        gap: 10px;
-        width: 100%;
-        margin-top: 15px;
+        align-items: center;
+        color: #adb5bd;
+        text-decoration: none;
+        font-size: 10px;
+        flex: 1;
     }
-    
-    .page-title-right .btn {
-        width: 100%;
-        margin-left: 0 !important; /* Remove ms-2 override */
-        margin-right: 0 !important;
-        margin-bottom: 5px;
+
+    .mobile-bottom-nav .nav-item i {
+        font-size: 20px;
+        margin-bottom: 2px;
+    }
+
+    .mobile-bottom-nav .nav-item.active {
+        color: #5156be;
+    }
+
+    .fab-container {
+        position: relative;
+        top: -25px;
+        z-index: 1001;
+    }
+
+    .fab-container .btn-primary {
+        width: 56px;
+        height: 56px;
+        padding: 0;
         display: flex;
+        align-items: center;
         justify-content: center;
+        border: 4px solid #fff;
+    }
+
+    .fab-options {
+        position: absolute;
+        bottom: 70px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: none;
+        flex-direction: column;
+        gap: 10px;
         align-items: center;
     }
 
-    /* Adjust KPI Cards Font Sizes if needed */
-    .card .display-6 {
-        font-size: 2rem; /* Slighly smaller for mobile */
+    .fab-options.show {
+        display: flex;
+        animation: fadeInUp 0.3s ease;
     }
+
+    .btn-floating-action {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+    }
+
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translate(-50%, 20px); }
+        to { opacity: 1; transform: translate(-50%, 0); }
+    }
+
+    /* List Item Styles */
+    #mobile-transactions-list .list-group-item {
+        border: none;
+        margin-bottom: 2px;
+        padding: 1rem 1.25rem;
+    }
+
+    .avatar-title.bg-success-subtle { background-color: rgba(52, 195, 143, 0.15) !important; color: #34c38f !important; }
+    .avatar-title.bg-danger-subtle { background-color: rgba(244, 102, 102, 0.15) !important; color: #f46666 !important; }
+    .avatar-title.bg-primary-subtle { background-color: rgba(81, 86, 190, 0.15) !important; color: #5156be !important; }
+
+    /* See More Button Refined */
+    .btn-link.text-primary {
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 13px;
+        background: #fff;
+        transition: background 0.2s;
+    }
+
+    .btn-link.text-primary:active {
+        background: #f1f1f1;
+    }
+
+    /* Fixed alignment for amounts */
+    #mobile-transactions-list .text-end {
+        min-width: 80px;
+    }
+
+    /* === ANALYTICS MOBILE SPECIFIC === */
+    .mob-category-filters {
+        scrollbar-width: none; /* Hide scrollbar Firefox */
+        -ms-overflow-style: none; /* Hide scrollbar IE/Edge */
+    }
+    .mob-category-filters::-webkit-scrollbar {
+        display: none; /* Hide scrollbar Chrome/Safari */
+    }
+
+    .mob-category-filters .btn {
+        flex: 0 0 auto;
+        font-weight: 500;
+        font-size: 13px;
+        transition: all 0.2s ease;
+    }
+
+    .mob-category-filters .btn.active {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    .mobile-body canvas {
+        max-width: 100% !important;
+    }
+
+    /* Tab Transitions */
+    .mob-tab-pane {
+        animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
 }

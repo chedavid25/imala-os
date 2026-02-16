@@ -42,14 +42,13 @@
         <!-- Icons Css -->
         <link href="assets/css/icons.min.css" rel="stylesheet" type="text/css" />
         <!-- App Css-->
-        <link href="assets/css/app.min.css" id="app-style" rel="stylesheet" type="text/css" />
-        <link href="assets/css/custom-mobile.css" rel="stylesheet" type="text/css" />
+        <link href="assets/css/app.min.css?v=11.1" id="app-style" rel="stylesheet" type="text/css" />
+        <link href="assets/css/custom-mobile.css?v=11.1" rel="stylesheet" type="text/css" />
         
         <style>
             /* Kanban Styles */
             .task-column {
                 border-radius: 5px;
-                padding: 1.0rem;
                 padding: 1.0rem;
                 min-height: 500px;
             }
@@ -153,675 +152,480 @@
 
     <body>
 
-    <!-- <body data-layout="horizontal"> -->
-
         <!-- Begin page -->
         <div id="layout-wrapper">
 
-            
-            <header id="page-topbar">
-                <div class="navbar-header">
-                    <div class="d-flex">
-                        <!-- LOGO -->
-                        <div class="navbar-brand-box">
-                            <a href="index.html" class="logo logo-dark">
-                                <span class="logo-sm">
-                                    <img src="assets/images/iso_color.png" alt="" height="30">
-                                </span>
-                                <span class="logo-lg">
-                                    <img src="assets/images/completo-color1.png" alt="" height="30">
-                                </span>
-                            </a>
+            <!-- Desktop View -->
+            <div id="desktop-view">
+                <header id="page-topbar">
+                    <div class="navbar-header">
+                        <div class="d-flex">
+                            <!-- LOGO -->
+                            <div class="navbar-brand-box">
+                                <a href="index.html" class="logo logo-dark">
+                                    <span class="logo-sm">
+                                        <img src="assets/images/iso_color.png" alt="" height="30">
+                                    </span>
+                                    <span class="logo-lg">
+                                        <img src="assets/images/completo-color1.png" alt="" height="30">
+                                    </span>
+                                </a>
 
-                            <a href="index.html" class="logo logo-light">
-                                <span class="logo-sm">
-                                    <img src="assets/images/iso_color.png" alt="" height="30">
-                                </span>
-                                <span class="logo-lg">
-                                    <img src="assets/images/completo-color1.png" alt="" height="30">
-                                </span>
-                            </a>
+                                <a href="index.html" class="logo logo-light">
+                                    <span class="logo-sm">
+                                        <img src="assets/images/iso_color.png" alt="" height="30">
+                                    </span>
+                                    <span class="logo-lg">
+                                        <img src="assets/images/completo-color1.png" alt="" height="30">
+                                    </span>
+                                </a>
+                            </div>
+
+                            <button type="button" class="btn btn-sm px-3 font-size-16 header-item" id="vertical-menu-btn">
+                                <i class="fa fa-fw fa-bars"></i>
+                            </button>
+
+                            <!-- App Search-->
+                            <form class="app-search d-none d-lg-block">
+                                <div class="position-relative">
+                                    <input type="text" class="form-control" placeholder="Buscar..." id="top-search-input">
+                                    <button class="btn btn-primary" type="button"><i class="bx bx-search-alt align-middle"></i></button>
+                                </div>
+                            </form>
                         </div>
 
-                        <button type="button" class="btn btn-sm px-3 font-size-16 header-item" id="vertical-menu-btn">
-                            <i class="fa fa-fw fa-bars"></i>
-                        </button>
+                        <div class="d-flex">
 
-                        <!-- App Search-->
-                        <form class="app-search d-none d-lg-block">
-                            <div class="position-relative">
-                                <input type="text" class="form-control" placeholder="Buscar..." id="top-search-input">
-                                <button class="btn btn-primary" type="button"><i class="bx bx-search-alt align-middle"></i></button>
-                            </div>
-                        </form>
-                    </div>
-
-                    <div class="d-flex">
-
-                        <div class="dropdown d-inline-block d-lg-none ms-2">
-                            <button type="button" class="btn header-item" id="page-header-search-dropdown"
-                            data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <i data-feather="search" class="icon-lg"></i>
-                            </button>
-                            <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end p-0"
-                                aria-labelledby="page-header-search-dropdown">
+                            <div class="dropdown d-inline-block d-lg-none ms-2">
+                                <button type="button" class="btn header-item" id="page-header-search-dropdown"
+                                data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <i data-feather="search" class="icon-lg"></i>
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end p-0"
+                                    aria-labelledby="page-header-search-dropdown">
         
-                                <form class="p-3">
-                                    <div class="form-group m-0">
-                                        <div class="input-group">
-                                            <input type="text" class="form-control" placeholder="Search ..." aria-label="Search Result">
+                                    <form class="p-3">
+                                        <div class="form-group m-0">
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" placeholder="Search ..." aria-label="Search Result">
 
-                                            <button class="btn btn-primary" type="submit"><i class="mdi mdi-magnify"></i></button>
+                                                <button class="btn btn-primary" type="submit"><i class="mdi mdi-magnify"></i></button>
+                                            </div>
                                         </div>
-                                    </div>
-                                </form>
+                                    </form>
+                                </div>
                             </div>
-                        </div>
 
-                        <div class="dropdown d-none d-sm-inline-block">
-                            <button type="button" class="btn header-item" id="mode-setting-btn">
-                                <i data-feather="moon" class="icon-lg layout-mode-dark"></i>
-                                <i data-feather="sun" class="icon-lg layout-mode-light"></i>
-                            </button>
-                        </div>
+                            <div class="dropdown d-none d-sm-inline-block">
+                                <button type="button" class="btn header-item" id="mode-setting-btn">
+                                    <i data-feather="moon" class="icon-lg layout-mode-dark"></i>
+                                    <i data-feather="sun" class="icon-lg layout-mode-light"></i>
+                                </button>
+                            </div>
 
-                        <div class="dropdown d-inline-block">
-                            <button type="button" class="btn header-item noti-icon position-relative" id="page-header-notifications-dropdown"
-                            data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <i data-feather="bell" class="icon-lg"></i>
-                                <!-- <span class="badge bg-danger rounded-pill">5</span> -->
-                            </button>
-                            <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end p-0"
-                                aria-labelledby="page-header-notifications-dropdown">
-                                <div class="p-3">
-                                    <div class="row align-items-center">
-                                        <div class="col">
-                                            <h6 class="m-0"> Notificaciones </h6>
-                                        </div>
-                                        <div class="col-auto">
-                                            <a href="#!" class="small text-reset text-decoration-underline"> No leídas (0)</a>
+                            <div class="dropdown d-inline-block">
+                                <button type="button" class="btn header-item noti-icon position-relative" id="page-header-notifications-dropdown"
+                                data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <i data-feather="bell" class="icon-lg"></i>
+                                    <!-- <span class="badge bg-danger rounded-pill">5</span> -->
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end p-0"
+                                    aria-labelledby="page-header-notifications-dropdown">
+                                    <div class="p-3">
+                                        <div class="row align-items-center">
+                                            <div class="col">
+                                                <h6 class="m-0"> Notificaciones </h6>
+                                            </div>
+                                            <div class="col-auto">
+                                                <a href="#!" class="small text-reset text-decoration-underline"> No leídas (0)</a>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                <div data-simplebar style="max-height: 230px;">
+                                    <div data-simplebar style="max-height: 230px;">
                         
-                                    <!-- Empty State por ahora -->
-                                    <div class="p-3 text-center">
-                                        <p class="text-muted">No tienes notificaciones nuevas</p>
-                                    </div>
+                                        <!-- Empty State por ahora -->
+                                        <div class="p-3 text-center">
+                                            <p class="text-muted">No tienes notificaciones nuevas</p>
+                                        </div>
 
+                                    </div>
+                                    <div class="p-2 border-top d-grid">
+                                        <a class="btn btn-sm btn-link font-size-14 text-center" href="javascript:void(0)">
+                                            <i class="mdi mdi-arrow-right-circle me-1"></i> <span>Ver más..</span> 
+                                        </a>
+                                    </div>
                                 </div>
-                                <div class="p-2 border-top d-grid">
-                                    <a class="btn btn-sm btn-link font-size-14 text-center" href="javascript:void(0)">
-                                        <i class="mdi mdi-arrow-right-circle me-1"></i> <span>Ver más..</span> 
+                            </div>
+
+                            <div class="dropdown d-inline-block">
+                                <!-- User Profile handled by Main JS -->
+                                <button type="button" class="btn header-item bg-light-subtle border-start border-end" id="page-header-user-dropdown"
+                                data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <img class="rounded-circle header-profile-user" src="assets/images/users/avatar-1.jpg"
+                                        alt="Header Avatar" id="header-user-avatar">
+                                    <span class="d-none d-xl-inline-block ms-1 fw-medium" id="header-user-name">Usuario</span>
+                                    <i class="mdi mdi-chevron-down d-none d-xl-inline-block"></i>
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-end">
+                                    <!-- item-->
+                                    <a class="dropdown-item" href="apps-perfil.html"><i class="mdi mdi mdi-face-man font-size-16 align-middle me-1"></i> Perfil</a>
+                                    <div class="dropdown-divider"></div>
+                                    <a class="dropdown-item" href="#" onclick="window.Imala.auth.signOut(); window.location.href='auth-login.html';"><i class="mdi mdi-logout font-size-16 align-middle me-1"></i> Cerrar Sesión</a>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </header>
+                <!-- ========== Left Sidebar Start ========== -->
+                <div class="vertical-menu">
+
+                    <div data-simplebar class="h-100">
+
+                        <!--- Sidemenu -->
+                        <div id="sidebar-menu">
+                            <!-- Left Menu Start -->
+                            <ul class="metismenu list-unstyled" id="side-menu">
+                                <li class="menu-title" data-key="t-menu">Principal</li>
+                                <li>
+                                    <a href="index.html">
+                                        <i data-feather="home"></i>
+                                        <span data-key="t-dashboard">Dashboard</span>
                                     </a>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="dropdown d-inline-block">
-                            <!-- User Profile handled by Main JS -->
-                            <button type="button" class="btn header-item bg-light-subtle border-start border-end" id="page-header-user-dropdown"
-                            data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <img class="rounded-circle header-profile-user" src="assets/images/users/avatar-1.jpg"
-                                    alt="Header Avatar" id="header-user-avatar">
-                                <span class="d-none d-xl-inline-block ms-1 fw-medium" id="header-user-name">Usuario</span>
-                                <i class="mdi mdi-chevron-down d-none d-xl-inline-block"></i>
-                            </button>
-                            <div class="dropdown-menu dropdown-menu-end">
-                                <!-- item-->
-                                <a class="dropdown-item" href="apps-perfil.html"><i class="mdi mdi mdi-face-man font-size-16 align-middle me-1"></i> Perfil</a>
-                                <div class="dropdown-divider"></div>
-                                <a class="dropdown-item" href="#" onclick="window.Imala.auth.signOut(); window.location.href='auth-login.html';"><i class="mdi mdi-logout font-size-16 align-middle me-1"></i> Cerrar Sesión</a>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-            </header>
-
-            <!-- ========== Left Sidebar Start ========== -->
-            <div class="vertical-menu">
-
-                <div data-simplebar class="h-100">
-
-                    <!--- Sidemenu -->
-                    <div id="sidebar-menu">
-                        <!-- Left Menu Start -->
-                        <ul class="metismenu list-unstyled" id="side-menu">
-                            <li class="menu-title" data-key="t-menu">Principal</li>
-                            <li>
-                                <a href="index.html">
-                                    <i data-feather="home"></i>
-                                    <span data-key="t-dashboard">Dashboard</span>
-                                </a>
-                            </li>
-                            <li class="menu-title" data-key="t-modules">Módulos</li>
-                            <li>
-                                <a href="apps-tareas.html">
-                                    <i data-feather="grid"></i>
-                                    <span data-key="t-tasks">Gestión Tareas</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="apps-clients.html">
-                                    <i data-feather="users"></i>
-                                    <span data-key="t-clients">Gestión Clientes</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="apps-cashflow.html">
-                                    <i data-feather="dollar-sign"></i>
-                                    <span data-key="t-cashflow">Cashflow</span>
-                                </a>
-                            </li>
-                             <li>
-                                <a href="apps-analytics.html">
-                                    <i data-feather="pie-chart"></i>
-                                    <span data-key="t-analytics">Gráficos de Gestión</span>
-                                </a>
-                            </li>
+                                </li>
+                                <li class="menu-title" data-key="t-modules">Módulos</li>
+                                <li>
+                                    <a href="apps-tareas.html">
+                                        <i data-feather="grid"></i>
+                                        <span data-key="t-tasks">Gestión Tareas</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="apps-clients.html">
+                                        <i data-feather="users"></i>
+                                        <span data-key="t-clients">Gestión Clientes</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="apps-cashflow.html">
+                                        <i data-feather="dollar-sign"></i>
+                                        <span data-key="t-cashflow">Cashflow</span>
+                                    </a>
+                                </li>
+                                 <li>
+                                    <a href="apps-analytics.html">
+                                        <i data-feather="pie-chart"></i>
+                                        <span data-key="t-analytics">Gráficos de Gestión</span>
+                                    </a>
+                                </li>
                 
-                            <li class="menu-title" data-key="t-settings">Configuración</li>
-                            <li>
-                                <a href="javascript: void(0);" class="has-arrow">
-                                    <i data-feather="settings"></i>
-                                    <span data-key="t-settings">Mi Cuenta</span>
-                                </a>
-                                <ul class="sub-menu" aria-expanded="false">
-                                    <li><a href="apps-perfil.html" data-key="t-profile">Mi Perfil</a></li>
+                                <li class="menu-title" data-key="t-settings">Configuración</li>
+                                <li>
+                                    <a href="javascript: void(0);" class="has-arrow">
+                                        <i data-feather="settings"></i>
+                                        <span data-key="t-settings">Mi Cuenta</span>
+                                    </a>
+                                    <ul class="sub-menu" aria-expanded="false">
+                                        <li><a href="apps-perfil.html" data-key="t-profile">Mi Perfil</a></li>
                         
-                                    <!-- Admin Link -->
-                                    <li>
-                                        <a href="apps-config-members.html" data-key="t-admin-members">Admin. Miembros</a>
-                                    </li>
+                                        <!-- Admin Link -->
+                                        <li>
+                                            <a href="apps-config-members.html" data-key="t-admin-members">Admin. Miembros</a>
+                                        </li>
 
-                                    <li><a href="#" onclick="window.Imala.auth.signOut(); window.location.href='auth-login.html';" data-key="t-logout">Cerrar Sesión</a></li>
-                                </ul>
-                            </li>
+                                        <li><a href="#" onclick="window.Imala.auth.signOut(); window.location.href='auth-login.html';" data-key="t-logout">Cerrar Sesión</a></li>
+                                    </ul>
+                                </li>
 
+                            </ul>
+
+
+                        </div>
+                        <!-- Sidebar -->
+                    </div>
+                </div>
+                <!-- Left Sidebar End -->
+
+                <div class="main-content">
+                    <div class="page-content">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+                                        <h4 class="mb-sm-0 font-size-18">Gestión de Tareas</h4>
+                                        <div class="page-title-right">
+                                            <ol class="breadcrumb m-0">
+                                                <li class="breadcrumb-item"><a href="javascript: void(0);">Apps</a></li>
+                                                <li class="breadcrumb-item active">Gestión de Tareas</li>
+                                            </ol>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <div class="d-flex flex-wrap gap-2 mb-4 justify-content-between align-items-center">
+                                                <div class="btn-group filter-bar" role="group">
+                                                    <button type="button" class="btn btn-outline-primary active" data-filter="TODAY">Hoy</button>
+                                                    <button type="button" class="btn btn-outline-primary" data-filter="WEEK">Semana</button>
+                                                    <button type="button" class="btn btn-outline-danger" data-filter="LATE">Atrasadas</button>
+                                                    <button type="button" class="btn btn-outline-primary" data-filter="ALL">Todas</button>
+                                                </div>
+                                                <div class="d-flex gap-2">
+                                                    <div class="search-box">
+                                                        <input type="text" class="form-control" id="task-search" placeholder="Buscar tarea...">
+                                                    </div>
+                                                    <button class="btn btn-primary" onclick="openNewTaskModal()">
+                                                        <i class="bx bx-plus me-1"></i> Nueva Tarea
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div class="row" id="kanban-board">
+                                                <div class="col-lg-6">
+                                                    <div class="card task-column task-column-todo shadow-sm">
+                                                        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center mb-2">
+                                                            <h5 class="mb-0 fw-bold">Pendientes</h5>
+                                                            <span class="badge bg-warning" id="count-todo">0</span>
+                                                        </div>
+                                                        <div id="todo-list" class="task-list-items" data-status="PENDIENTE"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-lg-6">
+                                                    <div class="card task-column task-column-done shadow-sm">
+                                                        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center mb-2">
+                                                            <h5 class="mb-0 fw-bold text-success">Completadas ✅</h5>
+                                                            <span class="badge bg-success" id="count-done">0</span>
+                                                        </div>
+                                                        <div id="done-list" class="task-list-items" data-status="COMPLETADA"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <footer class="footer">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <div class="col-sm-6"><script>document.write(new Date().getFullYear())</script> © Imalá OS.</div>
+                                <div class="col-sm-6 text-sm-end">Design & Develop by <a href="#!" class="text-decoration-underline">Imalá Team</a></div>
+                            </div>
+                        </div>
+                    </footer>
+                </div>
+            </div><!-- end desktop-view -->
+
+            <!-- Mobile View -->
+            <div id="mobile-view" class="mobile-app-container d-none">
+                <header class="mobile-header bg-primary p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="user-info">
+                            <h4 class="mb-0 text-white" id="mob-task-title">Tareas</h4>
+                            <p class="mb-0 text-white-50 small" id="mob-tasks-summary">Cargando...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Standard Filters (List View) -->
+                    <div class="mt-4 overflow-auto pb-2 d-flex gap-2 mob-category-filters" id="mob-std-filters">
+                        <!-- Toggle Button (Moved Here) -->
+                        <button class="btn btn-sm btn-white bg-white text-primary rounded-pill px-3" id="btn-mob-view-mode">
+                             <i class="bx bx-calendar font-size-16 align-middle" id="icon-mob-view-mode"></i>
+                        </button>
+                        
+                        <button class="btn btn-sm btn-white bg-white text-primary rounded-pill px-3 active" data-mob-filter="TODAY">Hoy</button>
+                        <button class="btn btn-sm btn-outline-light text-white rounded-pill px-3" data-mob-filter="WEEK">Semana</button>
+                        <button class="btn btn-sm btn-outline-light text-white rounded-pill px-3" data-mob-filter="LATE">Atrasadas</button>
+                        <button class="btn btn-sm btn-outline-light text-white rounded-pill px-3" data-mob-filter="COMPLETED">Completadas</button>
+                        <button class="btn btn-sm btn-outline-light text-white rounded-pill px-3" data-mob-filter="ALL">Todas</button>
+                    </div>
+
+                    <!-- Date Strip (Calendar View) - Hidden by default -->
+                    <div class="mt-4 overflow-auto pb-2 d-none" id="mob-date-strip">
+                        <!-- Dates will be injected here via JS -->
+                         <div class="d-flex gap-3 px-2">
+                            <!-- Example Item -->
+                            <!-- <div class="date-item text-center text-white opacity-50"><small>L</small><div class="fw-bold fs-16">16</div></div> -->
+                         </div>
+                    </div>
+                </header>
+
+                <main class="mobile-body p-3">
+                    <div class="search-box mb-3">
+                        <input type="text" class="form-control bg-white border-0 shadow-sm rounded-pill py-2" id="mob-task-search" placeholder="🔍 Buscar tarea...">
+                    </div>
+                    
+                    <!-- Standard List -->
+                    <div id="mob-tasks-list" class="mobile-task-list">
+                        <div class="text-center p-5"><div class="spinner-border text-primary"></div></div>
+                    </div>
+
+                    <!-- Calendar Agenda View - Hidden by default -->
+                    <div id="mob-agenda-list" class="mobile-task-list d-none">
+                        <!-- Grouped tasks will go here -->
+                    </div>
+                </main>
+
+                <nav class="mobile-bottom-nav">
+                    <a href="index.html" class="nav-item"><i class="bx bx-home-alt-2"></i><span>Home</span></a>
+                    <a href="apps-analytics.html" class="nav-item"><i class="bx bx-pie-chart-alt-2"></i><span>Reportes</span></a>
+                    <div class="fab-container">
+                        <button class="btn btn-primary rounded-circle shadow-lg p-0" id="mob-fab-main" onclick="openNewTaskModal()">
+                            <i class="mdi mdi-plus font-size-24"></i>
+                        </button>
+                    </div>
+                    <a href="apps-cashflow.html" class="nav-item"><i class="bx bx-wallet"></i><span>Cartera</span></a>
+                    <a href="apps-perfil.html" class="nav-item"><i class="bx bx-user"></i><span>Perfil</span></a>
+                </nav>
+            </div><!-- end mobile-view -->
+        </div><!-- END layout-wrapper -->
+
+        <!-- MODALS -->
+        <!-- Task Detail Modal -->
+        <div class="modal fade" id="task-detail-modal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="detail-title">Detalles de Tarea</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <ul class="nav nav-tabs nav-tabs-custom mb-3">
+                            <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-detail-info">Información</a></li>
+                            <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-detail-chat">Bitácora <span class="badge bg-danger rounded-pill" id="chat-badge" style="display:none">!</span></a></li>
                         </ul>
-
-
-                    </div>
-                    <!-- Sidebar -->
-                </div>
-            </div>
-            <!-- Left Sidebar End -->
-
-            
-
-            <div class="main-content">
-
-                <div class="page-content">
-                    <div class="container-fluid">
-
-                        <!-- start page title -->
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="page-title-box d-sm-flex align-items-center justify-content-between">
-                                    <h4 class="mb-sm-0 font-size-18">Gestión de Tareas</h4>
-
-                                    <div class="page-title-right">
-                                        <ol class="breadcrumb m-0">
-                                            <li class="breadcrumb-item"><a href="javascript: void(0);">Apps</a></li>
-                                            <li class="breadcrumb-item active">Gestión de Tareas</li>
-                                        </ol>
-                                    </div>
-
-                                </div>
-                            </div>
-                        </div>
-                        <!-- end page title -->
-
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="card">
-                                    <div class="card-body">
-                                        
-                                        <!-- FILTERS & ACTIONS -->
-                                        <div class="d-flex flex-wrap gap-2 mb-4 justify-content-between align-items-center">
-                                            <div class="btn-group filter-bar" role="group">
-                                                <button type="button" class="btn btn-outline-primary" data-filter="ALL">Todas</button>
-                                                <button type="button" class="btn btn-outline-primary active" data-filter="TODAY">Hoy</button>
-                                                <button type="button" class="btn btn-outline-primary" data-filter="WEEK">Esta Semana</button>
-                                                <button type="button" class="btn btn-outline-primary" data-filter="MONTH">Este Mes</button>
-                                                <button type="button" class="btn btn-outline-danger" data-filter="LATE">Atrasadas</button>
-                                                <button type="button" class="btn btn-outline-success" data-filter="COMPLETED">Completadas</button>
+                        <div class="tab-content text-muted">
+                            <div class="tab-pane active" id="tab-detail-info">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <p id="detail-desc" class="mb-4"></p>
+                                        <div class="mb-4">
+                                            <h6 class="fw-bold">Cliente</h6>
+                                            <p id="detail-client">--</p>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-4">
+                                                <h6 class="fw-bold">Vencimiento</h6>
+                                                <p id="detail-due">--</p>
                                             </div>
-
-                                            <!-- Month History Filter -->
-                                            <div class="d-flex align-items-center">
-                                                <input type="month" class="form-control" id="filter-month-history" style="max-width: 160px;">
-                                            </div>
-
-                                            <!-- Generation Stats -->
-                                            <div class="d-none d-xl-flex gap-3 align-items-center bg-light rounded p-2" id="task-gen-stats" style="font-size: 0.8rem;">
-                                                <div class="d-flex flex-column text-center border-end pe-3" title="Tareas nuevas esta semana">
-                                                    <span class="text-muted text-uppercase" style="font-size: 10px;">Semana</span>
-                                                    <span class="fw-bold text-primary" id="stat-gen-week">0</span>
-                                                </div>
-                                                <div class="d-flex flex-column text-center border-end pe-3" title="Tareas nuevas este mes">
-                                                    <span class="text-muted text-uppercase" style="font-size: 10px;">Mes</span>
-                                                    <span class="fw-bold text-primary" id="stat-gen-month">0</span>
-                                                </div>
-                                                <div class="d-flex flex-column text-center" title="Comparación con mes anterior">
-                                                    <span class="text-muted text-uppercase" style="font-size: 10px;">Vs. Prev</span>
-                                                    <span class="fw-bold" id="stat-gen-trend">--</span>
-                                                </div>
-                                            </div>
-                                            
-                                            <div class="d-flex gap-2">
-                                                <button class="btn btn-soft-danger" id="btn-sync-gcal">
-                                                    <i class="mdi mdi-google"></i> Sync
-                                                </button>
-                                                 <button class="btn btn-soft-secondary" id="btn-manage-categories">
-                                                    <i class="mdi mdi-tag-outline"></i> Categorías
-                                                </button>
-                                                <button class="btn btn-primary" id="btn-new-task-main">
-                                                    <i class="mdi mdi-plus"></i> Nueva Tarea
-                                                </button>
+                                            <div class="col-md-6 mb-4">
+                                                <h6 class="fw-bold">Prioridad</h6>
+                                                <p id="detail-priority">--</p>
                                             </div>
                                         </div>
-
-                                        <!-- Nav tabs -->
-                                        <ul class="nav nav-tabs nav-tabs-custom nav-justified" role="tablist">
-                                            <li class="nav-item">
-                                                <a class="nav-link active" data-bs-toggle="tab" href="#tab-kanban" role="tab">
-                                                    <span class="d-block d-sm-none"><i class="fas fa-columns"></i></span>
-                                                    <span class="d-none d-sm-block">📋 Tablero</span> 
-                                                </a>
-                                            </li>
-                                             <li class="nav-item">
-                                                <a class="nav-link" data-bs-toggle="tab" href="#tab-list" role="tab">
-                                                    <span class="d-block d-sm-none"><i class="fas fa-list"></i></span>
-                                                    <span class="d-none d-sm-block">📝 Lista</span> 
-                                                </a>
-                                            </li>
-                                            <li class="nav-item">
-                                                <a class="nav-link" data-bs-toggle="tab" href="#tab-calendar" role="tab">
-                                                    <span class="d-block d-sm-none"><i class="fas fa-calendar-alt"></i></span>
-                                                    <span class="d-none d-sm-block">📅 Calendario</span> 
-                                                </a>
-                                            </li>
-                                        </ul>
-        
-                                        <!-- Tab panes -->
-                                        <div class="tab-content p-3 text-muted">
-                                            
-                                            <!-- KANBAN TAB (Default) -->
-                                            <div class="tab-pane active" id="tab-kanban" role="tabpanel">
-                                                <div class="row">
-                                                    <!-- PENDIENTE (Yellow) -->
-                                                    <div class="col-lg-4">
-                                                        <div class="card task-column task-column-todo h-100">
-                                                            <div class="card-body">
-                                                                <h4 class="card-title mb-4 text-warning">Pendiente</h4>
-                                                                <div id="kanban-todo" class="task-list-items" data-status="TODO"></div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <!-- COMPLETADO (Green) - Reordered as requested -->
-                                                    <div class="col-lg-4">
-                                                        <div class="card task-column task-column-done h-100">
-                                                            <div class="card-body">
-                                                                <h4 class="card-title mb-4 text-success">Completado</h4>
-                                                                <div id="kanban-completed" class="task-list-items" data-status="COMPLETED"></div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <!-- ATRASADO (Red) -->
-                                                    <div class="col-lg-4">
-                                                        <div class="card task-column task-column-late h-100">
-                                                            <div class="card-body">
-                                                                <h4 class="card-title mb-4 text-danger">Atrasado</h4>
-                                                                <div id="kanban-late" class="task-list-items" data-status="LATE"></div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                </div>
-                                            </div>
-
-                                            <!-- LIST TAB -->
-                                            <div class="tab-pane" id="tab-list" role="tabpanel">
-                                                <div class="table-responsive">
-                                                    <table id="datatable-tasks" class="table table-bordered dt-responsive nowrap w-100">
-                                                        <thead>
-                                                            <tr>
-                                                                <th>Tarea</th>
-                                                                <th>Vencimiento</th>
-                                                                <th>Prioridad</th>
-                                                                <th>Estado</th>
-                                                                <th>Asignado A</th>
-                                                                <th>Acciones</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody></tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-
-                                            <!-- CALENDAR TAB -->
-                                            <div class="tab-pane" id="tab-calendar" role="tabpanel">
-                                                <div class="row">
-                                                    <div class="col-12">
-                                                        <div id="calendar"></div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
+                                    </div>
+                                    <div class="col-md-4 border-start">
+                                        <div class="d-grid gap-2">
+                                            <button class="btn btn-outline-primary" id="btn-edit-task"><i class="bx bx-edit me-1"></i> Editar</button>
+                                            <button class="btn btn-outline-danger" id="btn-delete-task"><i class="bx bx-trash me-1"></i> Eliminar</button>
+                                            <hr>
+                                            <h6 class="fw-bold small text-uppercase">Asignado a</h6>
+                                            <div id="detail-assigned">--</div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        
-                    </div> 
-                </div>
-
-                <!-- Tarea Modal -->
-                <div class="modal fade" id="event-modal" tabindex="-1">
-                    <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content">
-                            <div class="modal-header py-3 px-4 border-bottom-0">
-                                <h5 class="modal-title" id="modal-title">Tarea</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-hidden="true"></button>
-                            </div>
-                            <div class="modal-body p-4">
-                                <form class="needs-validation" name="event-form" id="form-event" novalidate>
-                                    <input type="hidden" id="task-id">
-                                    <div class="row">
-                                        <div class="col-12">
-                                            <div class="mb-3">
-                                                <label class="form-label">Título</label>
-                                                <input class="form-control" placeholder="Ej. Pagar Impuestos" type="text" name="title" id="event-title" required />
-                                            </div>
-                                        </div>
-
-                                        <div class="col-12">
-                                            <div class="mb-3">
-                                                <label class="form-label">Descripción</label>
-                                                <textarea class="form-control" placeholder="Detalles de la tarea..." name="description" id="event-description" rows="3"></textarea>
-                                            </div>
-                                        </div>
-                                         <!-- Client Assignment -->
-                                         <div class="col-12">
-                                            <div class="mb-3">
-                                                <label class="form-label">Cliente Asociado (Opcional)</label>
-                                                <select class="form-control form-select" id="event-client-id">
-                                                    <option value="">- Ninguno -</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Assignment & Priority -->
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label class="form-label">Asignar a</label>
-                                                <select class="form-control form-select" name="assignedTo" id="event-assignedTo">
-                                                    <option value="David">David</option>
-                                                    <option value="Lucre">Lucre</option>
-                                                    <option value="Ambos">Ambos</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label class="form-label">Prioridad</label>
-                                                <select class="form-control form-select" name="priority" id="event-priority">
-                                                    <option value="LOW" class="text-success">Baja (Verde)</option>
-                                                    <option value="MEDIUM" class="text-warning">Media (Amarillo)</option>
-                                                    <option value="HIGH" class="text-danger">Alta (Rojo)</option>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <!-- Date & Time (Argentina Defaults managed in JS) -->
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                 <label class="form-label">Fecha Vencimiento</label>
-                                                 <input class="form-control" type="date" id="event-dueDate" required>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                 <label class="form-label">Hora (Opcional)</label>
-                                                 <input class="form-control" type="time" id="event-dueTime">
-                                            </div>
-                                        </div>
-
-                                        <!-- Category & Recurrence -->
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label class="form-label">Categoría</label>
-                                                <div class="input-group">
-                                                    <select class="form-control form-select" name="category" id="event-category">
-                                                        <!-- Filled dynamically -->
-                                                        <option value="General">General</option>
-                                                        <option value="Ventas">Ventas</option>
-                                                        <option value="Marketing">Marketing</option>
-                                                    </select>
-                                                    <button class="btn btn-outline-secondary" type="button" id="btn-edit-cats-modal"><i class="mdi mdi-pencil"></i></button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                         <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label class="form-label">Repetir</label>
-                                                <select class="form-control form-select" name="recurrence" id="event-recurrence">
-                                                    <option value="NONE">No repetir</option>
-                                                    <option value="WEEKLY">Semanalmente</option>
-                                                    <option value="MONTHLY">Mensualmente</option>
-                                                    <option value="YEARLY">Anualmente</option>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <!-- Status (Less prominent in Create, mostly for Edit) -->
-                                        <div class="col-12">
-                                            <div class="mb-3">
-                                                <label class="form-label">Estado</label>
-                                                <select class="form-control form-select" name="status" id="event-status">
-                                                    <option value="TODO">Pendiente</option>
-                                                    <option value="COMPLETED">Completado</option>
-                                                    <option value="LATE">Atrasado</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="row mt-2">
-                                        <div class="col-6">
-                                            <button type="button" class="btn btn-danger" id="btn-delete-event">Eliminar</button>
-                                        </div>
-                                        <div class="col-6 text-end">
-                                            <button type="button" class="btn btn-light me-1" data-bs-dismiss="modal">Cerrar</button>
-                                            <button type="submit" class="btn btn-success" id="btn-save-event">Guardar</button>
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Categories Manager Modal -->
-                <div class="modal fade" id="categories-modal" tabindex="-1">
-                    <div class="modal-dialog modal-sm modal-dialog-centered">
-                        <div class="modal-content">
-                            <div class="modal-header border-bottom-0">
-                                <h5 class="modal-title">Categorías</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-hidden="true"></button>
-                            </div>
-                            <div class="modal-body">
-                                <ul class="list-group mb-3" id="categories-list">
-                                    <!-- Injected -->
-                                </ul>
+                            <div class="tab-pane" id="tab-detail-chat">
+                                <div id="chat-container" class="border rounded p-3 mb-3" style="height: 300px; overflow-y: auto;"></div>
                                 <div class="input-group">
-                                    <input type="text" class="form-control" placeholder="Nueva..." id="new-cat-name">
-                                    <button class="btn btn-primary" id="btn-add-cat"><i class="mdi mdi-plus"></i></button>
+                                    <input type="text" class="form-control" id="chat-input" placeholder="Escribe un mensaje...">
+                                    <button class="btn btn-primary" id="btn-send-chat">Enviar</button>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-
-                <footer class="footer">
-                    <div class="container-fluid">
-                        <div class="row">
-                                <script>document.write(new Date().getFullYear())</script> © Imalá.
-                            </div>
-                            <div class="col-sm-6">
-                                    Design & Develop by <a href="#!" class="text-decoration-underline">Imalá Team</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </footer>
             </div>
-
         </div>
 
-        
-        <!-- Right Sidebar -->
-        <div class="right-bar">
-            <div data-simplebar class="h-100">
-                <div class="rightbar-title d-flex align-items-center p-3">
+        <!-- NEW TASK MODAL -->
+        <div class="modal fade" id="new-task-modal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title fw-bold" id="task-modal-title">Nueva Tarea</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="task-form">
+                        <input type="hidden" id="task-id">
+                        <div class="modal-body p-4">
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-uppercase text-muted" style="letter-spacing: 0.5px;">Título</label>
+                                <input type="text" id="task-title" class="form-control form-control-lg bg-light border-0" placeholder="Ej: Pago de impuestos" required style="border-radius: 12px;">
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <label class="form-label small fw-bold text-uppercase text-muted" style="letter-spacing: 0.5px;">Vencimiento</label>
+                                    <input type="date" id="task-due-date" class="form-control bg-light border-0 py-2" required style="border-radius: 10px;">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small fw-bold text-uppercase text-muted" style="letter-spacing: 0.5px;">Hora</label>
+                                    <input type="time" id="task-due-time" class="form-control bg-light border-0 py-2" style="border-radius: 10px;">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-uppercase text-muted" style="letter-spacing: 0.5px;">Prioridad</label>
+                                <div class="d-flex gap-2">
+                                    <input type="radio" class="btn-check" name="priority" id="p-low" value="LOW" checked>
+                                    <label class="btn btn-soft-success flex-grow-1 border-0" for="p-low" style="border-radius: 10px;">Baja</label>
+                                    <input type="radio" class="btn-check" name="priority" id="p-med" value="MEDIUM">
+                                    <label class="btn btn-soft-warning flex-grow-1 border-0" for="p-med" style="border-radius: 10px;">Media</label>
+                                    <input type="radio" class="btn-check" name="priority" id="p-high" value="HIGH">
+                                    <label class="btn btn-soft-danger flex-grow-1 border-0" for="p-high" style="border-radius: 10px;">Alta</label>
+                                </div>
+                            </div>
 
-                    <h5 class="m-0 me-2">Theme Customizer</h5>
+                            <div class="text-end mb-3">
+                                <a href="javascript:void(0);" class="small fw-medium text-primary" id="btn-toggle-task-fields" onclick="toggleTaskMoreFields()">Ver más campos...</a>
+                            </div>
 
-                    <a href="javascript:void(0);" class="right-bar-toggle ms-auto">
-                        <i class="mdi mdi-close noti-icon"></i>
-                    </a>
+                            <div id="task-more-fields" class="collapse">
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-uppercase text-muted">Asignar a</label>
+                                    <select id="task-assigned-to" class="form-select bg-light border-0 py-2" style="border-radius: 10px;">
+                                        <option value="David">David</option>
+                                        <option value="Lucre">Lucre</option>
+                                        <option value="Ambos">Ambos</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-uppercase text-muted">Cliente</label>
+                                    <select id="task-client-id" class="form-select bg-light border-0 py-2" style="border-radius: 10px;">
+                                        <option value="">Sin Cliente</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-uppercase text-muted">Descripción</label>
+                                    <textarea id="task-desc" class="form-control bg-light border-0" rows="3" style="border-radius: 10px;"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-0 pt-0 px-4 pb-4">
+                            <button type="submit" class="btn btn-primary btn-lg w-100 rounded-pill shadow-sm py-3 fw-bold"><span id="task-save-text">Crear Tarea</span></button>
+                        </div>
+                    </form>
                 </div>
-
-                <!-- Settings -->
-                <hr class="m-0" />
-
-                <div class="p-4">
-                    <h6 class="mb-3">Layout</h6>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="layout"
-                            id="layout-vertical" value="vertical">
-                        <label class="form-check-label" for="layout-vertical">Vertical</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="layout"
-                            id="layout-horizontal" value="horizontal">
-                        <label class="form-check-label" for="layout-horizontal">Horizontal</label>
-                    </div>
-
-                    <h6 class="mt-4 mb-3 pt-2">Layout Mode</h6>
-
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="layout-mode"
-                            id="layout-mode-light" value="light">
-                        <label class="form-check-label" for="layout-mode-light">Light</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="layout-mode"
-                            id="layout-mode-dark" value="dark">
-                        <label class="form-check-label" for="layout-mode-dark">Dark</label>
-                    </div>
-
-                    <h6 class="mt-4 mb-3 pt-2">Layout Width</h6>
-
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="layout-width"
-                            id="layout-width-fuild" value="fuild" onchange="document.body.setAttribute('data-layout-size', 'fluid')">
-                        <label class="form-check-label" for="layout-width-fuild">Fluid</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="layout-width"
-                            id="layout-width-boxed" value="boxed" onchange="document.body.setAttribute('data-layout-size', 'boxed')">
-                        <label class="form-check-label" for="layout-width-boxed">Boxed</label>
-                    </div>
-
-                    <h6 class="mt-4 mb-3 pt-2">Layout Position</h6>
-
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="layout-position"
-                            id="layout-position-fixed" value="fixed" onchange="document.body.setAttribute('data-layout-scrollable', 'false')">
-                        <label class="form-check-label" for="layout-position-fixed">Fixed</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="layout-position"
-                            id="layout-position-scrollable" value="scrollable" onchange="document.body.setAttribute('data-layout-scrollable', 'true')">
-                        <label class="form-check-label" for="layout-position-scrollable">Scrollable</label>
-                    </div>
-
-                    <h6 class="mt-4 mb-3 pt-2">Topbar Color</h6>
-
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="topbar-color"
-                            id="topbar-color-light" value="light" onchange="document.body.setAttribute('data-topbar', 'light')">
-                        <label class="form-check-label" for="topbar-color-light">Light</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="topbar-color"
-                            id="topbar-color-dark" value="dark" onchange="document.body.setAttribute('data-topbar', 'dark')">
-                        <label class="form-check-label" for="topbar-color-dark">Dark</label>
-                    </div>
-
-                    <h6 class="mt-4 mb-3 pt-2 sidebar-setting">Sidebar Size</h6>
-
-                    <div class="form-check sidebar-setting">
-                        <input class="form-check-input" type="radio" name="sidebar-size"
-                            id="sidebar-size-default" value="default" onchange="document.body.setAttribute('data-sidebar-size', 'lg')">
-                        <label class="form-check-label" for="sidebar-size-default">Default</label>
-                    </div>
-                    <div class="form-check sidebar-setting">
-                        <input class="form-check-input" type="radio" name="sidebar-size"
-                            id="sidebar-size-compact" value="compact" onchange="document.body.setAttribute('data-sidebar-size', 'md')">
-                        <label class="form-check-label" for="sidebar-size-compact">Compact</label>
-                    </div>
-                    <div class="form-check sidebar-setting">
-                        <input class="form-check-input" type="radio" name="sidebar-size"
-                            id="sidebar-size-small" value="small" onchange="document.body.setAttribute('data-sidebar-size', 'sm')">
-                        <label class="form-check-label" for="sidebar-size-small">Small (Icon View)</label>
-                    </div>
-
-                    <h6 class="mt-4 mb-3 pt-2 sidebar-setting">Sidebar Color</h6>
-
-                    <div class="form-check sidebar-setting">
-                        <input class="form-check-input" type="radio" name="sidebar-color"
-                            id="sidebar-color-light" value="light" onchange="document.body.setAttribute('data-sidebar', 'light')">
-                        <label class="form-check-label" for="sidebar-color-light">Light</label>
-                    </div>
-                    <div class="form-check sidebar-setting">
-                        <input class="form-check-input" type="radio" name="sidebar-color"
-                            id="sidebar-color-dark" value="dark" onchange="document.body.setAttribute('data-sidebar', 'dark')">
-                        <label class="form-check-label" for="sidebar-color-dark">Dark</label>
-                    </div>
-                    <div class="form-check sidebar-setting">
-                        <input class="form-check-input" type="radio" name="sidebar-color"
-                            id="sidebar-color-brand" value="brand" onchange="document.body.setAttribute('data-sidebar', 'brand')">
-                        <label class="form-check-label" for="sidebar-color-brand">Brand</label>
-                    </div>
-
-                    <h6 class="mt-4 mb-3 pt-2">Direction</h6>
-
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="layout-direction"
-                            id="layout-direction-ltr" value="ltr">
-                        <label class="form-check-label" for="layout-direction-ltr">LTR</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="layout-direction"
-                            id="layout-direction-rtl" value="rtl">
-                        <label class="form-check-label" for="layout-direction-rtl">RTL</label>
-                    </div>
-
-                </div>
-
-            </div> <!-- end slimscroll-menu-->
+            </div>
         </div>
-        <!-- /Right-bar -->
 
-        <!-- Right bar overlay-->
-        <div class="rightbar-overlay"></div>
+        <!-- Mobile Bottom Nav -->
+        <nav class="mobile-bottom-nav d-lg-none">
+            <a href="index.html" class="nav-item"><i class="bx bx-home-alt-2"></i><span>Home</span></a>
+            <a href="apps-analytics.html" class="nav-item"><i class="bx bx-pie-chart-alt-2"></i><span>Reportes</span></a>
+            <div class="fab-container">
+                <button class="btn btn-primary rounded-circle shadow-lg p-0" id="mob-fab-main" onclick="openNewTaskModal()">
+                    <i class="mdi mdi-plus font-size-24"></i>
+                </button>
+            </div>
+            <a href="apps-cashflow.html" class="nav-item"><i class="bx bx-wallet"></i><span>Cartera</span></a>
+            <a href="apps-tareas.html" class="nav-item active"><i class="bx bx-task"></i><span>Tareas</span></a>
+        </nav>
 
         <!-- JAVASCRIPT -->
         <script src="assets/libs/jquery/jquery.min.js"></script>
@@ -830,38 +634,33 @@
         <script src="assets/libs/simplebar/simplebar.min.js"></script>
         <script src="assets/libs/node-waves/waves.min.js"></script>
         <script src="assets/libs/feather-icons/feather.min.js"></script>
-        <!-- pace js -->
         <script src="assets/libs/pace-js/pace.min.js"></script>
-
-        <!-- Dragula -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.3/dragula.min.js"></script>
-        
-        <!-- SweetAlert2 -->
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-        
-        <!-- DataTables -->
         <script src="assets/libs/datatables.net/js/jquery.dataTables.min.js"></script>
         <script src="assets/libs/datatables.net-bs4/js/dataTables.bootstrap4.min.js"></script>
         <script src="assets/libs/datatables.net-responsive/js/dataTables.responsive.min.js"></script>
         <script src="assets/libs/datatables.net-responsive-bs4/js/responsive.bootstrap4.min.js"></script>
 
-        <!-- Firebase CDNs -->
+        <!-- Firebase -->
         <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
         <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
         <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
         <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
         <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
 
-        <!-- Imala Config & Logic -->
+        <!-- Config & Logic -->
         <script src="assets/js/config.js"></script>
         <script src="assets/js/firebase-config.js"></script>
         <script src="assets/js/imala-auth.js"></script>
-        
-        <!-- Main JS Bundle (Sidebar, etc) -->
         <script src="assets/js/app.js"></script>
+        <script src="assets/js/apps-tareas.js?v=11.1"></script>
 
-        <!-- Module Logic -->
-        <script src="assets/js/apps-tareas.js"></script>
-
+        <script>
+            function toggleExtraFields() {
+                const extra = document.getElementById('extra-task-fields');
+                extra.style.display = extra.style.display === 'none' ? 'block' : 'none';
+            }
+        </script>
     </body>
 </html>
