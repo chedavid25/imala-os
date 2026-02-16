@@ -599,6 +599,43 @@
         <!-- Right bar overlay-->
         <div class="rightbar-overlay"></div>
 
+        <!-- Bottom Navigation (Mobile Only) -->
+        <nav class="mob-bottom-nav d-lg-none">
+            <a href="index.html" class="nav-item">
+                <i class="bx bx-home-alt-2"></i>
+                <span>Inicio</span>
+            </a>
+            <a href="apps-tareas.html" class="nav-item">
+                <i class="bx bx-task"></i>
+                <span>Tareas</span>
+            </a>
+            
+            <div class="nav-item-fab">
+                <div class="fab-container">
+                    <button type="button" class="btn-fab-center" id="mob-fab-main" onclick="toggleFabMenu()">
+                        <i class="mdi mdi-plus"></i>
+                    </button>
+                    <div class="fab-options" id="mob-fab-options">
+                        <button type="button" class="btn btn-success btn-floating-action shadow mb-2" onclick="openExpenseModal()" title="Nuevo Gasto">
+                            <i class="mdi mdi-currency-usd"></i>
+                        </button>
+                        <button type="button" class="btn btn-primary btn-floating-action shadow" onclick="openTaskModal()" title="Nueva Tarea">
+                            <i class="mdi mdi-calendar-check"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <a href="apps-cashflow.html" class="nav-item">
+                <i class="bx bx-wallet"></i>
+                <span>Caja</span>
+            </a>
+            <a href="apps-perfil.html" class="nav-item active">
+                <i class="bx bx-user"></i>
+                <span>Perfil</span>
+            </a>
+        </nav>
+
         <!-- JAVASCRIPT -->
         <script src="assets/libs/jquery/jquery.min.js"></script>
         <script src="assets/libs/bootstrap/js/bootstrap.bundle.min.js"></script>

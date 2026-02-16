@@ -11,6 +11,8 @@
         <!-- App favicon -->
         <link rel="shortcut icon" href="assets/images/iso_color.ico">
         <link rel="icon" type="image/x-icon" href="assets/images/iso_color.ico">
+
+
         <!-- PWA / IOS -->
         <link rel="manifest" href="manifest.json">
         <meta name="apple-mobile-web-app-capable" content="yes">
@@ -816,28 +818,7 @@
                                 </div>
                             </div>
 
-                            <!-- FAB Navigation -->
-                            <nav class="mobile-bottom-nav">
-                                <a href="index.html" class="nav-item"><i class="bx bx-home-alt-2"></i><span>Home</span></a>
-                                <a href="apps-analytics.html" class="nav-item"><i class="bx bx-pie-chart-alt-2"></i><span>Gráficos</span></a>
-                                
-                                <div class="fab-container">
-                                    <button class="btn btn-primary rounded-circle shadow-lg p-0" id="mob-fab-main">
-                                        <i class="mdi mdi-plus font-size-24"></i>
-                                    </button>
-                                    <div class="fab-options" id="mob-fab-options">
-                                        <button class="btn btn-success btn-floating-action shadow" id="mob-new-income" title="Nuevo Ingreso">
-                                            <i class="mdi mdi-arrow-up"></i>
-                                        </button>
-                                        <button class="btn btn-danger btn-floating-action shadow" id="mob-new-expense" title="Nuevo Gasto">
-                                            <i class="mdi mdi-arrow-down"></i>
-                                        </button>
-                                    </div>
-                                </div>
 
-                                <a href="apps-cashflow.html" class="nav-item active"><i class="bx bx-wallet"></i><span>Cashflow</span></a>
-                                <a href="apps-tareas.html" class="nav-item"><i class="bx bx-task"></i><span>Tareas</span></a>
-                            </nav>
                         </div><!-- end mobile-view -->
 
                 <!-- Income Modal -->
@@ -1996,6 +1977,43 @@
                         </div>
                     </div>
                 </div>
+
+        <!-- Bottom Navigation (Mobile Only) -->
+        <nav class="mob-bottom-nav d-lg-none">
+            <a href="index.html" class="nav-item">
+                <i class="bx bx-home-alt-2"></i>
+                <span>Inicio</span>
+            </a>
+            <a href="apps-tareas.html" class="nav-item">
+                <i class="bx bx-task"></i>
+                <span>Tareas</span>
+            </a>
+            
+            <div class="nav-item-fab">
+                <div class="fab-container">
+                    <button type="button" class="btn-fab-center" id="mob-fab-main" onclick="toggleFabMenu()">
+                        <i class="mdi mdi-plus"></i>
+                    </button>
+                    <div class="fab-options" id="mob-fab-options">
+                        <button type="button" class="btn btn-success btn-floating-action shadow mb-2" onclick="openExpenseModal()" title="Nuevo Gasto">
+                            <i class="mdi mdi-currency-usd"></i>
+                        </button>
+                        <button type="button" class="btn btn-primary btn-floating-action shadow" onclick="openTaskModal()" title="Nueva Tarea">
+                            <i class="mdi mdi-calendar-check"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <a href="apps-cashflow.html" class="nav-item active">
+                <i class="bx bx-wallet"></i>
+                <span>Caja</span>
+            </a>
+            <a href="apps-perfil.html" class="nav-item">
+                <i class="bx bx-user"></i>
+                <span>Perfil</span>
+            </a>
+        </nav>
 
         <!-- Right bar overlay-->
         <div class="rightbar-overlay"></div>

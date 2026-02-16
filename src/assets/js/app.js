@@ -390,3 +390,47 @@ File: Main Js File
 
 
 feather.replace()
+
+// ==========================================
+// MOBILE FLOATING ACTION BUTTON (FAB) LOGIC
+// ==========================================
+window.toggleFabMenu = function() {
+    const options = document.getElementById('mob-fab-options');
+    if (options) {
+        options.classList.toggle('show');
+    }
+};
+
+// Global fallback if modals are missing in specific page JS
+if (typeof window.openExpenseModal === 'undefined') {
+    window.openExpenseModal = function() {
+        const modalEl = document.getElementById('modal-expense');
+        if (modalEl) {
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+            // Hide FAB
+            const options = document.getElementById('mob-fab-options');
+            if(options) options.classList.remove('show');
+        } else {
+            console.warn('Modal de Gasto no encontrado, redirigiendo a Caja');
+            window.location.href = 'apps-cashflow.html';
+        }
+    };
+}
+
+if (typeof window.openTaskModal === 'undefined') {
+    window.openTaskModal = function() {
+        // Try unified modal or event modal
+        const modalEl = document.getElementById('new-task-modal') || document.getElementById('event-modal');
+        if (modalEl) {
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+            // Hide FAB
+            const options = document.getElementById('mob-fab-options');
+            if(options) options.classList.remove('show');
+        } else {
+             console.warn('Modal de Tarea no encontrado, redirigiendo a Tareas');
+             window.location.href = 'apps-tareas.html';
+        }
+    };
+}

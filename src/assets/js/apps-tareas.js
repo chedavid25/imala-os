@@ -56,7 +56,9 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     function loadTasks(uid) {
-        db.collection('tasks').onSnapshot(snapshot => {
+        db.collection('tasks')
+          .where('createdBy', '==', uid) // SECURITY FILTER
+          .onSnapshot(snapshot => {
             tasks = [];
             snapshot.forEach(doc => {
                 if(doc.id === 'settings_categories') return; 
@@ -115,7 +117,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Load available Clients for assignment
     function loadClientsList() {
-        db.collection('clients').where('type', '==', 'CLIENT').get().then(snap => {
+        const uid = auth.currentUser ? auth.currentUser.uid : null;
+        if (!uid) return;
+
+        db.collection('clients')
+          .where('createdBy', '==', uid) // SECURITY FILTER
+          .where('type', '==', 'CLIENT')
+          .get().then(snap => {
             clientsList = [];
             snap.forEach(doc => {
                 clientsList.push({ id: doc.id, ...doc.data() });

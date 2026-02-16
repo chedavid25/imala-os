@@ -5,23 +5,25 @@ window.togglePrivacy = function() {
     const elements = document.querySelectorAll('.privacy-blur');
     const icon = document.getElementById('privacy-icon');
     
-    // Check if currently blurred
-    const isBlurred = elements[0]?.style.filter === 'blur(8px)' || !elements[0]?.style.filter;
+    // Check if currently blurred using a simple true/false check on the first element
+    const isBlurred = elements[0] ? elements[0].classList.contains('is-blurred') : false;
     
     elements.forEach(el => {
         if (isBlurred) {
             el.style.filter = 'none';
+            el.classList.remove('is-blurred');
         } else {
             el.style.filter = 'blur(8px)';
+            el.classList.add('is-blurred');
         }
     });
     
     // Toggle icon
     if (icon) {
         if (isBlurred) {
-            icon.className = 'mdi mdi-eye-off';
-        } else {
             icon.className = 'mdi mdi-eye';
+        } else {
+            icon.className = 'mdi mdi-eye-off';
         }
     }
     
@@ -38,6 +40,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const userNameEl = document.getElementById('dashboard-user-name');
     const userRoleEl = document.getElementById('dashboard-user-role');
     const userAvatarEl = document.getElementById('dashboard-user-avatar');
+    
+    // Helper to get the actual UID (supports Assistant delegation via effectiveUID)
+    function getUID() {
+        return window.getEffectiveUID ? window.getEffectiveUID() : (sessionStorage.getItem('effectiveUID') || auth.currentUser?.uid);
+    }
 
     // 1. Auth Check & Data Load
     auth.onAuthStateChanged(user => {
@@ -67,6 +74,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 // Load Financial Data for Mobile
                 loadDashboardFinancials();
+                
+                // Load Mobile specific dashboard data
+                if (typeof refreshMobileDashboard === 'function') {
+                    refreshMobileDashboard(user);
+                } else {
+                    loadMobileDashboard();
+                }
 
             }).catch(err => {
                 console.error("Error loading user profile:", err);
@@ -86,20 +100,43 @@ document.addEventListener('DOMContentLoaded', function () {
     // Modals
     const newTaskModal = new bootstrap.Modal(document.getElementById('new-task-modal'));
 
+    // Unified Task Modal Opener
     window.openNewTaskModal = function() {
+        console.log("Opening unified task modal");
         const form = document.getElementById('task-form');
         if(form) form.reset();
-        document.getElementById('task-id').value = '';
-        document.getElementById('task-modal-title').textContent = 'Nueva Tarea';
-        document.getElementById('task-save-text').textContent = 'Crear Tarea';
+        
+        const taskIdEl = document.getElementById('task-id');
+        if(taskIdEl) taskIdEl.value = '';
+        
+        const titleEl = document.getElementById('task-modal-title');
+        if(titleEl) titleEl.textContent = 'Nueva Tarea';
+        
+        const saveTextEl = document.getElementById('task-save-text');
+        if(saveTextEl) saveTextEl.textContent = 'Crear Tarea';
+        
+        // Default date to TODAY (Local)
+        const dateInput = document.getElementById('task-due-date');
+        if(dateInput) {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            dateInput.value = `${year}-${month}-${day}`;
+        }
         
         // Reset collapse
         const moreFields = document.getElementById('task-more-fields');
         if(moreFields) moreFields.classList.remove('show');
+        
         const toggleBtn = document.getElementById('btn-toggle-task-fields');
         if(toggleBtn) toggleBtn.textContent = 'Ver más campos...';
 
-        newTaskModal.show();
+        const modalEl = document.getElementById('new-task-modal');
+        if (modalEl) {
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        }
     };
 
     window.toggleTaskMoreFields = function() {
@@ -118,8 +155,14 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     function loadDashboardClients() {
+        const uid = auth.currentUser ? auth.currentUser.uid : null;
+        if (!uid) return;
+
         // Simple count of active clients
-        db.collection('clients').where('type', '==', 'CLIENT').get().then(snap => {
+        db.collection('clients')
+          .where('createdBy', '==', uid) // SECURITY FILTER
+          .where('type', '==', 'CLIENT')
+          .get().then(snap => {
             const count = snap.size;
             const el = document.getElementById('kpi-clients-count');
             if(el) el.textContent = count;
@@ -132,8 +175,11 @@ document.addEventListener('DOMContentLoaded', function () {
     let currentDashboardTasks = [];
 
     function loadDashboardTasks(uid, userData) {
+        if (!uid) return;
         // Correct Collection: 'tasks' (as per apps-tareas.js)
-        db.collection('tasks').onSnapshot(snap => {
+        db.collection('tasks')
+          .where('createdBy', '==', uid) // SECURITY FILTER
+          .onSnapshot(snap => {
             const myTasks = [];
             snap.forEach(doc => {
                 // Ignore settings doc if present
@@ -584,14 +630,9 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
         
-        window.openNewTaskModal = function() {
-            loadModalData(); // Refresh data just in case
-            taskForm.reset();
-            document.getElementById('task-id').value = '';
-            document.getElementById('event-dueDate').value = new Date().toISOString().split('T')[0];
-            document.getElementById('event-status').value = 'TODO';
-            newTaskModal.show();
-        };
+        // Removed duplicate/broken openNewTaskModal to avoid TypeError
+        // window.openNewTaskModal = function() { ... } 
+        
 
         function updateClientSelect() {
             const sel = document.getElementById('event-client-id');
@@ -644,63 +685,211 @@ document.addEventListener('DOMContentLoaded', function () {
                 };
 
                 db.collection('tasks').add(taskData).then(() => {
-                    newTaskModal.hide();
+                    // Force close both potential modals to be safe
+                    const eventModalEl = document.getElementById('event-modal');
+                    if(eventModalEl) {
+                        const modalInstance = bootstrap.Modal.getInstance(eventModalEl);
+                        if(modalInstance) modalInstance.hide();
+                    }
+                    
+                    const newTaskModalEl = document.getElementById('new-task-modal');
+                    if(newTaskModalEl) {
+                        const modalInstance = bootstrap.Modal.getInstance(newTaskModalEl);
+                        if(modalInstance) modalInstance.hide();
+                    }
+
                     Swal.fire({ icon: 'success', title: 'Tarea Creada', timer: 1500, toast: true, position: 'top-end' });
                 }).catch(err => {
-                    console.error(err);
+                    console.error("Error creating task:", err);
                     Swal.fire('Error', 'No se pudo crear la tarea', 'error');
                 });
             });
         }
     }
 
-    function loadDashboardFinancials() {
-        // Fetch accounts for Liquidez and USD Total
-        db.collection('accounts').onSnapshot(snap => {
-            let totalARS = 0;
-            let totalUSD = 0;
-            snap.forEach(doc => {
-                const acc = doc.data();
-                if(acc.currency === 'ARS') totalARS += acc.balance || 0;
-                if(acc.currency === 'USD') totalUSD += acc.balance || 0;
-            });
-            
-            const mobLiq = document.getElementById('mob-total-liquidity');
-            const mobInv = document.getElementById('mob-total-invested');
-            if(mobLiq) mobLiq.textContent = totalARS.toLocaleString('es-AR', {minimumFractionDigits: 2});
-            if(mobInv) mobInv.textContent = totalUSD.toLocaleString('es-AR', {minimumFractionDigits: 2});
+    window.openTaskModal = function() {
+        if (window.openNewTaskModal) {
+            window.openNewTaskModal();
+        }
+        // Hide FAB menu if open
+        const options = document.getElementById('mob-fab-options');
+        if(options) options.classList.remove('show');
+    };
 
-            // Patrimonio Total
-            const mobBal = document.getElementById('mob-total-balance');
-            if(mobBal) mobBal.textContent = (totalARS).toLocaleString('es-AR', {minimumFractionDigits: 2});
+    function loadDashboardFinancials() {
+        const uid = getUID();
+        if (!uid) return;
+
+        // 1. Fetch Accounts (Initial Balances)
+        // We need them to calculate the base + transactions
+        let accounts = [];
+        let transactions = [];
+        let assets = [];
+
+        // Subscriber counter to know when to calculate
+        let accountsLoaded = false;
+        let transactionsLoaded = false;
+        let assetsLoaded = false;
+
+        const tryCalculate = () => {
+             // Only calculate if we have at least accounts and transactions
+             // Assets are optional but good for total patrimony
+            if(accountsLoaded && transactionsLoaded) {
+                calculateAndRenderFinancials(accounts, transactions, assets);
+            }
+        };
+
+        // A. Load Accounts
+        db.collection('cashflow_accounts')
+          .where('uid', '==', uid)
+          .where('isActive', '==', true)
+          .onSnapshot(snap => {
+            accounts = [];
+            snap.forEach(doc => {
+                accounts.push({ id: doc.id, ...doc.data() });
+            });
+            accountsLoaded = true;
+            tryCalculate();
         });
 
+        // B. Load ALL Transactions (for accurate balance calculation)
+        db.collection('transactions')
+          .where('createdBy', '==', uid)
+          .onSnapshot(snap => {
+            transactions = [];
+            snap.forEach(doc => {
+                const t = { id: doc.id, ...doc.data() };
+                transactions.push(t);
+            });
+            transactionsLoaded = true;
+            tryCalculate();
+        });
+
+        // C. Load Assets (for Invested Total)
+        db.collection('cashflow_assets')
+          .where('uid', '==', uid)
+          .onSnapshot(snap => {
+            assets = [];
+            snap.forEach(doc => {
+                assets.push({ id: doc.id, ...doc.data() });
+            });
+            assetsLoaded = true;
+            tryCalculate();
+        });
+    }
+
+    function calculateAndRenderFinancials(accounts, transactions, assets) {
+        
+        // 1. Calculate Liquid Balance (Cuentas)
+        // Logic from apps-cashflow.js: R(id) function
+        
+        let totalLiquidityARS = 0;
+        let totalLiquidityUSD = 0;
+
+        accounts.forEach(acc => {
+            let balance = Number(acc.initialBalance) || 0;
+            const accId = acc.id;
+            const currency = acc.currency;
+
+            // Filter transactions for this account
+            const accTx = transactions.filter(t => t.accountId === accId && t.status === 'PAID');
+            
+            // + Income
+            const income = accTx.filter(t => t.type === 'INCOME')
+                                .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+            
+            // - Expense
+            const expense = accTx.filter(t => t.type === 'EXPENSE')
+                                 .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+            
+            // - Savings (Active & Not Initial)
+            const savings = transactions.filter(t => t.accountId === accId && t.type === 'SAVING' && t.status === 'ACTIVE' && t.isInitial !== true)
+                                        .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+
+            // - Investments
+            const investments = accTx.filter(t => t.type === 'INVESTMENT')
+                                     .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+
+            // + Withdrawals
+            const withdrawals = accTx.filter(t => t.type === 'WITHDRAWAL')
+                                     .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+
+            balance = balance + income - expense - savings - investments + withdrawals;
+
+            if (currency === 'ARS') totalLiquidityARS += balance;
+            if (currency === 'USD') totalLiquidityUSD += balance;
+        });
+
+        // 2. Calculate Invested (Assets)
+        let totalInvestedARS = 0;
+        let totalInvestedUSD = 0;
+
+        // Check if assets are loaded (they might be empty or not loaded yet)
+        if(assets && assets.length > 0) {
+            assets.forEach(asset => {
+                 // Priority: Current Valuation > Invested Amount > 0
+                 const val = Number(asset.currentValuation) || Number(asset.investedAmount) || 0;
+                 if (asset.currency === 'ARS') totalInvestedARS += val;
+                 if (asset.currency === 'USD') totalInvestedUSD += val;
+            });
+        }
+
+        // 3. Render Dashboard Elements
+        
+        // Liquidity (Mobile Cards)
+        const mobLiq = document.getElementById('mob-total-liquidity');
+        const mobLiqArs = document.getElementById('mob-liquidity-ars');
+        const mobHomeBal = document.getElementById('mob-home-balance');
+        
+        // Invested
+        const mobInv = document.getElementById('mob-total-invested');
+        const mobTotalUSD = document.getElementById('mob-total-usd');
+        
+        // Totals (Patrimony)
+        const mobBal = document.getElementById('mob-total-balance');
+
+        if(mobLiq) mobLiq.textContent = totalLiquidityARS.toLocaleString('es-AR', {minimumFractionDigits: 0});
+        if(mobLiqArs) mobLiqArs.textContent = `$ ${totalLiquidityARS.toLocaleString('es-AR', {minimumFractionDigits: 0})}`;
+        
+        // MAIN HERO: Liquidez Total
+        if(mobHomeBal) mobHomeBal.textContent = `$ ${totalLiquidityARS.toLocaleString('es-AR', {minimumFractionDigits: 0})}`;
+
+        // Investments / USD
+        if(mobInv) mobInv.textContent = totalInvestedUSD.toLocaleString('es-AR', {minimumFractionDigits: 0});
+        if(mobTotalUSD) mobTotalUSD.textContent = `U$D ${totalInvestedUSD.toLocaleString('es-AR', {minimumFractionDigits: 0})}`;
+
+        if(mobBal) {
+            // Placeholder rate 1150
+            const totalPatrimony = (totalLiquidityARS + totalInvestedARS) + ((totalLiquidityUSD + totalInvestedUSD) * 1150); 
+            mobBal.textContent = totalPatrimony.toLocaleString('es-AR', {minimumFractionDigits: 0}); 
+        }
+
+        // 4. Render Monthly Stats (Income/Expense this month)
+        // Re-use logic for monthly stats
         const currentMonth = new Date().getMonth();
         const currentYear = new Date().getFullYear();
+        
+        let monthIncome = 0;
+        let monthExpense = 0;
+        const recent = [];
 
-        db.collection('transactions').onSnapshot(snap => {
-            let income = 0;
-            let expense = 0;
-            const recent = [];
-
-            snap.forEach(doc => {
-                const t = {id: doc.id, ...doc.data()};
-                const date = t.date?.toDate ? t.date.toDate() : new Date(t.date);
-                
-                if(date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
-                    if(t.type === 'INCOME') income += t.amount || 0;
-                    if(t.type === 'EXPENSE') expense += t.amount || 0;
-                }
-                recent.push(t);
-            });
-
-            const mobInc = document.getElementById('mob-total-income');
-            const mobExp = document.getElementById('mob-total-expense');
-            if(mobInc) mobInc.textContent = income.toLocaleString('es-AR', {minimumFractionDigits: 2});
-            if(mobExp) mobExp.textContent = expense.toLocaleString('es-AR', {minimumFractionDigits: 2});
-            
-            renderRecentMovements(recent.sort((a,b) => (b.date?.toDate ? b.date.toDate() : new Date(b.date)) - (a.date?.toDate ? a.date.toDate() : new Date(a.date))));
+        transactions.forEach(t => {
+            const date = t.date?.toDate ? t.date.toDate() : new Date(t.date);
+            if(date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
+                if(t.type === 'INCOME') monthIncome += (t.amount || 0);
+                if(t.type === 'EXPENSE') monthExpense += (t.amount || 0);
+            }
+            recent.push(t); // All transactions for recent list
         });
+
+        const mobInc = document.getElementById('mob-month-inc');
+        const mobExp = document.getElementById('mob-month-exp');
+        
+        if(mobInc) mobInc.textContent = `+$ ${monthIncome.toLocaleString('es-AR', {minimumFractionDigits: 0})}`;
+        if(mobExp) mobExp.textContent = `-$ ${monthExpense.toLocaleString('es-AR', {minimumFractionDigits: 0})}`;
+
+        // Render Recent (Top 10)
+        renderRecentMovements(recent.sort((a,b) => (b.date?.toDate ? b.date.toDate() : new Date(b.date)) - (a.date?.toDate ? a.date.toDate() : new Date(a.date))));
     }
 
     function renderRecentMovements(allMovements) {
@@ -748,42 +937,153 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Load Mobile Dashboard Data
     function loadMobileDashboard() {
+        // Initial setup that doesn't need auth can go here
+        updateMobileDate();
+        
+        // Auth-dependent data is loaded via the main onAuthStateChanged listener
+        const user = auth.currentUser;
+        if (user) {
+            refreshMobileDashboard(user);
+        }
+
+        // Event for Expense form on Dashboard
+        const expForm = document.getElementById('form-expense-dashboard');
+        if (expForm) {
+            expForm.addEventListener('submit', handleDashboardExpense);
+        }
+    }
+
+    // Helper to refresh mobile data when user is ready
+    function refreshMobileDashboard(user) {
+        console.log("Refreshing mobile dashboard for user:", user.uid);
         const userNameEl = document.getElementById('mob-user-name');
         
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                // Set user name
-                db.collection('users').doc(user.uid).get().then(doc => {
-                    if (doc.exists) {
-                        const userData = doc.data();
-                        const name = userData.displayName || 'Usuario';
-                        const firstName = name.split(' ')[0];
-                        if (userNameEl) userNameEl.textContent = firstName;
-                        
-                        // Set avatar
-                        const avatarEl = document.getElementById('mob-user-avatar');
-                        if (avatarEl && userData.photoURL) {
-                            avatarEl.src = userData.photoURL;
-                        }
-                    }
-                });
-
-                // Load liquidity and monthly stats
-                loadMobileLiquidity();
+        // Set user name
+        db.collection('users').doc(user.uid).get().then(doc => {
+            if (doc.exists) {
+                const userData = doc.data();
+                const name = userData.displayName || 'Usuario';
+                const firstName = name.split(' ')[0];
+                if (userNameEl) userNameEl.textContent = firstName;
                 
-                // Load urgent tasks
-                loadUrgentTasks();
-                
-                // Load recent transactions
-                loadMobileTransactions();
+                // Set avatar
+                const avatarEl = document.getElementById('mob-user-avatar');
+                if (avatarEl && userData.photoURL) {
+                    avatarEl.src = userData.photoURL;
+                }
             }
         });
+
+        // Load content
+        loadDashboardFinancials(); // Unified loader
+        loadUrgentTasks();
+        loadMobileTransactions();
+    }
+
+    // FAB Menu Logic
+    window.toggleFabMenu = function() {
+        const options = document.getElementById('mob-fab-options');
+        if (options) {
+            options.classList.toggle('show');
+        }
+    };
+
+    window.openExpenseModal = function() {
+        // Load categories and accounts for the modal
+        loadExpenseModalData();
+        const modalEl = document.getElementById('modal-expense');
+        const modal = new bootstrap.Modal(modalEl);
+        
+        // Default date to today
+        const dateInput = document.getElementById('exp-date');
+        if(dateInput) dateInput.valueAsDate = new Date();
+
+        modal.show();
+        // Hide FAB menu if open
+        const options = document.getElementById('mob-fab-options');
+        if(options) options.classList.remove('show');
+    };
+
+    function loadExpenseModalData() {
+        const uid = auth.currentUser?.uid;
+        if(!uid) return;
+
+        // Load Accounts
+        const accSelect = document.getElementById('exp-account');
+        if(accSelect) {
+            db.collection('cashflow_accounts').where('uid', '==', uid).where('isActive', '==', true).get().then(snap => {
+                accSelect.innerHTML = '<option value="">Seleccione Cuenta...</option>';
+                snap.forEach(doc => {
+                    const acc = doc.data();
+                    accSelect.innerHTML += `<option value="${doc.id}">${acc.name} (${acc.currency})</option>`;
+                });
+            });
+        }
+
+        // Load Expense Categories
+        const catSelect = document.getElementById('exp-category');
+        if(catSelect) {
+            db.collection('cashflow_categories').where('type', '==', 'EXPENSE').where('active', '==', true).get().then(snap => {
+                catSelect.innerHTML = '<option value="">Seleccione Categoría...</option>';
+                snap.forEach(doc => {
+                    catSelect.innerHTML += `<option value="${doc.data().name}">${doc.data().name}</option>`;
+                });
+            });
+        }
+    }
+
+    async function handleDashboardExpense(e) {
+        e.preventDefault();
+        const uid = auth.currentUser?.uid;
+        if(!uid) return;
+
+        const amount = parseFloat(document.getElementById('exp-amount').value);
+        const accountId = document.getElementById('exp-account').value;
+        const itemName = document.getElementById('exp-item').value;
+        const category = document.getElementById('exp-category').value;
+        const dateVal = document.getElementById('exp-date').valueAsDate || new Date();
+
+        if(!amount || !accountId || !category) return;
+
+        try {
+            // 1. Add Transaction
+            await db.collection('transactions').add({
+                amount,
+                accountId,
+                item: itemName,
+                category,
+                type: 'EXPENSE',
+                date: firebase.firestore.Timestamp.fromDate(dateVal),
+                createdBy: uid,
+                status: 'PAID'
+            });
+
+            // 2. Update Account Balance
+            const accRef = db.collection('accounts').doc(accountId);
+            const accDoc = await accRef.get();
+            if(accDoc.exists) {
+                const currentBalance = accDoc.data().balance || 0;
+                await accRef.update({ balance: currentBalance - amount });
+            }
+
+            bootstrap.Modal.getInstance(document.getElementById('modal-expense')).hide();
+            Swal.fire({ icon: 'success', title: 'Gasto guardado', timer: 1500, toast: true, position: 'top-end' });
+        } catch (err) {
+            console.error("Error saving expense:", err);
+            Swal.fire('Error', 'No se pudo guardar el gasto', 'error');
+        }
     }
 
     // Load Liquidity Total and Monthly Income/Expense
     function loadMobileLiquidity() {
+        const uid = auth.currentUser?.uid;
+        if (!uid) return;
+
         // Get all cashflow accounts
-        db.collection('accounts').onSnapshot(snap => {
+        db.collection('cashflow_accounts')
+          .where('uid', '==', uid)
+          .where('isActive', '==', true)
+          .onSnapshot(snap => {
             let total = 0;
             snap.forEach(doc => {
                 const acc = doc.data();
@@ -802,7 +1102,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const currentMonth = new Date().getMonth();
         const currentYear = new Date().getFullYear();
 
-        db.collection('transactions').onSnapshot(snap => {
+        db.collection('transactions')
+          .where('createdBy', '==', uid) // SECURITY FILTER
+          .onSnapshot(snap => {
             let income = 0;
             let expense = 0;
 
@@ -830,42 +1132,70 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Load Urgent Tasks (LATE + TODAY)
     function loadUrgentTasks() {
-        db.collection('tasks').onSnapshot(snap => {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const todayStr = today.toISOString().split('T')[0];
-            
-            const lateTasks = [];
-            const todayTasks = [];
+        const uid = getUID();
+        if (!uid) return;
 
-            snap.forEach(doc => {
-                if (doc.id === 'settings_categories') return;
+        // Use LOCAL date instead of UTC to avoid "Today" disappearing at UTC midnight
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${day}`;
+
+        console.log("Loading urgent tasks for today:", todayStr);
+
+        db.collection('tasks')
+            .where('createdBy', '==', uid) // SECURITY FILTER
+            .onSnapshot(snapshot => {
+                const tasks = [];
+                snapshot.forEach(doc => {
+                    if (doc.id === 'settings_categories') return;
+                    const t = { id: doc.id, ...doc.data() };
+                    
+                    // Task Date Normalization (String vs Timestamp)
+                    let taskDateStr = '';
+                    if (t.dueDate) {
+                        if (t.dueDate.toDate) { // Firestore Timestamp
+                            const d = t.dueDate.toDate();
+                            taskDateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                        } else if (typeof t.dueDate === 'string') {
+                            taskDateStr = t.dueDate.split('T')[0];
+                        }
+                    }
+
+                    // Filter: Today or overdue, and NOT completed
+                    const isOverdue = taskDateStr && taskDateStr < todayStr;
+                    const isToday = taskDateStr === todayStr;
+                    
+                    if ((isOverdue || isToday) && t.status !== 'COMPLETED') {
+                        tasks.push(t);
+                    }
+                });
                 
-                const t = { id: doc.id, ...doc.data() };
-                
-                // Skip completed tasks
-                if (t.status === 'COMPLETED') return;
-                
-                // Check if LATE
-                if (t.status === 'LATE' || (t.dueDate && t.dueDate < todayStr)) {
-                    lateTasks.push(t);
-                } else if (t.dueDate === todayStr) {
-                    // Check if TODAY
-                    todayTasks.push(t);
-                }
+                // Sort client-side: Descening (more recent first)
+                tasks.sort((a, b) => {
+                    const dateA = a.dueDate || '';
+                    const dateB = b.dueDate || '';
+                    return dateB.localeCompare(dateA);
+                });
+
+                renderUrgentTasks(tasks);
+            }, err => {
+                console.error("Error loading urgent tasks:", err);
             });
-
-            // Combine: LATE first, then TODAY
-            const urgentTasks = [...lateTasks, ...todayTasks].slice(0, 5);
-            
-            renderUrgentTasks(urgentTasks);
-        });
     }
 
     // Render Urgent Tasks
     function renderUrgentTasks(tasks) {
         const container = document.getElementById('mob-urgent-tasks-list');
         if (!container) return;
+
+        // Define todayStr locally for render scope
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${day}`;
 
         if (tasks.length === 0) {
             container.innerHTML = `
@@ -879,14 +1209,25 @@ document.addEventListener('DOMContentLoaded', function () {
 
         let html = '';
         tasks.forEach(t => {
-            const isLate = t.status === 'LATE';
+            // Recalculate late status based on date comparison for UI consistency
+            let taskDateStr = '';
+            if (t.dueDate) {
+                if (t.dueDate.toDate) {
+                    const d = t.dueDate.toDate();
+                    taskDateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                } else if (typeof t.dueDate === 'string') {
+                    taskDateStr = t.dueDate.split('T')[0];
+                }
+            }
+
+            const isLate = taskDateStr && taskDateStr < todayStr;
             const borderColor = isLate ? 'danger' : 'warning';
             const icon = isLate ? 'bx-error-circle' : 'bx-time';
             const iconColor = isLate ? 'danger' : 'warning';
             const timeDisplay = t.dueTime ? ` • ${t.dueTime}` : '';
             
             html += `
-                <div class="list-group-item border-0 border-start border-4 border-${borderColor} py-3">
+                <div class="list-group-item border-0 border-start border-4 border-${borderColor} py-3" onclick="completeTask('${t.id}')" style="cursor: pointer;">
                     <div class="d-flex align-items-start">
                         <div class="avatar-xs me-3 mt-1">
                             <span class="avatar-title rounded-circle bg-soft-${iconColor} text-${iconColor} font-size-16">
@@ -915,7 +1256,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Load Recent Transactions (3 most recent)
     function loadMobileTransactions() {
-        db.collection('transactions').onSnapshot(snap => {
+        const uid = auth.currentUser ? auth.currentUser.uid : null;
+        if (!uid) return;
+
+        db.collection('transactions')
+          .where('createdBy', '==', uid) // SECURITY FILTER
+          .onSnapshot(snap => {
             const transactions = [];
             
             snap.forEach(doc => {
@@ -965,7 +1311,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const dateStr = date.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' });
             
             html += `
-                <div class="list-group-item border-0 d-flex align-items-center py-3">
+                <div class="list-group-item border-0 d-flex align-items-center py-3" onclick="window.location.href='apps-cashflow.html'" style="cursor: pointer;">
                     <div class="avatar-xs me-3">
                         <span class="avatar-title rounded-circle bg-soft-${color} text-${color} font-size-16">
                             <i class="bx ${icon}"></i>

@@ -472,17 +472,7 @@
                     </div>
                 </main>
 
-                <nav class="mobile-bottom-nav">
-                    <a href="index.html" class="nav-item"><i class="bx bx-home-alt-2"></i><span>Home</span></a>
-                    <a href="apps-analytics.html" class="nav-item"><i class="bx bx-pie-chart-alt-2"></i><span>Reportes</span></a>
-                    <div class="fab-container">
-                        <button class="btn btn-primary rounded-circle shadow-lg p-0" id="mob-fab-main" onclick="openNewTaskModal()">
-                            <i class="mdi mdi-plus font-size-24"></i>
-                        </button>
-                    </div>
-                    <a href="apps-cashflow.html" class="nav-item"><i class="bx bx-wallet"></i><span>Cartera</span></a>
-                    <a href="apps-perfil.html" class="nav-item"><i class="bx bx-user"></i><span>Perfil</span></a>
-                </nav>
+
             </div><!-- end mobile-view -->
         </div><!-- END layout-wrapper -->
 
@@ -614,17 +604,44 @@
             </div>
         </div>
 
-        <!-- Mobile Bottom Nav -->
-        <nav class="mobile-bottom-nav d-lg-none">
-            <a href="index.html" class="nav-item"><i class="bx bx-home-alt-2"></i><span>Home</span></a>
-            <a href="apps-analytics.html" class="nav-item"><i class="bx bx-pie-chart-alt-2"></i><span>Reportes</span></a>
-            <div class="fab-container">
-                <button class="btn btn-primary rounded-circle shadow-lg p-0" id="mob-fab-main" onclick="openNewTaskModal()">
-                    <i class="mdi mdi-plus font-size-24"></i>
-                </button>
+
+
+        <!-- Bottom Navigation (Mobile Only) -->
+        <nav class="mob-bottom-nav d-lg-none">
+            <a href="index.html" class="nav-item">
+                <i class="bx bx-home-alt-2"></i>
+                <span>Inicio</span>
+            </a>
+            <a href="apps-tareas.html" class="nav-item active">
+                <i class="bx bx-task"></i>
+                <span>Tareas</span>
+            </a>
+            
+            <!-- Centered FAB with Menu -->
+            <div class="nav-item-fab">
+                <div class="fab-container">
+                    <button type="button" class="btn-fab-center" id="mob-fab-main" onclick="toggleFabMenu()">
+                        <i class="mdi mdi-plus"></i>
+                    </button>
+                    <div class="fab-options" id="mob-fab-options">
+                        <button type="button" class="btn btn-success btn-floating-action shadow mb-2" onclick="openExpenseModal()" title="Nuevo Gasto">
+                            <i class="mdi mdi-currency-usd"></i>
+                        </button>
+                        <button type="button" class="btn btn-primary btn-floating-action shadow" onclick="openTaskModal()" title="Nueva Tarea">
+                            <i class="mdi mdi-calendar-check"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
-            <a href="apps-cashflow.html" class="nav-item"><i class="bx bx-wallet"></i><span>Cartera</span></a>
-            <a href="apps-tareas.html" class="nav-item active"><i class="bx bx-task"></i><span>Tareas</span></a>
+
+            <a href="apps-cashflow.html" class="nav-item">
+                <i class="bx bx-wallet"></i>
+                <span>Caja</span>
+            </a>
+            <a href="apps-perfil.html" class="nav-item">
+                <i class="bx bx-user"></i>
+                <span>Perfil</span>
+            </a>
         </nav>
 
         <!-- JAVASCRIPT -->
