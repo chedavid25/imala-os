@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const newTaskModal = new bootstrap.Modal(document.getElementById('new-task-modal'));
     
     // Elements
+    const containerLate = document.getElementById('late-list');
     const containerTodo = document.getElementById('todo-list');
     const containerDone = document.getElementById('done-list');
     const filterButtons = document.querySelectorAll('.filter-bar button');
@@ -160,6 +161,39 @@ document.addEventListener('DOMContentLoaded', function () {
         renderAllViews();
     });
 
+    // View Toggle Logic
+    let currentDesktopView = 'KANBAN'; // 'KANBAN' or 'CALENDAR'
+
+    function toggleDesktopView(viewName) {
+        currentDesktopView = viewName;
+        const kanban = document.getElementById('kanban-board');
+        const calendarEl = document.getElementById('calendar');
+        const btnKanban = document.getElementById('btn-view-kanban');
+        const btnCalendar = document.getElementById('btn-view-calendar');
+
+        if(viewName === 'KANBAN') {
+            if(kanban) kanban.classList.remove('d-none');
+            if(calendarEl) calendarEl.classList.add('d-none');
+            if(btnKanban) { btnKanban.classList.add('active', 'btn-primary'); btnKanban.classList.remove('btn-outline-primary'); }
+            if(btnCalendar) { btnCalendar.classList.remove('active', 'btn-primary'); btnCalendar.classList.add('btn-outline-primary'); }
+        } else {
+            if(kanban) kanban.classList.add('d-none');
+            if(calendarEl) calendarEl.classList.remove('d-none');
+            if(btnKanban) { btnKanban.classList.remove('active', 'btn-primary'); btnKanban.classList.add('btn-outline-primary'); }
+            if(btnCalendar) { btnCalendar.classList.add('active', 'btn-primary'); btnCalendar.classList.remove('btn-outline-primary'); }
+            
+            // Force resize for FullCalendar
+            if(calendar) calendar.updateSize();
+        }
+    }
+
+    if(document.getElementById('btn-view-kanban')) {
+        document.getElementById('btn-view-kanban').addEventListener('click', () => toggleDesktopView('KANBAN'));
+    }
+    if(document.getElementById('btn-view-calendar')) {
+        document.getElementById('btn-view-calendar').addEventListener('click', () => toggleDesktopView('CALENDAR'));
+    }
+
     function getFilteredTasks(isMobile = false) {
         const today = new Date();
         today.setHours(0,0,0,0);
@@ -184,26 +218,40 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Button Filters
             if (filter === 'ALL') return true;
-            if (filter === 'LATE') return t.status === 'LATE';
-            if (filter === 'COMPLETED') return t.status === 'COMPLETED'; // Desktop fallback
+            if (filter === 'COMPLETED') return t.status === 'COMPLETED'; 
             
+            // ALWAYS include LATE tasks in active views (Today, Week, Month)
+            if (t.status === 'LATE') return true;
+
             if (!t.dueDate) return false;
-            const taskDate = new Date(t.dueDate + 'T00:00:00'); 
+            
+            // Date Logic
+            const todayStr = getTodayStr(); 
             
             if (filter === 'TODAY') {
-                return taskDate.getTime() === today.getTime();
+                return t.dueDate === todayStr;
             }
+            
+            const taskDate = new Date(t.dueDate + 'T00:00:00'); 
+            
             if (filter === 'WEEK') {
                 const oneWeek = new Date(today);
                 oneWeek.setDate(today.getDate() + 7);
                 return taskDate >= today && taskDate <= oneWeek;
             }
+
+            if (filter === 'MONTH') {
+                const now = new Date();
+                return taskDate.getMonth() === now.getMonth() && 
+                       taskDate.getFullYear() === now.getFullYear();
+            }
+
             return true;
         }).sort((a, b) => {
-            // Sort by Date Descending (Most Recent first)
+            // Sort by Date Ascending (Oldest/Urgent first)
             const dateA = new Date(a.dueDate + (a.dueTime ? 'T' + a.dueTime : 'T00:00:00'));
             const dateB = new Date(b.dueDate + (b.dueTime ? 'T' + b.dueTime : 'T00:00:00'));
-            return dateB - dateA;
+            return dateA - dateB;
         });
     }
 
@@ -545,25 +593,38 @@ document.addEventListener('DOMContentLoaded', function () {
     // ==========================================
 
     function renderKanban(filteredTasks) {
-        if(!containerTodo) return;
+        if(!containerTodo || !containerLate) return;
 
         if (drake) {
             drake.destroy();
         }
 
+        containerLate.innerHTML = '';
         containerTodo.innerHTML = '';
         containerDone.innerHTML = '';
+
+        // Update Counts
+        const countLate = filteredTasks.filter(t => t.status === 'LATE').length;
+        const countTodo = filteredTasks.filter(t => t.status !== 'LATE' && t.status !== 'COMPLETED').length;
+        const countDone = filteredTasks.filter(t => t.status === 'COMPLETED').length;
+
+        if(document.getElementById('count-late')) document.getElementById('count-late').textContent = countLate;
+        if(document.getElementById('count-todo')) document.getElementById('count-todo').textContent = countTodo;
+        if(document.getElementById('count-done')) document.getElementById('count-done').textContent = countDone;
 
         filteredTasks.forEach(t => {
             const card = createKanbanCard(t);
             if (t.status === 'COMPLETED') {
                 containerDone.appendChild(card);
+            } else if (t.status === 'LATE') {
+                containerLate.appendChild(card);
             } else {
                 containerTodo.appendChild(card);
             }
         });
 
-        drake = dragula([containerTodo, containerDone], {
+        // Initialize Dragula with 3 columns (PENDING -> DONE -> LATE)
+        drake = dragula([containerTodo, containerDone, containerLate], {
             moves: function (el, container, handle) {
                 return true;
             },
@@ -575,7 +636,10 @@ document.addEventListener('DOMContentLoaded', function () {
         drake.on('drop', function (el, target, source, sibling) {
             if(!target) return;
             const taskId = el.getAttribute('data-id');
-            const newStatus = target.id === 'done-list' ? 'COMPLETED' : 'PENDIENTE';
+            let newStatus = 'PENDIENTE'; // Default
+            
+            if (target.id === 'done-list') newStatus = 'COMPLETED';
+            if (target.id === 'late-list') newStatus = 'LATE';
             
             updateTaskStatus(taskId, newStatus);
         });
@@ -583,7 +647,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function createKanbanCard(task) {
         const div = document.createElement('div');
-        div.className = `card task-card mb-3 priority-${task.priority || 'MEDIUM'}`;
+        
+        // Status Colors (Border Left)
+        let borderClass = 'border-warning'; // Default Pending
+        if (task.status === 'LATE') borderClass = 'border-danger';
+        if (task.status === 'COMPLETED') borderClass = 'border-success';
+
+        div.className = `card task-card mb-3 border-start border-4 ${borderClass}`;
         div.setAttribute('data-id', task.id);
         div.setAttribute('data-priority', task.priority || 'MEDIUM'); 
         
@@ -630,6 +700,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 </div>
                 <h5 class="font-size-15 mb-1 text-truncate">${googleIcon}${task.title}</h5>
                 <p class="text-muted mb-1 font-size-12 text-truncate">${task.description || ''}</p>
+                <p class="mb-0 text-muted font-size-12 mt-1">Asignado a: <strong>${task.assignedTo || 'Sin asignar'}</strong></p>
                 ${clientDisplay}
                 <div class="d-flex justify-content-between align-items-center mt-2">
                     <p class="text-muted mb-0 font-size-12"><i class="mdi mdi-calendar"></i> ${formatDate(task.dueDate)} ${timeDisplay}</p>
@@ -897,7 +968,7 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('task-assigned-to').value = ''; // Default to Sin asignar
             
             // Auto-set Date to Today
-            const today = new Date().toISOString().split('T')[0];
+            const today = getTodayStr();
             document.getElementById('task-due-date').value = today;
         }
     });
@@ -954,6 +1025,9 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 taskData.status = 'PENDIENTE';
                 taskData.createdAt = new Date();
+                // Add createdBy to ensure it appears in the query
+                if(auth.currentUser) taskData.createdBy = auth.currentUser.uid;
+                
                 db.collection('tasks').add(taskData).then(() => newTaskModal.hide());
             }
         });
@@ -1189,14 +1263,7 @@ document.addEventListener('DOMContentLoaded', function () {
         
         if(!isSilentMode) {
             // Only show alerts and sync if Manual Click
-            Swal.fire({
-                title: 'Sincronizando...',
-                text: 'Por favor espera',
-                allowOutsideClick: false,
-                didOpen: () => { Swal.showLoading(); }
-            });
-            await syncCalendar();
-            Swal.fire('¡Sincronizado!', 'Tus tareas y calendario están al día.', 'success');
+            await performSyncWithUI();
         }
         
         isSilentMode = false; // Reset flag
@@ -1217,7 +1284,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function handleSyncClick() {
         console.log("Sync button clicked");
-        isSilentMode = false; // Ensure manual mode
+        isSilentMode = false; 
         
         if (!gapiInited || !gisInited) {
             console.log("GAPI/GIS not inited yet, attempting init...");
@@ -1225,11 +1292,54 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        console.log("Requesting access token...");
-        if (gapi.client.getToken() === null) {
-            tokenClient.requestAccessToken({prompt: 'consent'});
+        // OPTIMIZATION: Check if we have a valid token loaded to avoid Popup
+        const stored = localStorage.getItem('gcal_token');
+        let isValid = false;
+        if(stored) {
+             const t = JSON.parse(stored);
+             const now = Date.now();
+             // Check validity (1 min buffer)
+             if(t.expires_at && now < (t.expires_at - 60000)) { 
+                 isValid = true;
+                 gapi.client.setToken(t); // Ensure it's set
+             }
+        }
+
+        if(isValid) {
+            console.log("Token is valid, syncing directly...");
+            performSyncWithUI();
         } else {
-            tokenClient.requestAccessToken({prompt: ''});
+            console.log("Token invalid or missing, requesting access...");
+            if (gapi.client.getToken() === null) {
+                tokenClient.requestAccessToken({prompt: 'consent'});
+            } else {
+                tokenClient.requestAccessToken({prompt: ''});
+            }
+        }
+    }
+
+    async function performSyncWithUI() {
+        Swal.fire({
+            title: 'Sincronizando...',
+            text: 'Por favor espera',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+        
+        try {
+            await syncCalendar();
+            Swal.fire('¡Sincronizado!', 'Tus tareas y calendario están al día.', 'success');
+            updateSyncUI(true); // Ensure green
+        } catch (error) {
+            console.error("Sync error:", error);
+            if(error.result && error.result.error && error.result.error.code === 401) {
+                // Token invalid effectively
+                Swal.fire('Sesión Expirada', 'Por favor conecta nuevamente con Google.', 'warning');
+                updateSyncUI(false);
+                localStorage.removeItem('gcal_token');
+            } else {
+                Swal.fire('Error', 'Hubo un problema al sincronizar.', 'error');
+            }
         }
     }
 

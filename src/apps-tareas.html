@@ -185,10 +185,21 @@
                                                 <div class="btn-group filter-bar" role="group">
                                                     <button type="button" class="btn btn-outline-primary active" data-filter="TODAY">Hoy</button>
                                                     <button type="button" class="btn btn-outline-primary" data-filter="WEEK">Semana</button>
-                                                    <button type="button" class="btn btn-outline-danger" data-filter="LATE">Atrasadas</button>
+                                                    <button type="button" class="btn btn-outline-primary" data-filter="MONTH">Mes</button>
                                                     <button type="button" class="btn btn-outline-primary" data-filter="ALL">Todas</button>
                                                 </div>
                                                 <div class="d-flex gap-2">
+                                                    <!-- View Switcher -->
+                                                    <div class="btn-group me-2" role="group">
+                                                        <button type="button" class="btn btn-primary active" id="btn-view-kanban" title="Vista Tablero"><i class="bx bx-task"></i></button>
+                                                        <button type="button" class="btn btn-outline-primary" id="btn-view-calendar" title="Vista Calendario"><i class="bx bx-calendar"></i></button>
+                                                    </div>
+
+                                                    <!-- Sync Button -->
+                                                    <button type="button" class="btn btn-soft-danger me-2" id="btn-sync-gcal" title="Sincronizar con Google Calendar">
+                                                        <i class="mdi mdi-google"></i>
+                                                    </button>
+
                                                     <div class="search-box">
                                                         <input type="text" class="form-control" id="task-search" placeholder="Buscar tarea...">
                                                     </div>
@@ -199,16 +210,19 @@
                                             </div>
 
                                             <div class="row" id="kanban-board">
-                                                <div class="col-lg-6">
+                                                <!-- TODO COLUMN -->
+                                                <div class="col-lg-4">
                                                     <div class="card task-column task-column-todo shadow-sm">
                                                         <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center mb-2">
-                                                            <h5 class="mb-0 fw-bold">Pendientes</h5>
+                                                            <h5 class="mb-0 fw-bold text-warning">Pendientes</h5>
                                                             <span class="badge bg-warning" id="count-todo">0</span>
                                                         </div>
                                                         <div id="todo-list" class="task-list-items" data-status="PENDIENTE"></div>
                                                     </div>
                                                 </div>
-                                                <div class="col-lg-6">
+
+                                                <!-- DONE COLUMN -->
+                                                <div class="col-lg-4">
                                                     <div class="card task-column task-column-done shadow-sm">
                                                         <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center mb-2">
                                                             <h5 class="mb-0 fw-bold text-success">Completadas ✅</h5>
@@ -217,7 +231,21 @@
                                                         <div id="done-list" class="task-list-items" data-status="COMPLETADA"></div>
                                                     </div>
                                                 </div>
+
+                                                <!-- LATE COLUMN -->
+                                                <div class="col-lg-4">
+                                                    <div class="card task-column task-column-late shadow-sm">
+                                                        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center mb-2">
+                                                            <h5 class="mb-0 fw-bold text-danger">Atrasadas ⚠️</h5>
+                                                            <span class="badge bg-danger" id="count-late">0</span>
+                                                        </div>
+                                                        <div id="late-list" class="task-list-items" data-status="LATE"></div>
+                                                    </div>
+                                                </div>
                                             </div>
+                                            
+                                            <!-- Calendar View (Hidden by default) -->
+                                            <div id="calendar" class="d-none mt-4" style="min-height: 600px;"></div>
                                         </div>
                                     </div>
                                 </div>
