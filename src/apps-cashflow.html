@@ -34,7 +34,7 @@
         <link href="assets/css/icons.min.css" rel="stylesheet" type="text/css" />
         <!-- App Css-->
         <link href="assets/css/app.min.css" id="app-style" rel="stylesheet" type="text/css" />
-        <link href="assets/css/custom-mobile.css" rel="stylesheet" type="text/css" />
+        <link href="assets/css/custom-mobile.css?v=3" rel="stylesheet" type="text/css" />
         
         <style>
             .swal2-container {
@@ -719,107 +719,156 @@
 
                         <!-- MOBILE VIEW (Mobills Style) -->
                         <div id="mobile-view" class="d-block d-lg-none mobile-app-container">
-                            <div class="mobile-header bg-primary pt-4 pb-5 px-4 text-white">
-                                <!-- Month Selector Header -->
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <div class="d-flex align-items-center bg-white bg-opacity-25 rounded-pill px-3 py-1">
-                                        <i class="mdi mdi-calendar-month text-white me-2"></i>
-                                        <select class="form-select form-select-sm bg-transparent border-0 text-white shadow-none fw-bold p-0" id="mob-month-filter" style="width: auto; cursor: pointer; background-image: none;">
-                                            <option class="text-dark" value="ALL">Acumulado Histórico</option>
-                                            <option class="text-dark" value="01">Enero</option>
-                                            <option class="text-dark" value="02">Febrero</option>
-                                            <option class="text-dark" value="03">Marzo</option>
-                                            <option class="text-dark" value="04">Abril</option>
-                                            <option class="text-dark" value="05">Mayo</option>
-                                            <option class="text-dark" value="06">Junio</option>
-                                            <option class="text-dark" value="07">Julio</option>
-                                            <option class="text-dark" value="08">Agosto</option>
-                                            <option class="text-dark" value="09">Septiembre</option>
-                                            <option class="text-dark" value="10">Octubre</option>
-                                            <option class="text-dark" value="11">Noviembre</option>
-                                            <option class="text-dark" value="12">Diciembre</option>
-                                        </select>
-                                        <i class="mdi mdi-chevron-down text-white ms-1 font-size-12"></i>
-                                    </div>
-                                    <i class="mdi mdi-bell-outline opacity-75 font-size-20"></i>
-                                </div>
+                        
 
-                                <div class="text-center mb-4">
-                                    <span class="opacity-75 font-size-12 d-block">Saldo Neto del Periodo</span>
-                                    <h1 class="text-white mb-0 display-6 fw-bold" id="mob-total-balance">$ 0</h1>
-                                </div>
-                                
-                                <div class="row g-2">
-                                    <div class="col-6">
-                                        <div class="bg-white bg-opacity-10 rounded-3 p-2 d-flex align-items-center">
-                                            <div class="avatar-xs me-2">
-                                                <span class="avatar-title rounded-circle bg-success bg-opacity-25 text-success">
-                                                    <i class="mdi mdi-arrow-up font-size-14"></i>
-                                                </span>
+                        <!-- Tabs Navigation -->
+                        <div class="px-3 pt-3 pb-2 bg-primary position-relative" style="z-index: 10;">
+                             <ul class="nav nav-pills nav-fill bg-white bg-opacity-10 rounded-pill p-1" id="mobile-cashflow-tabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active rounded-pill fw-bold text-white py-1 font-size-13" id="tab-summary-btn" data-bs-toggle="pill" data-bs-target="#mob-tab-summary" type="button" role="tab" aria-controls="mob-tab-summary" aria-selected="true" style="letter-spacing: 0.5px;">RESUMEN</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link rounded-pill fw-bold text-white py-1 font-size-13" id="tab-accounts-btn" data-bs-toggle="pill" data-bs-target="#mob-tab-accounts" type="button" role="tab" aria-controls="mob-tab-accounts" aria-selected="false" style="letter-spacing: 0.5px;">CUENTAS</button>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="tab-content" id="mobile-cashflow-tab-content">
+                            
+                            <!-- Tab 1: RESUMEN -->
+                            <div class="tab-pane fade show active" id="mob-tab-summary" role="tabpanel" aria-labelledby="tab-summary-btn">
+                                <div class="mobile-header bg-primary pt-2 pb-5 px-4 text-white mt-n1">
+                                    <!-- Month Selector Header -->
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <div class="d-flex align-items-center bg-white bg-opacity-25 rounded-pill px-3 py-1">
+                                            <i class="mdi mdi-calendar-month text-white me-2"></i>
+                                            <select class="form-select form-select-sm bg-transparent border-0 text-white shadow-none fw-bold p-0" id="mob-month-filter" style="width: auto; cursor: pointer; background-image: none;">
+                                                <option class="text-dark" value="ALL">Acumulado Histórico</option>
+                                                <option class="text-dark" value="01">Enero</option>
+                                                <option class="text-dark" value="02">Febrero</option>
+                                                <option class="text-dark" value="03">Marzo</option>
+                                                <option class="text-dark" value="04">Abril</option>
+                                                <option class="text-dark" value="05">Mayo</option>
+                                                <option class="text-dark" value="06">Junio</option>
+                                                <option class="text-dark" value="07">Julio</option>
+                                                <option class="text-dark" value="08">Agosto</option>
+                                                <option class="text-dark" value="09">Septiembre</option>
+                                                <option class="text-dark" value="10">Octubre</option>
+                                                <option class="text-dark" value="11">Noviembre</option>
+                                                <option class="text-dark" value="12">Diciembre</option>
+                                            </select>
+                                            <i class="mdi mdi-chevron-down text-white ms-1 font-size-12"></i>
+                                        </div>
+                                        <i class="mdi mdi-bell-outline opacity-75 font-size-20"></i>
+                                    </div>
+
+                                    <div class="text-center mb-4">
+                                        <span class="opacity-75 font-size-12 d-block">Saldo Neto del Periodo</span>
+                                        <h1 class="text-white mb-0 display-6 fw-bold" id="mob-total-balance">$ 0</h1>
+                                    </div>
+                                    
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <div class="bg-white bg-opacity-10 rounded-3 p-2 d-flex align-items-center">
+                                                <div class="avatar-xs me-2">
+                                                    <span class="avatar-title rounded-circle bg-success bg-opacity-25 text-success">
+                                                        <i class="mdi mdi-arrow-up font-size-14"></i>
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <small class="d-block opacity-75 font-size-11">Ingresos</small>
+                                                    <span class="fw-bold font-size-13" id="mob-total-income">$ 0</span>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <small class="d-block opacity-75 font-size-11">Ingresos</small>
-                                                <span class="fw-bold font-size-13" id="mob-total-income">$ 0</span>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="bg-white bg-opacity-10 rounded-3 p-2 d-flex align-items-center">
+                                                <div class="avatar-xs me-2">
+                                                    <span class="avatar-title rounded-circle bg-danger bg-opacity-25 text-danger">
+                                                        <i class="mdi mdi-arrow-down font-size-14"></i>
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <small class="d-block opacity-75 font-size-11">Gastos</small>
+                                                    <span class="fw-bold font-size-13" id="mob-total-expense">$ 0</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="col-6">
-                                        <div class="bg-white bg-opacity-10 rounded-3 p-2 d-flex align-items-center">
-                                            <div class="avatar-xs me-2">
-                                                <span class="avatar-title rounded-circle bg-danger bg-opacity-25 text-danger">
-                                                    <i class="mdi mdi-arrow-down font-size-14"></i>
-                                                </span>
-                                            </div>
-                                            <div>
-                                                <small class="d-block opacity-75 font-size-11">Gastos</small>
-                                                <span class="fw-bold font-size-13" id="mob-total-expense">$ 0</span>
-                                            </div>
-                                        </div>
-                                    </div>
                                 </div>
-                            </div>
 
-                            <div class="mobile-body px-3 mt-n4">
-                                <!-- Quick Stats / Mini Cards -->
-                                <div class="row g-2 mb-3">
-                                    <div class="col-12">
-                                         <div class="card shadow-sm border-0 rounded-4">
-                                             <div class="card-body p-3">
-                                                 <div class="d-flex justify-content-between">
-                                                     <div class="text-center flex-fill border-end">
-                                                         <small class="text-muted d-block">Liquidez (Cuentas)</small>
-                                                         <span class="fw-bold text-primary" id="mob-liquidity-ars">$ 0</span>
-                                                     </div>
-                                                     <div class="text-center flex-fill">
-                                                        <small class="text-muted d-block">Total USD (Liq+Inv)</small>
-                                                        <span class="fw-bold text-warning" id="mob-total-usd">U$D 0</span>
+                                <div class="mobile-body px-3 mt-n4">
+                                    <!-- Quick Stats / Mini Cards -->
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-12">
+                                             <div class="card shadow-sm border-0 rounded-4">
+                                                 <div class="card-body p-3">
+                                                     <div class="d-flex justify-content-between">
+                                                         <div class="text-center flex-fill border-end">
+                                                             <small class="text-muted d-block">Liquidez (Cuentas)</small>
+                                                             <span class="fw-bold text-primary" id="mob-liquidity-ars">$ 0</span>
+                                                         </div>
+                                                         <div class="text-center flex-fill">
+                                                            <small class="text-muted d-block">Total USD (Liq+Inv)</small>
+                                                            <span class="fw-bold text-warning" id="mob-total-usd">U$D 0</span>
+                                                         </div>
                                                      </div>
                                                  </div>
                                              </div>
-                                         </div>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h5 class="mb-0 font-size-16 fw-bold">Últimos Movimientos</h5>
-                                    <a href="#" class="text-primary font-size-13">Ver todo</a>
-                                </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 class="mb-0 font-size-16 fw-bold">Últimos Movimientos</h5>
+                                        <a href="#" class="text-primary font-size-13">Ver todo</a>
+                                    </div>
 
-                                <div class="card shadow-lg border-0 rounded-4 mb-5 pb-4 overflow-hidden">
-                                    <div class="card-body p-0">
-                                        <div id="mobile-transactions-list" class="list-group list-group-flush">
-                                            <!-- Dynamic Mobile List -->
-                                            <div class="text-center p-5 text-muted">
-                                                <i class="bx bx-loader bx-spin font-size-24 mb-2"></i>
-                                                <p class="mb-0">Cargando transacciones...</p>
+                                    <div class="card shadow-lg border-0 rounded-4 mb-5 pb-4 overflow-hidden">
+                                        <div class="card-body p-0">
+                                            <div id="mobile-transactions-list" class="list-group list-group-flush">
+                                                <!-- Dynamic Mobile List -->
+                                                <div class="text-center p-5 text-muted">
+                                                    <i class="bx bx-loader bx-spin font-size-24 mb-2"></i>
+                                                    <p class="mb-0">Cargando transacciones...</p>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
+                            <!-- Tab 2: CUENTAS -->
+                            <div class="tab-pane fade" id="mob-tab-accounts" role="tabpanel" aria-labelledby="tab-accounts-btn">
+                                <div class="bg-primary pt-2 pb-5 px-4 text-white mt-n1" style="height: 100px;">
+                                    <!-- Header Background -->
+                                </div>
+                                
+                                <div class="mobile-body px-3 mt-n5">
+                                    <div class="card shadow-sm border-0 rounded-4 mb-3">
+                                         <div class="card-body p-3">
+                                            <h6 class="text-muted mb-1 text-uppercase font-size-11 fw-bold">Capital Total en Cuentas</h6>
+                                            <h3 class="mb-0 fw-bold text-dark" id="mob-accounts-total-balance">$ 0</h3>
+                                         </div>
+                                    </div>
 
-                        </div><!-- end mobile-view -->
+                                    <h6 class="mb-3 text-muted text-uppercase font-size-12 fw-bold px-1">Mis Cuentas</h6>
+                                    
+                                    <div id="mobile-accounts-list" class="vstack gap-3 pb-5">
+                                        <!-- Dynamic Accounts List -->
+                                        <div class="text-center p-5 text-muted">
+                                            <i class="bx bx-loader bx-spin font-size-24 mb-2"></i>
+                                            <p class="mb-0">Cargando cuentas...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+
+
+
+                    </div><!-- end mobile-view -->
 
                 <!-- Income Modal -->
                 <div class="modal fade" id="modal-income" tabindex="-1">
@@ -1991,15 +2040,21 @@
             
             <div class="nav-item-fab">
                 <div class="fab-container">
-                    <button type="button" class="btn-fab-center" id="mob-fab-main" onclick="toggleFabMenu()">
+                    <button type="button" class="btn-fab-center" id="mob-fab-main" style="z-index: 1002;">
                         <i class="mdi mdi-plus"></i>
                     </button>
                     <div class="fab-options" id="mob-fab-options">
-                        <button type="button" class="btn btn-success btn-floating-action shadow mb-2" onclick="openExpenseModal()" title="Nuevo Gasto">
-                            <i class="mdi mdi-currency-usd"></i>
+                        <button type="button" class="btn btn-warning btn-floating-action shadow mb-2" onclick="i('SAVING')" title="Nuevo Ahorro">
+                            <i class="mdi mdi-piggy-bank"></i>
                         </button>
-                        <button type="button" class="btn btn-primary btn-floating-action shadow" onclick="openTaskModal()" title="Nueva Tarea">
-                            <i class="mdi mdi-calendar-check"></i>
+                        <button type="button" class="btn btn-info btn-floating-action shadow mb-2" data-bs-toggle="modal" data-bs-target="#modal-transfer-unified" title="Transferir">
+                            <i class="mdi mdi-swap-horizontal"></i>
+                        </button>
+                        <button type="button" class="btn btn-danger btn-floating-action shadow mb-2" onclick="i('EXPENSE')" title="Nuevo Gasto">
+                            <i class="mdi mdi-arrow-down"></i>
+                        </button>
+                        <button type="button" class="btn btn-success btn-floating-action shadow mb-2" onclick="i('INCOME')" title="Nuevo Ingreso">
+                            <i class="mdi mdi-arrow-up"></i>
                         </button>
                     </div>
                 </div>

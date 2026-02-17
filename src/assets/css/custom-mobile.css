@@ -332,39 +332,7 @@
     }
 
 
-    .fab-options {
-        position: absolute;
-        bottom: 80px;
-        left: 50%;
-        transform: translateX(-50%);
-        display: none;
-        flex-direction: column-reverse;
-        gap: 12px;
-        align-items: center;
-        width: 100%;
-        pointer-events: auto;
-    }
 
-    .fab-options.show {
-        display: flex !important;
-        z-index: 1002 !important;
-        animation: fadeInUp 0.3s ease;
-    }
-
-    .btn-floating-action {
-        width: 45px;
-        height: 45px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0;
-    }
-
-    @keyframes fadeInUp {
-        from { opacity: 0; transform: translate(-50%, 20px); }
-        to { opacity: 1; transform: translate(-50%, 0); }
-    }
 
     /* List Item Styles */
     #mobile-transactions-list .list-group-item {
@@ -429,4 +397,97 @@
         to { opacity: 1; }
     }
 
+}
+
+/* 
+===========================================
+  Central FAB Menu Styles (Mobile)
+===========================================
+*/
+.mob-bottom-nav .nav-item-fab {
+    position: relative;
+    top: -25px; /* Lift the FAB out of the bar */
+    z-index: 1001; /* Ensure above bar */
+}
+
+.mob-bottom-nav .fab-container {
+    position: relative;
+    width: 56px;
+    height: 56px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.mob-bottom-nav .btn-fab-center {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #556ee6 0%, #34c38f 100%);
+    border: none;
+    color: white;
+    font-size: 28px;
+    box-shadow: 0 4px 10px rgba(85, 110, 230, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+    outline: none;
+}
+
+.mob-bottom-nav .btn-fab-center:active {
+    transform: scale(0.95);
+}
+
+.mob-bottom-nav .fab-options {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: none; /* Robust hiding */
+    flex-direction: column-reverse; /* Stack upwards */
+    gap: 15px;
+    align-items: center;
+    z-index: 99999; /* Super high z-index */
+    width: auto;
+    /* Debug border to see if it exists but is empty (remove later if unwanted) */
+    /* border: 1px solid red; */ 
+}
+
+.mob-bottom-nav .fab-options.show {
+    display: flex !important; /* Force show */
+    animation: fabBounceIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes fabBounceIn {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 40px) scale(0.5);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+.mob-bottom-nav .fab-options .btn-floating-action {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    border: none;
+    color: white;
+    font-size: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: transform 0.2s ease;
+    position: relative;
+}
+
+.mob-bottom-nav .fab-options .btn-floating-action:active {
+    transform: scale(0.9);
+}
+
+.btn-fab-center.rotate {
+    transform: rotate(45deg);
 }
