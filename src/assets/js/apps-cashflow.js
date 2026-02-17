@@ -6,7 +6,14 @@ document.addEventListener("DOMContentLoaded",function(){let E=window.Imala.db,g=
                     <button class="btn btn-sm btn-soft-primary btn-edit-account" data-id="${e.id}"><i class="mdi mdi-pencil"></i></button>
                     <button class="btn btn-sm btn-soft-danger btn-delete-account" data-id="${e.id}"><i class="mdi mdi-trash-can"></i></button>
                 </td>
-            `,n.appendChild(t))}),n.querySelectorAll(".btn-edit-account").forEach(t=>{t.addEventListener("click",()=>{var e=M.find(e=>e.id===t.dataset.id);e&&(document.getElementById("acc-id").value=e.id,document.getElementById("acc-name").value=e.name,document.getElementById("acc-currency").value=e.currency,document.getElementById("acc-initial-balance").value=e.initialBalance||0,document.getElementById("title-account-form").textContent="Editar Cuenta",setTimeout(()=>{var e=document.getElementById("acc-initial-balance");e&&(e.focus(),e.select())},100))})}),n.querySelectorAll(".btn-delete-account").forEach(t=>{t.addEventListener("click",async()=>{var e=t.dataset.id;(await Swal.fire({title:"¿Eliminar cuenta?",text:"Se mantendrá el historial de movimientos pero no podrás usarla para nuevos registros.",icon:"warning",showCancelButton:!0,confirmButtonText:"Sí, desactivar",cancelButtonText:"Cancelar"})).isConfirmed&&(await E.collection("cashflow_accounts").doc(e).update({isActive:!1,updatedAt:new Date}),Swal.fire("Desactivada","La cuenta ha sido desactivada.","success"))})})}me()}),console.log("Initializing Assets Module..."),E.collection("cashflow_assets").where("uid","==",p()).onSnapshot(e=>{C=[],e.forEach(e=>{C.push({id:e.id,...e.data()})}),console.log("Assets loaded:",C.length);{let s=document.getElementById("portfolio-grid");s&&(s.innerHTML="",0===C.length?s.innerHTML=`
+            `,n.appendChild(t))}),n.querySelectorAll(".btn-edit-account").forEach(t=>{t.addEventListener("click",()=>{var e=M.find(e=>e.id===t.dataset.id);e&&(document.getElementById("acc-id").value=e.id,document.getElementById("acc-name").value=e.name,document.getElementById("acc-currency").value=e.currency,document.getElementById("acc-initial-balance").value=e.initialBalance||0,document.getElementById("title-account-form").textContent="Editar Cuenta",setTimeout(()=>{var e=document.getElementById("acc-initial-balance");e&&(e.focus(),e.select())},100))})}),n.querySelectorAll(".btn-delete-account").forEach(t=>{t.addEventListener("click",async()=>{var e=t.dataset.id;(await Swal.fire({title:"¿Eliminar cuenta?",text:"Se mantendrá el historial de movimientos pero no podrás usarla para nuevos registros.",icon:"warning",showCancelButton:!0,confirmButtonText:"Sí, desactivar",cancelButtonText:"Cancelar"})).isConfirmed&&(await E.collection("cashflow_accounts").doc(e).update({isActive:!1,updatedAt:new Date}),Swal.fire("Desactivada","La cuenta ha sido desactivada.","success"))})})}
+            
+            // Trigger Mobile Render Explicitly
+            if(typeof renderMobileAccounts === 'function') {
+                renderMobileAccounts();
+            }
+
+            me()}),console.log("Initializing Assets Module..."),E.collection("cashflow_assets").where("uid","==",p()).onSnapshot(e=>{C=[],e.forEach(e=>{C.push({id:e.id,...e.data()})}),console.log("Assets loaded:",C.length);{let s=document.getElementById("portfolio-grid");s&&(s.innerHTML="",0===C.length?s.innerHTML=`
                 <div class="col-12 text-center text-muted py-5">
                     <i class="mdi mdi-briefcase-outline display-4"></i>
                     <p class="mt-3">Aún no tienes activos registrados.</p>
@@ -69,7 +76,7 @@ document.addEventListener("DOMContentLoaded",function(){let E=window.Imala.db,g=
                             <button class="btn btn-sm btn-soft-danger" onclick="deleteAssetType('${e.id}', '${e.name}')"><i class="mdi mdi-trash-can-outline"></i></button>
                         </td>
                     </tr>
-                `}))}}else(async()=>{let n=E.batch();["Real Estate / Pozo","Fondo de Reserva / Colchón","Criptomonedas","Acciones / Bonos","Relojes / Lujo","Otro"].forEach(e=>{var t=E.collection("cashflow_asset_types").doc();n.set(t,{name:e,uid:p(),active:!0,createdAt:new Date})}),await n.commit(),console.log("Default asset types seeded.")})()},e=>{console.error("Error loading asset types (permissions):",e);e=document.getElementById("asset-type");e&&(e.innerHTML='<option value="">Error de permisos</option>'),document.getElementById("modal-asset").classList.contains("show")&&Swal.fire("Error de Permisos","No se pudieron cargar los tipos de activo. Asegúrate de haber desplegado las reglas de Firestore.","error")})):window.location.href="auth-login.html"}),new bootstrap.Modal(document.getElementById("modal-income"))),F=new bootstrap.Modal(document.getElementById("modal-expense")),P=new bootstrap.Modal(document.getElementById("modal-saving")),O=new bootstrap.Modal(document.getElementById("modal-transfer-unified")),V=new bootstrap.Modal(document.getElementById("modal-asset")),_=new bootstrap.Modal(document.getElementById("modal-investment")),z=new bootstrap.Modal(document.getElementById("modal-withdrawal")),G=new bootstrap.Modal(document.getElementById("modal-asset-transfer")),U=new bootstrap.Modal(document.getElementById("modal-manage-asset-types")),L=[],M=[],d={INCOME:[],EXPENSE:[],SAVING:[]},v={INCOME:[],EXPENSE:[]},D=[],C=[];let n=[],q=!1,X=!1,Y=!1,l={INCOME:{column:"date",direction:"desc"},EXPENSE:{column:"date",direction:"desc"},SAVING:{column:"date",direction:"desc"}},u=10,J=[],$=(e,t)=>new Intl.NumberFormat("es-AR",{style:"currency",currency:t}).format(e),p=()=>window.getEffectiveUID?window.getEffectiveUID():sessionStorage.getItem("effectiveUID")||g.currentUser.uid,k=e=>e?e.seconds?new Date(1e3*e.seconds):new Date(e):null;function m(e){let t="";if("INCOME"===e?t="in-category":"EXPENSE"===e?t="ex-category":"SAVING"===e&&(t="sav-category"),"INCOME"===e){let t=document.getElementById("agr-category");t&&(t.innerHTML='<option value="">Seleccione...</option>',d[e].forEach(e=>{t.innerHTML+=`<option value="${e}">${e}</option>`}))}let n=document.getElementById(t);n&&(n.innerHTML='<option value="">Seleccione...</option>',d[e].forEach(e=>{n.innerHTML+=`<option value="${e}">${e}</option>`}))}function W(){let t=document.getElementById("filter-category");var e;t&&(e=t.value,t.innerHTML='<option value="ALL">Todas</option>',[...new Set([...d.INCOME,...d.EXPENSE])].sort().forEach(e=>{t.innerHTML+=`<option value="${e}">${e}</option>`}),e)&&(t.value=e)}[{check:"in-recurring",container:"container-in-installments"},{check:"ex-recurring",container:"container-ex-installments"},{check:"sav-recurring",container:"container-sav-installments"}].forEach(e=>{let t=document.getElementById(e.check),n=document.getElementById(e.container);t&&n&&t.addEventListener("change",()=>{var e;n.style.display=t.checked?"block":"none",t.checked||(e=n.querySelector("input"))&&(e.value="")})}),document.addEventListener("click",async t=>{t=t.target.closest("button");if(t){if(t.classList.contains("btn-add-category")){var n=t.dataset.type;let e="";"INCOME"===n?e="container-new-category-in":"EXPENSE"===n?e="container-new-category-ex":"SAVING"===n&&(e="container-new-category-sav");var n=document.getElementById(e);n&&(a=n.querySelector(".input-new-cat"),n.style.display="block",a)&&a.focus()}if(t.classList.contains("btn-cancel-new-cat")&&(n=t.closest(".container-new-cat"))&&(n.style.display="none"),t.classList.contains("btn-save-new-cat")){var a=t.dataset.type,n=t.closest(".container-new-cat"),e=n.querySelector(".input-new-cat"),r=e.value.trim();if(!r)return;var o=t,i=o.innerHTML;try{o.innerHTML='<i class="bx bx-loader bx-spin"></i>',o.disabled=!0,await E.collection("cashflow_categories").add({name:r,type:a,active:!0,createdAt:new Date,createdBy:g.currentUser.uid}),d[a].push(r),d[a].sort(),m(a),W();var s="INCOME"===a?"in-category":"EXPENSE"===a?"ex-category":"sav-category",c=document.getElementById(s);c&&(c.value=r),n.style.display="none",e.value=""}catch(e){console.error(e),Swal.fire("Error","No se pudo guardar la categoría.","error")}finally{o.innerHTML=i,o.disabled=!1}}t.classList.contains("btn-manage-categories")&&(await K(Q=t.dataset.type),j.show())}});let j=new bootstrap.Modal(document.getElementById("modal-manage-categories")),Q="INCOME";async function K(n){let a=document.querySelector("#table-manage-categories tbody");a.innerHTML="<tr><td>Cargando...</td></tr>";var e=document.querySelector("#modal-manage-categories .modal-title");let t="Ingresos";"EXPENSE"===n?t="Gastos":"SAVING"===n&&(t="Ahorros"),e&&(e.textContent=`Gestionar Categorías (${t})`);try{var r=await E.collection("cashflow_categories").where("type","==",n).get();a.innerHTML="";let t=[];r.forEach(e=>{t.push({id:e.id,...e.data()})}),t.sort((e,t)=>{e=e.createdAt?e.createdAt.toDate?e.createdAt.toDate():new Date(e.createdAt):new Date(0);return(t.createdAt?t.createdAt.toDate?t.createdAt.toDate():new Date(t.createdAt):new Date(0))-e}),t.forEach(e=>{!1!==e.active&&(a.innerHTML+=`
+                `}))}}else(async()=>{let n=E.batch();["Real Estate / Pozo","Fondo de Reserva / Colchón","Criptomonedas","Acciones / Bonos","Relojes / Lujo","Otro"].forEach(e=>{var t=E.collection("cashflow_asset_types").doc();n.set(t,{name:e,uid:p(),active:!0,createdAt:new Date})}),await n.commit(),console.log("Default asset types seeded.")})()},e=>{console.error("Error loading asset types (permissions):",e);e=document.getElementById("asset-type");e&&(e.innerHTML='<option value="">Error de permisos</option>'),document.getElementById("modal-asset").classList.contains("show")&&Swal.fire("Error de Permisos","No se pudieron cargar los tipos de activo. Asegúrate de haber desplegado las reglas de Firestore.","error")})):window.location.href="auth-login.html"}),new bootstrap.Modal(document.getElementById("modal-income"))),F=new bootstrap.Modal(document.getElementById("modal-expense")),P=new bootstrap.Modal(document.getElementById("modal-saving")),O=new bootstrap.Modal(document.getElementById("modal-transfer-unified")),V=new bootstrap.Modal(document.getElementById("modal-asset")),_=new bootstrap.Modal(document.getElementById("modal-investment")),z=new bootstrap.Modal(document.getElementById("modal-withdrawal")),G=new bootstrap.Modal(document.getElementById("modal-asset-transfer")),U=new bootstrap.Modal(document.getElementById("modal-manage-asset-types")),L=[],M=[],d={INCOME:[],EXPENSE:[],SAVING:[]},v={INCOME:[],EXPENSE:[]},D=[],C=[];let n=[],q=!1,X=!1,Y=!1,l={INCOME:{column:"date",direction:"desc"},EXPENSE:{column:"date",direction:"desc"},SAVING:{column:"date",direction:"desc"}},u=10,J=[],$=(e,t)=>new Intl.NumberFormat("es-AR",{style:"currency",currency:t||"ARS"}).format(e||0),p=()=>window.getEffectiveUID?window.getEffectiveUID():sessionStorage.getItem("effectiveUID")||g.currentUser.uid,k=e=>e?e.seconds?new Date(1e3*e.seconds):new Date(e):null;function m(e){let t="";if("INCOME"===e?t="in-category":"EXPENSE"===e?t="ex-category":"SAVING"===e&&(t="sav-category"),"INCOME"===e){let t=document.getElementById("agr-category");t&&(t.innerHTML='<option value="">Seleccione...</option>',d[e].forEach(e=>{t.innerHTML+=`<option value="${e}">${e}</option>`}))}let n=document.getElementById(t);n&&(n.innerHTML='<option value="">Seleccione...</option>',d[e].forEach(e=>{n.innerHTML+=`<option value="${e}">${e}</option>`}))}function W(){let t=document.getElementById("filter-category");var e;t&&(e=t.value,t.innerHTML='<option value="ALL">Todas</option>',[...new Set([...d.INCOME,...d.EXPENSE])].sort().forEach(e=>{t.innerHTML+=`<option value="${e}">${e}</option>`}),e)&&(t.value=e)}[{check:"in-recurring",container:"container-in-installments"},{check:"ex-recurring",container:"container-ex-installments"},{check:"sav-recurring",container:"container-sav-installments"}].forEach(e=>{let t=document.getElementById(e.check),n=document.getElementById(e.container);t&&n&&t.addEventListener("change",()=>{var e;n.style.display=t.checked?"block":"none",t.checked||(e=n.querySelector("input"))&&(e.value="")})}),document.addEventListener("click",async t=>{t=t.target.closest("button");if(t){if(t.classList.contains("btn-add-category")){var n=t.dataset.type;let e="";"INCOME"===n?e="container-new-category-in":"EXPENSE"===n?e="container-new-category-ex":"SAVING"===n&&(e="container-new-category-sav");var n=document.getElementById(e);n&&(a=n.querySelector(".input-new-cat"),n.style.display="block",a)&&a.focus()}if(t.classList.contains("btn-cancel-new-cat")&&(n=t.closest(".container-new-cat"))&&(n.style.display="none"),t.classList.contains("btn-save-new-cat")){var a=t.dataset.type,n=t.closest(".container-new-cat"),e=n.querySelector(".input-new-cat"),r=e.value.trim();if(!r)return;var o=t,i=o.innerHTML;try{o.innerHTML='<i class="bx bx-loader bx-spin"></i>',o.disabled=!0,await E.collection("cashflow_categories").add({name:r,type:a,active:!0,createdAt:new Date,createdBy:g.currentUser.uid}),d[a].push(r),d[a].sort(),m(a),W();var s="INCOME"===a?"in-category":"EXPENSE"===a?"ex-category":"sav-category",c=document.getElementById(s);c&&(c.value=r),n.style.display="none",e.value=""}catch(e){console.error(e),Swal.fire("Error","No se pudo guardar la categoría.","error")}finally{o.innerHTML=i,o.disabled=!1}}t.classList.contains("btn-manage-categories")&&(await K(Q=t.dataset.type),j.show())}});let j=new bootstrap.Modal(document.getElementById("modal-manage-categories")),Q="INCOME";async function K(n){let a=document.querySelector("#table-manage-categories tbody");a.innerHTML="<tr><td>Cargando...</td></tr>";var e=document.querySelector("#modal-manage-categories .modal-title");let t="Ingresos";"EXPENSE"===n?t="Gastos":"SAVING"===n&&(t="Ahorros"),e&&(e.textContent=`Gestionar Categorías (${t})`);try{var r=await E.collection("cashflow_categories").where("type","==",n).get();a.innerHTML="";let t=[];r.forEach(e=>{t.push({id:e.id,...e.data()})}),t.sort((e,t)=>{e=e.createdAt?e.createdAt.toDate?e.createdAt.toDate():new Date(e.createdAt):new Date(0);return(t.createdAt?t.createdAt.toDate?t.createdAt.toDate():new Date(t.createdAt):new Date(0))-e}),t.forEach(e=>{!1!==e.active&&(a.innerHTML+=`
                     <tr>
                         <td class="align-middle">${e.name}</td>
                         <td class="text-end">
@@ -229,80 +236,94 @@ document.addEventListener("DOMContentLoaded",function(){let E=window.Imala.db,g=
 
     // Mobile Accounts Logic
     function renderMobileAccounts() {
-        var container = document.getElementById("mobile-accounts-list");
-        var totalDisplay = document.getElementById("mob-accounts-total-balance");
-        if(!container) return;
+        try {
+            console.log("Rendering Mobile Accounts...", M.length);
+            var container = document.getElementById("mobile-accounts-list");
+            var totalDisplay = document.getElementById("mob-accounts-total-balance");
+            if(!container) {
+                console.warn("Mobile accounts container not found");
+                return;
+            }
 
-        container.innerHTML = "";
-        
-        if (M.length === 0) {
-             container.innerHTML = '<div class="text-center p-4 text-muted">No hay cuentas registradas.</div>';
-             if(totalDisplay) totalDisplay.textContent = "$ 0";
-             return;
-        }
-
-        var totalArs = 0;
-        
-        M.filter(acc => acc.isActive !== false).forEach(acc => {
-            var balance = R(acc.id);
-            if(acc.currency === 'ARS') totalArs += balance;
+            container.innerHTML = "";
             
-            // Calc equivalent for total? For now just sum ARS for the big number or handling differently.
-            // Let's rely on the individual cards for clarity.
+            if (M.length === 0) {
+                 container.innerHTML = '<div class="text-center p-4 text-muted">No hay cuentas registradas.</div>';
+                 if(totalDisplay) totalDisplay.textContent = "$ 0";
+                 return;
+            }
 
-            var card = document.createElement("div");
-            card.className = "card shadow-sm border-0 rounded-4";
-            card.innerHTML = `
-                <div class="card-body p-3">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <div class="d-flex align-items-center">
-                            <div class="avatar-sm me-3">
-                                <span class="avatar-title rounded-circle bg-soft-primary text-primary font-size-18">
-                                    <i class="mdi mdi-bank"></i>
-                                </span>
-                            </div>
-                            <div>
-                                <h5 class="font-size-14 mb-0 text-dark fw-bold">${acc.name}</h5>
-                                <small class="text-muted">${acc.currency}</small>
-                            </div>
-                        </div>
-                        <div class="text-end">
-                            <h5 class="font-size-16 mb-0 ${balance < 0 ? 'text-danger' : 'text-success'} fw-bold">
-                                ${$(balance, acc.currency)}
-                            </h5>
-                            <small class="text-muted font-size-11">Disponible</small>
-                        </div>
-                    </div>
-                    <button class="btn btn-primary w-100 rounded-pill btn-sm btn-mobile-transfer" 
-                        data-id="${acc.id}" 
-                        data-name="${acc.name}">
-                        Transferir
-                    </button>
-                </div>
-            `;
-            container.appendChild(card);
-        });
-
-        if(totalDisplay) totalDisplay.textContent = $(totalArs, "ARS");
-        
-        // Re-attach listeners for new buttons
-        container.querySelectorAll(".btn-mobile-transfer").forEach(btn => {
-            btn.addEventListener("click", (e) => {
-                var accId = e.target.dataset.id;
+            var totalArs = 0;
+            var totalUsd = 0;
+            
+            M.filter(acc => acc.isActive !== false).forEach(acc => {
+                var balance = R(acc.id);
+                if(acc.currency === 'ARS') totalArs += balance;
+                if(acc.currency === 'USD') totalUsd += balance;
                 
-                // Open Transfer Modal (Unified)
-                if(O) {
-                    O.show();
-                    setTimeout(() => {
-                        var sourceSelect = document.getElementById("acc-trans-source");
-                        if(sourceSelect) {
-                            sourceSelect.value = accId;
-                            sourceSelect.dispatchEvent(new Event('change')); // To trigger balance update logic
-                        }
-                    }, 200);
-                }
+                // Calc equivalent for total? For now just sum ARS for the big number or handling differently.
+                // Let's rely on the individual cards for clarity.
+
+                var card = document.createElement("div");
+                card.className = "card shadow-sm border-0 rounded-4";
+                card.innerHTML = `
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-sm me-3">
+                                    <span class="avatar-title rounded-circle bg-soft-primary text-primary font-size-18">
+                                        <i class="mdi mdi-bank"></i>
+                                    </span>
+                                </div>
+                                <div>
+                                    <h5 class="font-size-14 mb-0 text-dark fw-bold">${acc.name}</h5>
+                                    <small class="text-muted">${acc.currency}</small>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <h5 class="font-size-16 mb-0 ${balance < 0 ? 'text-danger' : 'text-success'} fw-bold">
+                                    ${$(balance, acc.currency)}
+                                </h5>
+                                <small class="text-muted font-size-11">Disponible</small>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary w-100 rounded-pill btn-sm btn-mobile-transfer" 
+                            data-id="${acc.id}" 
+                            data-name="${acc.name}">
+                            Transferir
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
             });
-        });
+
+            if(totalDisplay) totalDisplay.textContent = $(totalArs, "ARS");
+            var totalDisplayUsd = document.getElementById("mob-accounts-total-balance-usd");
+            if(totalDisplayUsd) totalDisplayUsd.textContent = $(totalUsd, "USD");
+            
+            // Re-attach listeners for new buttons
+            container.querySelectorAll(".btn-mobile-transfer").forEach(btn => {
+                btn.addEventListener("click", (e) => {
+                    var accId = e.target.dataset.id;
+                    
+                    // Open Transfer Modal (Unified)
+                    if(O) {
+                        O.show();
+                        setTimeout(() => {
+                            var sourceSelect = document.getElementById("acc-trans-source");
+                            if(sourceSelect) {
+                                sourceSelect.value = accId;
+                                sourceSelect.dispatchEvent(new Event('change')); // To trigger balance update logic
+                            }
+                        }, 200);
+                    }
+                });
+            });
+        } catch(e) {
+            console.error("Error rendering mobile accounts:", e);
+            var container = document.getElementById("mobile-accounts-list");
+            if(container) container.innerHTML = '<div class="alert alert-danger">Error al cargar cuentas.</div>';
+        }
     }
 
     // Initialize Mobile Accounts on Load
