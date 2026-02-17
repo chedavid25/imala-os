@@ -918,7 +918,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         </span>
                     </div>
                     <div class="flex-grow-1">
-                        <h6 class="mb-1 fw-bold font-size-14">${m.item || 'Transacción'}</h6>
+                        <h6 class="mb-1 fw-bold font-size-14">${m.entityName || m.item || 'Transacción'}</h6>
                         <p class="text-muted small mb-0">${date.toLocaleDateString()} • ${m.accountName || 'Cuenta'}</p>
                     </div>
                     <div class="text-end">
@@ -1015,7 +1015,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 accSelect.innerHTML = '<option value="">Seleccione Cuenta...</option>';
                 snap.forEach(doc => {
                     const acc = doc.data();
-                    accSelect.innerHTML += `<option value="${doc.id}">${acc.name} (${acc.currency})</option>`;
+                    accSelect.innerHTML += `<option value="${doc.id}" data-currency="${acc.currency}">${acc.name} (${acc.currency})</option>`;
                 });
             });
         }
@@ -1038,7 +1038,9 @@ document.addEventListener('DOMContentLoaded', function () {
         if(!uid) return;
 
         const amount = parseFloat(document.getElementById('exp-amount').value);
-        const accountId = document.getElementById('exp-account').value;
+        const accSelect = document.getElementById('exp-account');
+        const accountId = accSelect.value;
+        const currency = accSelect.options[accSelect.selectedIndex]?.dataset.currency || 'ARS';
         const itemName = document.getElementById('exp-item').value;
         const category = document.getElementById('exp-category').value;
         const dateVal = document.getElementById('exp-date').valueAsDate || new Date();
@@ -1050,21 +1052,16 @@ document.addEventListener('DOMContentLoaded', function () {
             await db.collection('transactions').add({
                 amount,
                 accountId,
-                item: itemName,
+                entityName: itemName,
                 category,
+                currency,
                 type: 'EXPENSE',
                 date: firebase.firestore.Timestamp.fromDate(dateVal),
                 createdBy: uid,
                 status: 'PAID'
             });
 
-            // 2. Update Account Balance
-            const accRef = db.collection('accounts').doc(accountId);
-            const accDoc = await accRef.get();
-            if(accDoc.exists) {
-                const currentBalance = accDoc.data().balance || 0;
-                await accRef.update({ balance: currentBalance - amount });
-            }
+            // Note: Balance is calculated dynamically, no manual update needed here to avoid permission errors.
 
             bootstrap.Modal.getInstance(document.getElementById('modal-expense')).hide();
             Swal.fire({ icon: 'success', title: 'Gasto guardado', timer: 1500, toast: true, position: 'top-end' });
