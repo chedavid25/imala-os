@@ -335,6 +335,7 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     window.openNewTaskModal = openNewTaskModal;
+    window.openTaskModal = openNewTaskModal; // Override generic app.js handler to use the same modal instance
     window.openEditModal = openEditModal;
     window.deleteTask = deleteTask;
 
