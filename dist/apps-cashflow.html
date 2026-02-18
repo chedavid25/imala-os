@@ -34,7 +34,7 @@
         <link href="assets/css/icons.min.css" rel="stylesheet" type="text/css" />
         <!-- App Css-->
         <link href="assets/css/app.min.css" id="app-style" rel="stylesheet" type="text/css" />
-        <link href="assets/css/custom-mobile.css?v=3" rel="stylesheet" type="text/css" />
+        <link href="assets/css/custom-mobile.css?v=12.1" rel="stylesheet" type="text/css" />
         
         <style>
             .swal2-container {
@@ -2043,14 +2043,14 @@
             
             <div class="nav-item-fab">
                 <div class="fab-container">
-                    <button type="button" class="btn-fab-center" id="mob-fab-main" style="z-index: 1002;">
+                    <button type="button" class="btn-fab-center" id="mob-fab-main" style="z-index: 1002;" onclick="toggleFabMenu()">
                         <i class="mdi mdi-plus"></i>
                     </button>
                     <div class="fab-options" id="mob-fab-options">
                         <button type="button" class="btn btn-warning btn-floating-action shadow mb-2" onclick="i('SAVING')" title="Nuevo Ahorro">
                             <i class="mdi mdi-piggy-bank"></i>
                         </button>
-                        <button type="button" class="btn btn-info btn-floating-action shadow mb-2" data-bs-toggle="modal" data-bs-target="#modal-transfer-unified" title="Transferir">
+                        <button type="button" class="btn btn-info btn-floating-action shadow mb-2" data-bs-toggle="modal" data-bs-target="#modal-transfer-unified" onclick="toggleFabMenu()" title="Transferir">
                             <i class="mdi mdi-swap-horizontal"></i>
                         </button>
                         <button type="button" class="btn btn-danger btn-floating-action shadow mb-2" onclick="i('EXPENSE')" title="Nuevo Gasto">
@@ -2109,10 +2109,10 @@
         <script src="assets/js/imala-auth.js"></script>
         
         <!-- Main JS Bundle -->
-        <script src="assets/js/app.js"></script>
+        <script src="assets/js/app.js?v=12.2"></script>
 
         <!-- Cashflow Logic -->
-        <script src="assets/js/apps-cashflow.js?v=9"></script>
+        <script src="assets/js/apps-cashflow.js?v=12.2"></script>
 
     </body>
 </html>

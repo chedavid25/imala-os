@@ -980,14 +980,6 @@ document.addEventListener('DOMContentLoaded', function () {
         loadMobileTransactions();
     }
 
-    // FAB Menu Logic
-    window.toggleFabMenu = function() {
-        const options = document.getElementById('mob-fab-options');
-        if (options) {
-            options.classList.toggle('show');
-        }
-    };
-
     window.openExpenseModal = function() {
         // Load categories and accounts for the modal
         loadExpenseModalData();
