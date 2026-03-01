@@ -247,14 +247,14 @@
                                                 </div>
                                             </div>
                                             <div class="card-body p-0">
-                                                <canvas id="chart-billing-trend" class="px-3" height="350"></canvas>
+                                                <canvas id="chart-billing-trend" class="px-3" height="200"></canvas>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="col-xl-4">
                                         <div class="card card-h-100">
                                             <div class="card-header border-0 align-items-center d-flex">
-                                                <h4 class="card-title mb-0 flex-grow-1">Estructura de Costos</h4>
+                                                <h4 class="card-title mb-0 flex-grow-1">Gastos por categoría</h4>
                                                 <div class="flex-shrink-0">
                                                     <button type="button" class="btn btn-sm btn-soft-info" onclick="appAnalytics.showChartHelp('COST_STRUCTURE')">
                                                         <i class="mdi mdi-help-circle-outline"></i>
@@ -262,7 +262,10 @@
                                                 </div>
                                             </div>
                                             <div class="card-body">
-                                                <canvas id="chart-expenses-dist" height="300"></canvas>
+                                                <canvas id="chart-expenses-dist" height="250"></canvas>
+                                                <div id="expense-list-container" class="mt-4 pt-2 border-top" style="max-height: 250px; overflow-y: auto;">
+                                                    <!-- Listado generado dinámicamente -->
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

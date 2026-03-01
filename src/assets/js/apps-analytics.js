@@ -9,13 +9,15 @@ let accountsData = []; // Cuentas
 let assetsData = []; // Activos (Inversiones)
 
 // Configuración
-const EXCHANGE_RATE = 1200; // Hardcoded exchange rate for ARS/USD conversion
+// EXCHANGE_RATE removed as per user request (no automatic conversion)
 
 // Defaults to Current Month
 const now = new Date();
 let filterYear = now.getFullYear();
 let filterPeriod = 'YEAR'; // YEAR, MONTH
 let filterMonth = now.getMonth(); // 0-11
+let filterQuarter = Math.floor(now.getMonth() / 3) + 1;
+let filterSemester = now.getMonth() < 6 ? 1 : 2;
 let filterCurrency = 'ARS'; // ARS, USD
 let filterAccount = 'ALL'; 
 
@@ -410,9 +412,9 @@ const appAnalytics = {
 
     applyFilters: () => {
         filterYear = parseInt(document.getElementById('analytics-year').value);
-        filterMonth = parseInt(document.getElementById('analytics-month').value);
-        filterQuarter = parseInt(document.getElementById('analytics-quarter').value);
-        filterSemester = parseInt(document.getElementById('analytics-semester').value);
+        if(document.getElementById('analytics-month')) filterMonth = parseInt(document.getElementById('analytics-month').value);
+        if(document.getElementById('analytics-quarter')) filterQuarter = parseInt(document.getElementById('analytics-quarter').value);
+        if(document.getElementById('analytics-semester')) filterSemester = parseInt(document.getElementById('analytics-semester').value);
         filterAccount = document.getElementById('analytics-account').value;
         updateDashboard();
     }
@@ -457,6 +459,18 @@ function updateDashboard() {
     // Filter by Period for KPIs
     const periodData = yearTx.filter(tx => {
         if (filterPeriod === 'MONTH') return tx.dateObj.getMonth() === filterMonth;
+        if (filterPeriod === 'QUARTER') {
+            const m = tx.dateObj.getMonth();
+            if (filterQuarter === 1) return m >= 0 && m <= 2;
+            if (filterQuarter === 2) return m >= 3 && m <= 5;
+            if (filterQuarter === 3) return m >= 6 && m <= 8;
+            if (filterQuarter === 4) return m >= 9 && m <= 11;
+        }
+        if (filterPeriod === 'SEMESTER') {
+            const m = tx.dateObj.getMonth();
+            if (filterSemester === 1) return m >= 0 && m <= 5;
+            if (filterSemester === 2) return m >= 6 && m <= 11;
+        }
         return true; // YEAR
     });
 
@@ -466,7 +480,7 @@ function updateDashboard() {
     
     // 3. Render Charts based on Tab
     if (currentTab === 'BILLING') {
-        renderOperativeDashboard(yearTx, isMobile); 
+        renderOperativeDashboard(yearTx, periodData, isMobile); 
     } else if (currentTab === 'SAVINGS') {
         renderWealthDashboard(isMobile);
     } else if (currentTab === 'CRM') {
@@ -480,17 +494,25 @@ function calculateOperativeKPIs(periodData, isMobile) {
     let savings = 0;
 
     periodData.forEach(tx => {
-        let amount = parseFloat(tx.amount) || 0;
-        if (tx.currency === 'USD' && filterCurrency === 'ARS') amount *= EXCHANGE_RATE;
-        if (tx.currency === 'ARS' && filterCurrency === 'USD') amount /= EXCHANGE_RATE;
+        if (tx.currency !== filterCurrency) return; // Strict currency filtering
 
+        let amount = parseFloat(tx.amount) || 0;
         if (tx.type === 'INCOME') income += amount;
-        else if (tx.type === 'EXPENSE' && tx.category !== 'INVESTMENT') expenses += amount;
+        else if (tx.type === 'EXPENSE' && tx.category !== 'INVESTMENT') {
+            // Filter out transfers and account names from expenses
+            const categoryUpper = (tx.category || "").toUpperCase();
+            const isTransfer = categoryUpper.includes("TRANSFERENCIA");
+            const isAccountName = accountsData.some(acc => (acc.name || "").toUpperCase() === categoryUpper);
+            
+            if (!isTransfer && !isAccountName) {
+                expenses += amount;
+            }
+        }
         else if (tx.type === 'SAVING') savings += amount;
     });
 
     const profit = income - expenses;
-    const savingsRate = income > 0 ? (savings / income) * 100 : 0;
+    const savingsRate = income > 0 ? (profit / income) * 100 : 0;
 
     // Update Desktop UI
     const kpiBilled = document.getElementById('kpi-billed');
@@ -514,20 +536,15 @@ function calculateWealthKPIs() {
     let totalLiquidity = 0;
     let totalInvested = 0;
 
-    // 1. Accounts Liquidity
-    accountsData.forEach(acc => {
-        let balance = parseFloat(acc.balance) || 0;
-        if (acc.currency === 'USD' && filterCurrency === 'ARS') balance *= EXCHANGE_RATE;
-        if (acc.currency === 'ARS' && filterCurrency === 'USD') balance /= EXCHANGE_RATE;
-        totalLiquidity += balance;
+    // 1. Accounts Liquidity (Dynamic Calculation)
+    accountsData.filter(acc => acc.currency === filterCurrency).forEach(acc => {
+        totalLiquidity += getAccountBalance(acc.id);
     });
 
     // 2. Assets (Inversiones)
-    assetsData.forEach(asset => {
+    assetsData.filter(asset => asset.currency === filterCurrency).forEach(asset => {
         // Use currentValuation if available, otherwise investedAmount
         let value = parseFloat(asset.currentValuation) || parseFloat(asset.investedAmount) || parseFloat(asset.amount) || 0;
-        if (asset.currency === 'USD' && filterCurrency === 'ARS') value *= EXCHANGE_RATE;
-        if (asset.currency === 'ARS' && filterCurrency === 'USD') value /= EXCHANGE_RATE;
         totalInvested += value;
     });
 
@@ -545,9 +562,8 @@ function calculateWealthKPIs() {
 
     let totalRecentExpenses = 0;
     recentExpenses.forEach(tx => {
+        if (tx.currency !== filterCurrency) return;
         let amount = parseFloat(tx.amount) || 0;
-        if (tx.currency === 'USD' && filterCurrency === 'ARS') amount *= EXCHANGE_RATE;
-        if (tx.currency === 'ARS' && filterCurrency === 'USD') amount /= EXCHANGE_RATE;
         totalRecentExpenses += amount;
     });
 
@@ -563,17 +579,16 @@ function calculateWealthKPIs() {
 
 // --- Chart Rendering ---
 
-function renderOperativeDashboard(yearTx, isMobile) {
+function renderOperativeDashboard(yearTx, periodData, isMobile) {
     const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
     const incomeByMonth = new Array(12).fill(0);
     const expenseByMonth = new Array(12).fill(0);
     const prevYearIncome = new Array(12).fill(0);
 
     yearTx.forEach(tx => {
+        if (tx.currency !== filterCurrency) return;
         const m = tx.dateObj.getMonth();
         let amount = parseFloat(tx.amount) || 0;
-        if (tx.currency === 'USD' && filterCurrency === 'ARS') amount *= EXCHANGE_RATE;
-        if (tx.currency === 'ARS' && filterCurrency === 'USD') amount /= EXCHANGE_RATE;
 
         if (tx.type === 'INCOME') incomeByMonth[m] += amount;
         else if (tx.type === 'EXPENSE' && tx.category !== 'INVESTMENT') expenseByMonth[m] += amount;
@@ -600,43 +615,134 @@ function renderOperativeDashboard(yearTx, isMobile) {
 
     if (isMobile) {
         createChart('mob-chart-run-rate', 'bar', runRateConfig);
-        renderExpenseDistribution(yearTx, true);
+        renderExpenseDistribution(periodData, true);
     } else {
         createChart('chart-billing-trend', 'bar', runRateConfig);
-        renderExpenseDistribution(yearTx, false);
+        renderExpenseDistribution(periodData, false);
         renderIncomeTrend(yearTx);
     }
 }
 
-function renderExpenseDistribution(yearTx, isMobile) {
-    const expenseData = {};
-    yearTx.filter(tx => tx.type === 'EXPENSE' && tx.category !== 'INVESTMENT').forEach(tx => {
-        const cat = tx.category || 'Otros';
+function renderIncomeTrend(yearTx) {
+    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const incomeTrend = new Array(12).fill(0);
+    const expenseTrend = new Array(12).fill(0);
+
+    yearTx.forEach(tx => {
+        if (tx.currency !== filterCurrency) return;
+        const m = tx.dateObj.getMonth();
         let amount = parseFloat(tx.amount) || 0;
-        if (tx.currency === 'USD' && filterCurrency === 'ARS') amount *= EXCHANGE_RATE;
-        if (tx.currency === 'ARS' && filterCurrency === 'USD') amount /= EXCHANGE_RATE;
-        expenseData[cat] = (expenseData[cat] || 0) + amount;
+
+        if (tx.type === 'INCOME') incomeTrend[m] += amount;
+        else if (tx.type === 'EXPENSE' && tx.category !== 'INVESTMENT') {
+            // Re-apply common expense filters
+            const cat = tx.category || '';
+            const isTransfer = cat.toUpperCase().includes("TRANSFERENCIA");
+            const isAccountName = accountsData.some(acc => (acc.name || "").toUpperCase() === cat.toUpperCase());
+            if (!isTransfer && !isAccountName) {
+                expenseTrend[m] += amount;
+            }
+        }
     });
 
+    const trendConfig = {
+        labels: months,
+        datasets: [
+            {
+                label: 'Ingresos Trend',
+                data: incomeTrend,
+                borderColor: '#2ab57d',
+                backgroundColor: 'rgba(42, 181, 125, 0.1)',
+                fill: true,
+                tension: 0.4
+            },
+            {
+                label: 'Gastos Trend',
+                data: expenseTrend,
+                borderColor: '#fd625e',
+                backgroundColor: 'rgba(253, 98, 94, 0.1)',
+                fill: true,
+                tension: 0.4
+            }
+        ]
+    };
+
+    createChart('chart-income-trend', 'line', trendConfig);
+}
+
+function renderExpenseDistribution(periodData, isMobile) {
+    const expenseDataMap = {};
+    let totalExpenses = 0;
+
+    periodData.filter(tx => tx.type === 'EXPENSE' && tx.category !== 'INVESTMENT' && tx.currency === filterCurrency).forEach(tx => {
+        const cat = tx.category || 'Otros';
+        
+        // Filter out transfers and account names
+        const categoryUpper = cat.toUpperCase();
+        const isTransfer = categoryUpper.includes("TRANSFERENCIA");
+        const isAccountName = accountsData.some(acc => (acc.name || "").toUpperCase() === categoryUpper);
+        
+        if (isTransfer || isAccountName) return;
+
+        let amount = parseFloat(tx.amount) || 0;
+        expenseDataMap[cat] = (expenseDataMap[cat] || 0) + amount;
+        totalExpenses += amount;
+    });
+
+    // Convert to array and sort descending
+    const sortedExpenses = Object.entries(expenseDataMap)
+        .sort((a, b) => b[1] - a[1]);
+
+    const labels = sortedExpenses.map(x => x[0]);
+    const values = sortedExpenses.map(x => x[1]);
+
     const config = {
-        labels: Object.keys(expenseData),
+        labels: labels,
         datasets: [{
-            data: Object.values(expenseData),
-            backgroundColor: ["#5156be", "#2ab57d", "#fd625e", "#ffbf53", "#4ba6ef", "#ff813e", "#e83e8c"]
+            data: values,
+            backgroundColor: ["#5156be", "#2ab57d", "#fd625e", "#ffbf53", "#4ba6ef", "#ff813e", "#e83e8c", "#bcbedc", "#9499d4"]
         }]
     };
 
     const canvasId = isMobile ? 'mob-chart-expenses' : 'chart-expenses-dist';
     createChart(canvasId, 'doughnut', config);
+
+    // Render List
+    const listContainer = document.getElementById('expense-list-container');
+    if (listContainer && !isMobile) {
+        listContainer.innerHTML = '';
+        sortedExpenses.forEach(([cat, amt], index) => {
+            const percentage = totalExpenses > 0 ? ((amt / totalExpenses) * 100).toFixed(1) : 0;
+            const itemHtml = `
+                <div class="mb-3">
+                    <div class="d-flex align-items-center mb-1">
+                        <div class="flex-grow-1">
+                            <h5 class="font-size-14 mb-0">${cat}</h5>
+                        </div>
+                        <div class="flex-shrink-0 text-end">
+                            <span class="text-muted font-size-13">${formatCurrency(amt)}</span>
+                            <span class="badge bg-light text-muted ms-1">${percentage}%</span>
+                        </div>
+                    </div>
+                    <div class="progress animated-progess custom-progress" style="height: 6px;">
+                        <div class="progress-bar" role="progressbar" style="width: ${percentage}%; background-color: ${config.datasets[0].backgroundColor[index % config.datasets[0].backgroundColor.length]}" 
+                            aria-valuenow="${percentage}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>`;
+            listContainer.innerHTML += itemHtml;
+        });
+        
+        if (sortedExpenses.length === 0) {
+            listContainer.innerHTML = '<p class="text-muted text-center py-3">No hay gastos registrados en este periodo.</p>';
+        }
+    }
 }
 
 function renderWealthDashboard(isMobile) {
     const assetCats = {};
-    assetsData.forEach(asset => {
+    assetsData.filter(asset => asset.currency === filterCurrency).forEach(asset => {
         const cat = asset.category || 'Inversión';
         let value = parseFloat(asset.currentValuation) || parseFloat(asset.investedAmount) || parseFloat(asset.amount) || 0;
-        if (asset.currency === 'USD' && filterCurrency === 'ARS') value *= EXCHANGE_RATE;
-        if (asset.currency === 'ARS' && filterCurrency === 'USD') value /= EXCHANGE_RATE;
         assetCats[cat] = (assetCats[cat] || 0) + value;
     });
 
@@ -661,7 +767,7 @@ function renderWealthDashboard(isMobile) {
     const container = document.getElementById('goals-progress-container');
     if (container) {
         container.innerHTML = '';
-        const goals = assetsData.filter(a => a.targetAmount > 0);
+        const goals = assetsData.filter(a => a.targetAmount > 0 && a.currency === filterCurrency);
         
         if (goals.length === 0) {
             container.innerHTML = '<p class="text-muted text-center pt-5">No hay activos con "Objetivo" definido.</p>';
@@ -697,15 +803,13 @@ function renderCurrencyComposition() {
     let liqARS = 0;
     let liqUSD = 0;
     accountsData.forEach(acc => {
-        let bal = parseFloat(acc.balance) || 0;
+        let bal = getAccountBalance(acc.id);
         if(acc.currency === 'ARS') liqARS += bal;
-        else if(acc.currency === 'USD') liqUSD += (bal * EXCHANGE_RATE); 
+        else if(acc.currency === 'USD') liqUSD += bal; 
     });
     
-    if(filterCurrency === 'USD') {
-        liqARS /= EXCHANGE_RATE;
-        liqUSD /= EXCHANGE_RATE;
-    }
+    // Currency Composition remains in absolute terms for each currency bar,
+    // but the axes or scaling will depend on the filtered currency labels.
 
     createChart('chart-currency-composition', 'bar', {
         labels: ['Liquidez (Caja)'],
@@ -745,6 +849,22 @@ function renderNetWorthEvolution(isMobile) {
 }
 
 // --- Helpers ---
+
+function getAccountBalance(accountId) {
+    const acc = accountsData.find(a => a.id === accountId);
+    if (!acc) return 0;
+    
+    const initial = parseFloat(acc.initialBalance) || 0;
+    const txs = invoicesData.filter(tx => tx.accountId === accountId && tx.status === 'PAID');
+    
+    const income = txs.filter(tx => tx.type === 'INCOME').reduce((sum, tx) => sum + (parseFloat(tx.amount) || 0), 0);
+    const expenses = txs.filter(tx => tx.type === 'EXPENSE').reduce((sum, tx) => sum + (parseFloat(tx.amount) || 0), 0);
+    const savings = invoicesData.filter(tx => tx.accountId === accountId && tx.type === 'SAVING' && tx.status === 'ACTIVE' && !tx.isInitial).reduce((sum, tx) => sum + (parseFloat(tx.amount) || 0), 0);
+    const investments = txs.filter(tx => tx.type === 'INVESTMENT').reduce((sum, tx) => sum + (parseFloat(tx.amount) || 0), 0);
+    const withdrawals = txs.filter(tx => tx.type === 'WITHDRAWAL').reduce((sum, tx) => sum + (parseFloat(tx.amount) || 0), 0);
+    
+    return initial + income - expenses - savings - investments + withdrawals;
+}
 
 
 
