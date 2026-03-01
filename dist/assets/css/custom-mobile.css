@@ -441,17 +441,16 @@
 
 .mob-bottom-nav .fab-options {
     position: fixed;
-    bottom: 90px;
+    bottom: 110px; /* Mayor separación del botón principal para evitar toques accidentales */
     left: 50%;
     transform: translateX(-50%);
-    display: none; /* Robust hiding */
-    flex-direction: column-reverse; /* Stack upwards */
-    gap: 15px;
+    display: none; 
+    flex-direction: row; /* Horizontal */
+    gap: 30px; /* Más espacio entre opciones */
     align-items: center;
-    z-index: 99999; /* Super high z-index */
+    justify-content: center;
+    z-index: 99999;
     width: auto;
-    /* Debug border to see if it exists but is empty (remove later if unwanted) */
-    /* border: 1px solid red; */ 
 }
 
 .mob-bottom-nav .fab-options.show {

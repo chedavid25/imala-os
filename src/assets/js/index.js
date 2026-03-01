@@ -75,12 +75,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Load Financial Data for Mobile
                 loadDashboardFinancials();
                 
-                // Load Mobile specific dashboard data
                 if (typeof refreshMobileDashboard === 'function') {
                     refreshMobileDashboard(user);
                 } else {
                     loadMobileDashboard();
                 }
+
+                // Pre-load modal data to avoid empty selects on first open
+                loadExpenseModalData();
 
             }).catch(err => {
                 console.error("Error loading user profile:", err);
