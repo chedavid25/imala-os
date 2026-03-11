@@ -253,127 +253,137 @@
                                 <div class="page-title-box d-sm-flex align-items-center justify-content-between">
                                     <h4 class="mb-sm-0 font-size-18">Cashflow Financiero</h4>
                                     <div class="page-title-right">
-                                        <button class="btn btn-success" id="btn-new-income"><i class="mdi mdi-arrow-up-thin-circle-outline me-1"></i> Nuevo Ingreso</button>
-                                        <button class="btn btn-danger ms-2" id="btn-new-expense"><i class="mdi mdi-arrow-down-thin-circle-outline me-1"></i> Nuevo Gasto</button>
-                                        <button class="btn btn-primary ms-2" id="btn-new-asset"><i class="mdi mdi-briefcase-plus-outline me-1"></i> Nuevo Activo</button>
-                                        <button class="btn btn-soft-success ms-2" id="btn-new-investment" title="De Cuenta a Activo"><i class="mdi mdi-chart-line me-1"></i> Invertir</button>
-                                        <button class="btn btn-soft-warning ms-2" id="btn-new-withdrawal" title="De Activo a Cuenta"><i class="mdi mdi-cash-minus me-1"></i> Retirar</button>
-                                        <button class="btn btn-soft-info ms-2" id="btn-new-asset-transfer" title="De Activo a Activo"><i class="mdi mdi-swap-horizontal me-1"></i> Transf. Activos</button>
-                                        <button class="btn btn-soft-primary ms-2" id="btn-transfer-saving" title="Transferir entre Cuentas"><i class="mdi mdi-bank-transfer me-1"></i> Transferir</button>
-                                        <button class="btn btn-soft-secondary ms-2" id="btn-config-accounts" title="Configurar Cuentas"><i class="mdi mdi-cog-outline"></i></button>
+                                        <!-- Gestión Operativa (Caja) -->
+                                        <div class="btn-group me-2" role="group">
+                                            <button class="btn btn-success" id="btn-new-income" title="Registrar Ingreso"><i class="mdi mdi-arrow-up-thin-circle-outline me-1"></i> Ingreso</button>
+                                            <button class="btn btn-danger" id="btn-new-expense" title="Registrar Gasto"><i class="mdi mdi-arrow-down-thin-circle-outline me-1"></i> Gasto</button>
+                                            <button class="btn btn-primary" id="btn-transfer-saving" title="Transferir entre Cuentas"><i class="mdi mdi-bank-transfer me-1"></i> Transferir</button>
+                                        </div>
+
+                                        <!-- Gestión de Patrimonio (Inversiones) -->
+                                        <div class="btn-group me-2" role="group">
+                                            <button class="btn btn-outline-primary" id="btn-new-asset" title="Nuevo Activo"><i class="mdi mdi-briefcase-plus-outline me-1"></i> Activo</button>
+                                            <button class="btn btn-soft-success" id="btn-new-investment" title="Invertir (Cuenta -> Activo)"><i class="mdi mdi-chart-line me-1"></i> Invertir</button>
+                                            <button class="btn btn-soft-warning" id="btn-new-withdrawal" title="Retirar (Activo -> Cuenta)"><i class="mdi mdi-cash-minus me-1"></i> Retirar</button>
+                                            <button class="btn btn-soft-info" id="btn-new-asset-transfer" title="Tranferencia entre Activos"><i class="mdi mdi-swap-horizontal me-1"></i> Transf. Activos</button>
+                                        </div>
+
+                                        <button class="btn btn-soft-secondary" id="btn-config-accounts" title="Configurar Cuentas"><i class="mdi mdi-cog-outline"></i></button>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <!-- end page title -->
-
-                        <!-- KPIs Cards Row (Triple Balance Layout) -->
-                        <div class="row">
-                        <!-- KPIs Cards Row (Liquidity vs Assets) -->
-                        <div class="row">
-                            <!-- LIQUIDEZ (Caja) -->
-                            <div class="col-md-4 mb-4">
-                                <div class="card bg-primary text-white shadow-lg h-100">
+                        <!-- end pag                        <!-- KPIs Cards Row (Bloques ARS vs USD) -->
+                        <div class="row mb-3">
+                            <!-- BLOQUE PESOS (ARS) -->
+                            <div class="col-xl-6">
+                                <div class="card bg-primary-subtle border-primary h-100">
                                     <div class="card-body">
                                         <div class="d-flex align-items-center mb-3">
-                                            <div class="avatar-xs me-3">
-                                                <span class="avatar-title rounded-circle bg-white bg-opacity-25 text-white font-size-18">
-                                                    <i class="mdi mdi-wallet-outline"></i>
+                                            <div class="avatar-xs me-2">
+                                                <span class="avatar-title rounded-circle bg-primary text-white font-size-16">
+                                                    <i class="mdi mdi-currency-usd"></i>
                                                 </span>
                                             </div>
-                                            <h5 class="font-size-14 text-white mb-0">Liquidez (Caja Operativa)</h5>
+                                            <h5 class="font-size-14 text-primary mb-0 text-uppercase fw-bold">Gestión Pesos (ARS)</h5>
                                         </div>
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <h4 class="text-white mb-0 mt-2">
-                                                    <span id="kpi-balance-ars">0</span> <small class="font-size-12">ARS</small>
-                                                </h4>
-                                                <h4 class="text-white mb-0 mt-1">
-                                                    <span id="kpi-balance-usd">0</span> <small class="font-size-12">USD</small>
-                                                </h4>
+                                        <div class="row text-center">
+                                            <div class="col-4 border-end">
+                                                <p class="text-muted mb-1 font-size-11">Caja Neta</p>
+                                                <h4 class="mb-0 text-primary font-size-18" id="kpi-net-ars">$ 0</h4>
+                                            </div>
+                                            <div class="col-4 border-end">
+                                                <p class="text-muted mb-1 font-size-11">Ingresos (Cob/Esp)</p>
+                                                <h5 class="mb-0 text-success font-size-14" id="kpi-income-ars">0 / 0</h5>
+                                            </div>
+                                            <div class="col-4">
+                                                <p class="text-muted mb-1 font-size-11">Gastos (Pag/Pre)</p>
+                                                <h5 class="mb-0 text-danger font-size-14" id="kpi-expense-ars">0 / 0</h5>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- INVERSIONES (Activos) -->
-                            <div class="col-md-4 mb-4">
-                                <div class="card bg-success text-white shadow-lg h-100">
+                            <!-- BLOQUE DÓLARES (USD) -->
+                            <div class="col-xl-6">
+                                <div class="card bg-success-subtle border-success h-100">
                                     <div class="card-body">
                                         <div class="d-flex align-items-center mb-3">
+                                            <div class="avatar-xs me-2">
+                                                <span class="avatar-title rounded-circle bg-success text-white font-size-16">
+                                                    <i class="mdi mdi-currency-usd-circle-outline"></i>
+                                                </span>
+                                            </div>
+                                            <h5 class="font-size-14 text-success mb-0 text-uppercase fw-bold">Gestión Dólares (USD)</h5>
+                                        </div>
+                                        <div class="row text-center">
+                                            <div class="col-4 border-end">
+                                                <p class="text-muted mb-1 font-size-11">Caja Neta</p>
+                                                <h4 class="mb-0 text-success font-size-18" id="kpi-net-usd">u$s 0</h4>
+                                            </div>
+                                            <div class="col-4 border-end">
+                                                <p class="text-muted mb-1 font-size-11">Ingresos (Cob/Esp)</p>
+                                                <h5 class="mb-0 text-success font-size-14" id="kpi-income-usd">0 / 0</h5>
+                                            </div>
+                                            <div class="col-4">
+                                                <p class="text-muted mb-1 font-size-11">Gastos (Pag/Pre)</p>
+                                                <h5 class="mb-0 text-danger font-size-14" id="kpi-expense-usd">0 / 0</h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Row Patrimonio -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="card bg-info-subtle border-info h-100">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex align-items-center">
                                             <div class="avatar-xs me-3">
-                                                <span class="avatar-title rounded-circle bg-white bg-opacity-25 text-white font-size-18">
+                                                <span class="avatar-title rounded-circle bg-info text-white font-size-16">
                                                     <i class="mdi mdi-briefcase-variant-outline"></i>
                                                 </span>
                                             </div>
-                                            <h5 class="font-size-14 text-white mb-0">Patrimonio Invertido</h5>
-                                        </div>
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <h4 class="text-white mb-0 mt-2">
-                                                    <span id="kpi-invested-ars">0</span> <small class="font-size-12">ARS</small>
-                                                </h4>
-                                                <h4 class="text-white mb-0 mt-1">
-                                                    <span id="kpi-invested-usd">0</span> <small class="font-size-12">USD</small>
-                                                </h4>
+                                            <div class="flex-grow-1">
+                                                <p class="text-muted mb-1 font-size-12">Patrimonio Invertido</p>
+                                                <h5 class="mb-0">
+                                                    <span id="kpi-invested-ars">0</span> <small class="text-muted">ARS</small>
+                                                    <span class="mx-2 text-muted">|</span>
+                                                    <span id="kpi-invested-usd">0</span> <small class="text-muted">USD</small>
+                                                </h5>
                                             </div>
                                         </div>
-                                        <p class="text-white-50 mb-0 font-size-11 mt-2">Valuación de Activos</p>
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- PATRIMONIO NETO -->
-                            <div class="col-md-4 mb-4">
-                                <div class="card bg-dark text-white shadow-lg h-100">
-                                    <div class="card-body">
-                                        <div class="d-flex align-items-center mb-3">
+                            <div class="col-md-6 mb-3">
+                                <div class="card bg-dark border-dark h-100">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex align-items-center">
                                             <div class="avatar-xs me-3">
-                                                <span class="avatar-title rounded-circle bg-white bg-opacity-25 text-white font-size-18">
+                                                <span class="avatar-title rounded-circle bg-white bg-opacity-25 text-white font-size-16">
                                                     <i class="mdi mdi-safe"></i>
                                                 </span>
                                             </div>
-                                            <h5 class="font-size-14 text-white mb-0">Patrimonio Neto Total</h5>
-                                        </div>
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <h4 class="text-warning mb-0 mt-2">
-                                                    <span id="kpi-net-worth-ars">0</span> <small class="font-size-12">ARS</small>
-                                                </h4>
-                                                <h4 class="text-warning mb-0 mt-1">
-                                                    <span id="kpi-net-worth-usd">0</span> <small class="font-size-12">USD</small>
-                                                </h4>
+                                            <div class="flex-grow-1">
+                                                <p class="text-white-50 mb-1 font-size-12">Patrimonio Neto Total</p>
+                                                <h5 class="mb-0 text-white">
+                                                    <span id="kpi-net-worth-ars">0</span> <small class="text-white-50">ARS</small>
+                                                    <span class="mx-2 text-white-50">|</span>
+                                                    <span id="kpi-net-worth-usd">0</span> <small class="text-white-50">USD</small>
+                                                </h5>
                                             </div>
                                         </div>
-                                        <p class="text-white-50 mb-0 font-size-11 mt-2">Liquidez + Inversiones</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Surplus Assistant Placeholder -->
-                        <div id="surplus-assistant-container" class="row mb-3" style="display:none;">
-                            <div class="col-12">
-                                <div class="alert alert-info alert-dismissible fade show border-0 shadow-sm mb-0 d-flex align-items-center" role="alert">
-                                    <div class="flex-shrink-0 me-3">
-                                        <div class="avatar-sm">
-                                            <span class="avatar-title rounded-circle bg-info bg-opacity-25 text-info font-size-20">
-                                                <i class="mdi mdi-piggy-bank"></i>
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <h5 class="font-size-15 mb-1 text-info">¡Asistente de Capitalización detectado!</h5>
-                                        <p class="mb-0" id="surplus-msg">Tienes excedentes pendientes de capitalizar en este periodo.</p>
-                                    </div>
-                                    <div class="flex-shrink-0 ms-2">
-                                        <button class="btn btn-info btn-sm px-3" onclick="openCapitalizeModal()">Capitalizar ahora</button>
-                                    </div>
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                </div>
-                            </div>
-                        </div>
+                        <div id="surplus-assistant-container" class="mb-3" style="display:none;"></div>
                         </div>
 
                         <!-- KPIs Cards Row -->
@@ -463,75 +473,83 @@
                             </div>
                         </div>
                         <!-- end row -->
-                        
-                        <!-- Filters -->
+                               <!-- Filters -->
                          <div class="row mb-4">
                             <div class="col-12">
                                 <div class="card">
                                     <div class="card-body p-3">
-                                        <div class="row align-items-end">
+                                        <div class="row g-2 align-items-end">
                                             <div class="col-md-1">
-                                                <label class="form-label text-truncate">Año</label>
-                                                <select class="form-select" id="filter-year">
-                                                    <option value="2026">2026</option>
-                                                    <option value="2025" selected>2025</option>
+                                                <label class="form-label text-truncate font-size-11">Año</label>
+                                                <select class="form-select form-select-sm" id="filter-year">
+                                                    <option value="2026" selected>2026</option>
+                                                    <option value="2025">2025</option>
                                                     <option value="2024">2024</option>
                                                 </select>
                                             </div>
                                             <div class="col-md-2">
-                                                <label class="form-label">Periodo</label>
-                                                <select class="form-select" id="filter-period">
+                                                <label class="form-label font-size-11">Periodo</label>
+                                                <select class="form-select form-select-sm" id="filter-period">
                                                     <option value="ALL">Todo el Año</option>
-                                                    <option value="YTD">Acumulado a Hoy (Resultados)</option>
-                                                    <option value="Q1">Q1 (Ene-Mar)</option>
-                                                    <option value="Q2">Q2 (Abr-Jun)</option>
-                                                    <option value="Q3">Q3 (Jul-Sep)</option>
-                                                    <option value="Q4">Q4 (Oct-Dic)</option>
-                                                    <option value="S1">Semestre 1</option>
-                                                    <option value="S2">Semestre 2</option>
+                                                    <option value="YTD">Acumulado</option>
+                                                    <option value="Q1">Q1</option>
+                                                    <option value="Q2">Q2</option>
+                                                    <option value="Q3">Q3</option>
+                                                    <option value="Q4">Q4</option>
                                                     <optgroup label="Meses">
-                                                        <option value="01">Enero</option>
-                                                        <option value="02" selected>Febrero</option>
-                                                        <option value="03">Marzo</option>
-                                                        <option value="04">Abril</option>
-                                                        <option value="05">Mayo</option>
-                                                        <option value="06">Junio</option>
-                                                        <option value="07">Julio</option>
-                                                        <option value="08">Agosto</option>
-                                                        <option value="09">Septiembre</option>
-                                                        <option value="10">Octubre</option>
-                                                        <option value="11">Noviembre</option>
-                                                        <option value="12">Diciembre</option>
+                                                        <option value="01">Ene</option>
+                                                        <option value="02">Feb</option>
+                                                        <option value="03" selected>Mar</option>
+                                                        <option value="04">Abr</option>
+                                                        <option value="05">May</option>
+                                                        <option value="06">Jun</option>
+                                                        <option value="07">Jul</option>
+                                                        <option value="08">Ago</option>
+                                                        <option value="09">Sep</option>
+                                                        <option value="10">Oct</option>
+                                                        <option value="11">Nov</option>
+                                                        <option value="12">Dic</option>
                                                     </optgroup>
                                                 </select>
                                             </div>
-                                            <div class="col-md-3">
-                                                <label class="form-label">Entidad / Usuario</label>
-                                                <input type="text" class="form-control" id="filter-search" placeholder="Buscar por nombre...">
+                                            <div class="col-md-2">
+                                                <label class="form-label font-size-11">Búsqueda</label>
+                                                <input type="text" class="form-control form-control-sm" id="filter-search" placeholder="...">
                                             </div>
                                             <div class="col-md-2">
-                                                 <label class="form-label">Categoría</label>
-                                                 <select class="form-select" id="filter-category">
+                                                 <label class="form-label font-size-11">Categoría</label>
+                                                 <select class="form-select form-select-sm" id="filter-category">
                                                      <option value="ALL">Todas</option>
-                                                     <!-- Dynamic -->
                                                  </select>
                                             </div>
-                                            <div class="col-md-2 d-flex align-items-center justify-content-center pb-1">
-                                                <div class="form-check form-switch mb-0">
-                                                    <input class="form-check-input p-2" type="checkbox" id="filter-only-recurring">
-                                                    <label class="form-check-label fw-bold font-size-12 text-primary ms-1" for="filter-only-recurring">
-                                                        SOLO RECURRENTES
-                                                    </label>
-                                                </div>
+                                            <div class="col-md-2">
+                                                 <label class="form-label font-size-11">Cuenta</label>
+                                                 <select class="form-select form-select-sm select-account" id="filter-account">
+                                                     <option value="ALL">Todas</option>
+                                                 </select>
                                             </div>
-                                             <div class="col-md-2">
-                                                <button class="btn btn-primary w-100" id="btn-apply-filters">Aplicar</button>
+                                            <div class="col-md-1">
+                                                 <label class="form-label font-size-11">Estado</label>
+                                                 <select class="form-select form-select-sm" id="filter-status">
+                                                     <option value="ALL" selected>Todo</option>
+                                                     <option value="PENDING">Pend.</option>
+                                                     <option value="PAID">Cob.</option>
+                                                 </select>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <div class="d-flex gap-2 align-items-center">
+                                                    <div class="form-check form-switch mb-0">
+                                                        <input class="form-check-input" type="checkbox" id="filter-only-recurring">
+                                                    </div>
+                                                    <button class="btn btn-primary btn-sm w-100" id="btn-apply-filters">Filtrar</button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
+               </div>
 
                         <!-- Tabs & Tables -->
                         <div class="row">
@@ -563,6 +581,12 @@
                                                 <a class="nav-link" data-bs-toggle="tab" href="#tab-agreements" role="tab">
                                                     <span class="d-block d-sm-none"><i class="mdi mdi-handshake"></i></span>
                                                     <span class="d-none d-sm-block">Acuerdos</span>
+                                                </a>
+                                            </li>
+                                            <li class="nav-item">
+                                                <a class="nav-link" data-bs-toggle="tab" href="#tab-accounts" role="tab">
+                                                    <span class="d-block d-sm-none"><i class="mdi mdi-wallet"></i></span>
+                                                    <span class="d-none d-sm-block">Cuentas / Saldos</span>
                                                 </a>
                                             </li>
                                         </ul>
@@ -620,6 +644,25 @@
                                                 </div>
                                             </div>
 
+                                            <!-- ACCOUNTS -->
+                                            <div class="tab-pane" id="tab-accounts" role="tabpanel">
+                                                <div class="table-responsive">
+                                                    <table id="table-accounts" class="table table-bordered dt-responsive nowrap w-100 align-middle">
+                                                        <thead class="table-light">
+                                                            <tr>
+                                                                <th>Nombre de Cuenta</th>
+                                                                <th>Moneda</th>
+                                                                <th>Saldo Actual</th>
+                                                                <th>Acciones</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <!-- Dynamic -->
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+
 
                                             <!-- ASSETS / PORTFOLIO -->
                                             <div class="tab-pane" id="tab-assets" role="tabpanel">
@@ -643,6 +686,22 @@
                                                         </h5>
                                                         <p class="text-muted mb-4 font-size-13">Gestión de facturas para clientes recurrentes. (Solo clientes con "Lleva Factura" activado)</p>
                                                         
+                                                        <!-- Summary Projection vs Actual -->
+                                                        <div class="row mb-3">
+                                                            <div class="col-md-3">
+                                                                <div class="p-2 border rounded bg-white">
+                                                                    <small class="text-muted d-block">Contratado (Mes)</small>
+                                                                    <h5 class="mb-0 text-primary" id="summary-agr-contracted">$ 0</h5>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-md-3">
+                                                                <div class="p-2 border rounded bg-white">
+                                                                    <small class="text-muted d-block">Facturado (Mes)</small>
+                                                                    <h5 class="mb-0 text-success" id="summary-agr-invoiced">$ 0</h5>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
                                                         <div class="table-responsive bg-white rounded p-1">
                                                             <table class="table table-nowrap table-hover mb-0 align-middle">
                                                                 <thead class="table-light">
@@ -664,7 +723,13 @@
                                                 </div>
 
                                                 <div class="d-flex justify-content-between align-items-center mb-3">
-                                                    <h5 class="font-size-15 mb-0" id="agreements-table-title">Listado de Acuerdos</h5>
+                                                    <div class="d-flex align-items-center">
+                                                        <h5 class="font-size-15 mb-0 me-3" id="agreements-table-title">Listado de Acuerdos</h5>
+                                                        <div class="form-check form-switch font-size-13">
+                                                            <input class="form-check-input" type="checkbox" id="switch-show-archived-agreements">
+                                                            <label class="form-check-label text-muted" for="switch-show-archived-agreements">Ver Finalizados</label>
+                                                        </div>
+                                                    </div>
                                                     <button class="btn btn-primary btn-sm" id="btn-new-agreement">
                                                         <i class="mdi mdi-plus me-1"></i> Nuevo Acuerdo
                                                     </button>
@@ -763,34 +828,36 @@
                                     </div>
 
                                     <div class="text-center mb-4">
-                                        <span class="opacity-75 font-size-12 d-block">Saldo Neto del Periodo</span>
-                                        <h1 class="text-white mb-0 display-6 fw-bold" id="mob-total-balance">$ 0</h1>
+                                        <div class="row g-2">
+                                            <div class="col-6 border-end border-white border-opacity-25">
+                                                <small class="opacity-75 font-size-11 d-block">Saldo ARS</small>
+                                                <h3 class="text-white mb-0 fw-bold" id="mob-net-ars">$ 0</h3>
+                                            </div>
+                                            <div class="col-6">
+                                                <small class="opacity-75 font-size-11 d-block">Saldo USD</small>
+                                                <h3 class="text-white mb-0 fw-bold" id="mob-net-usd">u$s 0</h3>
+                                            </div>
+                                        </div>
                                     </div>
                                     
                                     <div class="row g-2">
                                         <div class="col-6">
-                                            <div class="bg-white bg-opacity-10 rounded-3 p-2 d-flex align-items-center">
-                                                <div class="avatar-xs me-2">
-                                                    <span class="avatar-title rounded-circle bg-success bg-opacity-25 text-success">
-                                                        <i class="mdi mdi-arrow-up font-size-14"></i>
-                                                    </span>
-                                                </div>
-                                                <div>
-                                                    <small class="d-block opacity-75 font-size-11">Ingresos</small>
-                                                    <span class="fw-bold font-size-13" id="mob-total-income">$ 0</span>
+                                            <div class="bg-white bg-opacity-10 rounded-3 p-2 text-center">
+                                                <small class="d-block opacity-75 font-size-10 uppercase fw-bold mb-1">Ingresos (Prop/Cob)</small>
+                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                    <span class="fw-bold font-size-12 text-success" id="mob-income-ars">0</span>
+                                                    <span class="text-white opacity-25">|</span>
+                                                    <span class="fw-bold font-size-12 text-warning" id="mob-income-usd">0</span>
                                                 </div>
                                             </div>
                                         </div>
                                         <div class="col-6">
-                                            <div class="bg-white bg-opacity-10 rounded-3 p-2 d-flex align-items-center">
-                                                <div class="avatar-xs me-2">
-                                                    <span class="avatar-title rounded-circle bg-danger bg-opacity-25 text-danger">
-                                                        <i class="mdi mdi-arrow-down font-size-14"></i>
-                                                    </span>
-                                                </div>
-                                                <div>
-                                                    <small class="d-block opacity-75 font-size-11">Gastos</small>
-                                                    <span class="fw-bold font-size-13" id="mob-total-expense">$ 0</span>
+                                            <div class="bg-white bg-opacity-10 rounded-3 p-2 text-center">
+                                                <small class="d-block opacity-75 font-size-10 uppercase fw-bold mb-1">Gastos (Pres/Pag)</small>
+                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                    <span class="fw-bold font-size-12 text-danger" id="mob-expense-ars">0</span>
+                                                    <span class="text-white opacity-25">|</span>
+                                                    <span class="fw-bold font-size-12 text-warning" id="mob-expense-usd">0</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -803,18 +870,41 @@
                                         <div class="col-12">
                                              <div class="card shadow-sm border-0 rounded-4">
                                                  <div class="card-body p-3">
-                                                     <div class="d-flex justify-content-between">
+                                                     <div class="d-flex justify-content-between p-1">
                                                          <div class="text-center flex-fill border-end">
-                                                             <small class="text-muted d-block">Liquidez (Cuentas)</small>
-                                                             <span class="fw-bold text-primary" id="mob-liquidity-ars">$ 0</span>
+                                                             <small class="text-muted d-block font-size-10 uppercase">Liquidez ARS</small>
+                                                             <span class="fw-bold text-primary font-size-14" id="mob-liquidity-ars">$ 0</span>
                                                          </div>
                                                          <div class="text-center flex-fill">
-                                                            <small class="text-muted d-block">Total USD (Liq+Inv)</small>
-                                                            <span class="fw-bold text-warning" id="mob-total-usd">U$D 0</span>
+                                                            <small class="text-muted d-block font-size-10 uppercase">Liquidez USD</small>
+                                                            <span class="fw-bold text-warning font-size-14" id="mob-liquidity-usd">u$s 0</span>
                                                          </div>
                                                      </div>
                                                  </div>
                                              </div>
+                                            
+                                            <!-- ACCOUNTS (Cuentas) -->
+                                            <div class="tab-pane" id="tab-accounts" role="tabpanel">
+                                                <div class="row">
+                                                    <div class="col-12">
+                                                        <div class="table-responsive">
+                                                            <table id="table-accounts" class="table table-bordered dt-responsive nowrap w-100 align-middle">
+                                                                <thead class="table-light">
+                                                                    <tr>
+                                                                        <th>Nombre de Cuenta</th>
+                                                                        <th>Moneda</th>
+                                                                        <th>Saldo Actual</th>
+                                                                        <th>Acciones</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    <!-- Dynamic -->
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -1357,7 +1447,10 @@
                                         <label class="form-label">Cliente / Oficina</label>
                                         <div class="input-group">
                                             <span class="input-group-text bg-light"><i class="mdi mdi-office-building"></i></span>
-                                            <input type="text" class="form-control" id="agr-name" required placeholder="Ej. Oficina Central">
+                                            <select class="form-select" id="agr-client-id" required>
+                                                <option value="">Seleccione un cliente...</option>
+                                            </select>
+                                            <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#newClientModal"><i class="bx bx-plus"></i></button>
                                         </div>
                                     </div>
                                     <div class="row">
@@ -1453,6 +1546,43 @@
                                         <button type="submit" class="btn btn-info px-4" id="btn-save-agreement"><i class="mdi mdi-check-all me-1"></i> Guardar Acuerdo</button>
                                     </div>
                                 </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Nuevo Cliente (Copiado de apps-clients para alta rápida) -->
+                <div class="modal fade" id="newClientModal" tabindex="-1" aria-labelledby="newClientModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="newClientModalLabel">Alta Rápida de Cliente</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="form-client-quick">
+                                    <div class="mb-3">
+                                        <label for="client-name-quick" class="form-label">Nombre Completo / Razón Social</label>
+                                        <input type="text" class="form-control" id="client-name-quick" required>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="client-phone-quick" class="form-label">WhatsApp</label>
+                                            <input type="text" class="form-control" id="client-phone-quick" placeholder="+54 9...">
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Tipo</label>
+                                            <select class="form-select" id="client-type-quick">
+                                                <option value="CLIENT">Persona</option>
+                                                <option value="OFFICE">Empresa/Oficina</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                <button type="button" class="btn btn-primary" id="btn-save-client-quick">Guardar y Seleccionar</button>
                             </div>
                         </div>
                     </div>
@@ -2047,16 +2177,16 @@
                         <i class="mdi mdi-plus"></i>
                     </button>
                     <div class="fab-options" id="mob-fab-options">
-                        <button type="button" class="btn btn-warning btn-floating-action shadow mb-2" onclick="i('SAVING')" title="Nuevo Ahorro">
+                        <button type="button" class="btn btn-warning btn-floating-action shadow" onclick="i('SAVING')" title="Nuevo Ahorro">
                             <i class="mdi mdi-piggy-bank"></i>
                         </button>
-                        <button type="button" class="btn btn-info btn-floating-action shadow mb-2" data-bs-toggle="modal" data-bs-target="#modal-transfer-unified" onclick="toggleFabMenu()" title="Transferir">
+                        <button type="button" class="btn btn-info btn-floating-action shadow" data-bs-toggle="modal" data-bs-target="#modal-transfer-unified" onclick="toggleFabMenu()" title="Transferir">
                             <i class="mdi mdi-swap-horizontal"></i>
                         </button>
-                        <button type="button" class="btn btn-danger btn-floating-action shadow mb-2" onclick="i('EXPENSE')" title="Nuevo Gasto">
+                        <button type="button" class="btn btn-danger btn-floating-action shadow" onclick="i('EXPENSE')" title="Nuevo Gasto">
                             <i class="mdi mdi-arrow-down"></i>
                         </button>
-                        <button type="button" class="btn btn-success btn-floating-action shadow mb-2" onclick="i('INCOME')" title="Nuevo Ingreso">
+                        <button type="button" class="btn btn-success btn-floating-action shadow" onclick="i('INCOME')" title="Nuevo Ingreso">
                             <i class="mdi mdi-arrow-up"></i>
                         </button>
                     </div>
@@ -2109,10 +2239,10 @@
         <script src="assets/js/imala-auth.js"></script>
         
         <!-- Main JS Bundle -->
-        <script src="assets/js/app.js?v=12.2"></script>
+        <script src="assets/js/app.js?v=12.8"></script>
 
         <!-- Cashflow Logic -->
-        <script src="assets/js/apps-cashflow.js?v=12.2"></script>
+        <script src="assets/js/apps-cashflow.js?v=12.8"></script>
 
     </body>
 </html>

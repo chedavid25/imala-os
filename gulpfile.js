@@ -229,8 +229,7 @@ gulp.task('html', function () {
         .pipe(gulp.dest(paths.dist.base.dir));
 });
 
-// gulp.task('build', gulp.series(gulp.parallel('clean:tmp', 'clean:packageLock', 'clean:dist', 'copy:all', 'copy:libs'), 'scss', 'html'));
-gulp.task('build', gulp.series(gulp.parallel('clean:packageLock', 'clean:dist', 'copy:all', 'copy:libs', 'css', 'js', 'jsPages'), 'scss', 'html'));
+gulp.task('build', gulp.series('clean:packageLock', 'clean:dist', gulp.parallel('copy:all', 'copy:libs', 'css', 'js', 'jsPages'), 'scss', 'html'));
 
 // gulp.task('default', gulp.series(gulp.parallel('fileinclude', 'scss'), gulp.parallel('browsersync', 'watch')));
-gulp.task('default', gulp.series(gulp.parallel('clean:packageLock', 'clean:dist', 'copy:all', 'copy:libs', 'fileinclude', 'scss', 'css', 'js', 'jsPages', 'html'), gulp.parallel('browsersync', 'watch')));
+gulp.task('default', gulp.series('clean:packageLock', 'clean:dist', gulp.parallel('copy:all', 'copy:libs', 'fileinclude', 'scss', 'css', 'js', 'jsPages', 'html'), gulp.parallel('browsersync', 'watch')));

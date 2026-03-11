@@ -1,363 +1,1127 @@
-document.addEventListener("DOMContentLoaded",function(){let E=window.Imala.db,g=window.Imala.auth,N=(g.onAuthStateChanged(e=>{e?((async()=>{let t=["Ventas","Honorarios","Otros"],s=["Alquiler","Expensas","Servicios","Sueldos","Impuestos","Otros"],n=["Fondo de Reserva","Inversión","Viajes","Bienes","Otros"];d={INCOME:[],EXPENSE:[],SAVING:[]};try{let a=E.collection("cashflow_categories");var e=await a.orderBy("createdAt","asc").get();let r={INCOME:new Set,EXPENSE:new Set,SAVING:new Set},o=E.batch(),i=!1;e.forEach(e=>{var t=e.data();let n=t.type;n||(n=s.includes(t.name)?"EXPENSE":"INCOME",o.update(e.ref,{type:n}),i=!0),r[n]||(r[n]=new Set),r[n].add(t.name),!1===t.active||d[n].includes(t.name)||d[n].push(t.name)});var c=(e,n)=>{e.forEach(e=>{var t;r[n].has(e)||(t=a.doc(),o.set(t,{name:e,type:n,active:!0,createdAt:new Date,createdBy:"SYSTEM"}),d[n].push(e),r[n].add(e),i=!0)})};c(t,"INCOME"),c(s,"EXPENSE"),c(n,"SAVING"),i&&(await o.commit(),console.log("Categorías sincronizadas y tipos actualizados permanentemente.")),d.INCOME.sort(),d.EXPENSE.sort(),d.SAVING.sort()}catch(e){console.error("Error loading categories:",e),0===d.INCOME.length&&(d.INCOME=[...t]),0===d.EXPENSE.length&&(d.EXPENSE=[...s]),0===d.SAVING.length&&(d.SAVING=[...n])}m("INCOME"),m("EXPENSE"),m("SAVING"),W()})(),(async()=>{let n=document.getElementById("list-entities-income"),r=document.getElementById("list-entities-expense");n&&(n.innerHTML=""),r&&(r.innerHTML=""),v={INCOME:[],EXPENSE:[]};try{(await E.collection("cashflow_entities").orderBy("name").get()).forEach(e=>{let a=e.data();var e=a.type||"BOTH",t=(e,t)=>{var n;e&&((n=document.createElement("option")).value=a.name,e.appendChild(n),v[t].includes(a.name)||v[t].push(a.name))};"CLIENT"!==e&&"BOTH"!==e||t(n,"INCOME"),"PROVIDER"!==e&&"BOTH"!==e||t(r,"EXPENSE")})}catch(e){console.error("Error loading entities",e)}})(),ee(),de(),E.collection("cashflow_accounts").where("uid","==",p()).onSnapshot(e=>{M=[],e.forEach(e=>M.push({id:e.id,...e.data()}));{let e=document.querySelectorAll(".select-account"),t=M.filter(e=>!1!==e.isActive);e.forEach(n=>{var e=n.value;n.innerHTML='<option value="">Seleccione cuenta...</option>',t.forEach(e=>{var t=document.createElement("option");t.value=e.id,t.textContent=e.name+` (${e.currency})`,n.appendChild(t)}),n.value=e})}{let n=document.getElementById("table-accounts-list");n.innerHTML="",M.forEach(e=>{var t;!1!==e.isActive&&((t=document.createElement("tr")).innerHTML=`
-                <td>${e.name}</td>
-                <td><span class="badge bg-soft-info text-info">${e.currency}</span></td>
-                <td>${$(e.initialBalance,e.currency)}</td>
-                <td class="text-center">
-                    <button class="btn btn-sm btn-soft-primary btn-edit-account" data-id="${e.id}"><i class="mdi mdi-pencil"></i></button>
-                    <button class="btn btn-sm btn-soft-danger btn-delete-account" data-id="${e.id}"><i class="mdi mdi-trash-can"></i></button>
-                </td>
-            `,n.appendChild(t))}),n.querySelectorAll(".btn-edit-account").forEach(t=>{t.addEventListener("click",()=>{var e=M.find(e=>e.id===t.dataset.id);e&&(document.getElementById("acc-id").value=e.id,document.getElementById("acc-name").value=e.name,document.getElementById("acc-currency").value=e.currency,document.getElementById("acc-initial-balance").value=e.initialBalance||0,document.getElementById("title-account-form").textContent="Editar Cuenta",setTimeout(()=>{var e=document.getElementById("acc-initial-balance");e&&(e.focus(),e.select())},100))})}),n.querySelectorAll(".btn-delete-account").forEach(t=>{t.addEventListener("click",async()=>{var e=t.dataset.id;(await Swal.fire({title:"¿Eliminar cuenta?",text:"Se mantendrá el historial de movimientos pero no podrás usarla para nuevos registros.",icon:"warning",showCancelButton:!0,confirmButtonText:"Sí, desactivar",cancelButtonText:"Cancelar"})).isConfirmed&&(await E.collection("cashflow_accounts").doc(e).update({isActive:!1,updatedAt:new Date}),Swal.fire("Desactivada","La cuenta ha sido desactivada.","success"))})})}
-            
-            // Trigger Mobile Render Explicitly
-            if(typeof renderMobileAccounts === 'function') {
-                renderMobileAccounts();
+document.addEventListener("DOMContentLoaded", function() {
+    // --- Initial Config & Global Variables ---
+    const dbFirestore = window.Imala.db;
+    const firebaseAuth = window.Imala.auth;
+    let allClients = [];
+    let allTransactions = []; 
+    let allAccounts = []; 
+    let allAgreements = []; 
+    let allAssets = []; 
+    let categoriesMap = { INCOME: [], EXPENSE: [], SAVING: [] }; 
+    let entitiesMap = { INCOME: [], EXPENSE: [] }; 
+    let isRecurrenceChecking = false; 
+    let isAgreementChecking = false; 
+    let initialRecurrenceCheckDone = false; 
+    let sortSettings = { 
+        INCOME: { column: "date", direction: "desc" }, 
+        EXPENSE: { column: "date", direction: "desc" }, 
+        SAVING: { column: "date", direction: "desc" } 
+    };
+    let mobileListLimit = 10; 
+    
+    const formatCurrency = (amount, currency) => new Intl.NumberFormat("es-AR", {
+        style: "currency",
+        currency: currency || "ARS"
+    }).format(amount || 0);
+
+    const getEffectiveUID = () => window.getEffectiveUID ? window.getEffectiveUID() : (sessionStorage.getItem("effectiveUID") || firebaseAuth.currentUser.uid);
+    const parseFirestoreDate = e => e ? (e.seconds ? new Date(e.seconds * 1000) : new Date(e)) : null;
+
+    // --- Core UI & Modals ---
+    const modalIncome = new bootstrap.Modal(document.getElementById("modal-income"));
+    const modalExpense = new bootstrap.Modal(document.getElementById("modal-expense"));
+    const modalSaving = new bootstrap.Modal(document.getElementById("modal-saving"));
+    const modalTransferUnified = new bootstrap.Modal(document.getElementById("modal-transfer-unified"));
+    const modalAsset = new bootstrap.Modal(document.getElementById("modal-asset"));
+    const modalManageAssetTypes = new bootstrap.Modal(document.getElementById("modal-manage-asset-types"));
+    const modalAgreement = new bootstrap.Modal(document.getElementById("agreement-modal"));
+
+    // --- Initialization & Data Fetching ---
+    firebaseAuth.onAuthStateChanged(async (user) => {
+        if (!user) {
+            window.location.href = "auth-login.html";
+            return;
+        }
+
+        initializeCategories();
+        initializeEntities();
+        initializeClients();
+        initializeAccounts();
+        initializeAssets();
+        initializeAssetTypes();
+        initTransactionsListener(); // Start recurrences check
+        initAgreementsListener(); // Start agreements check
+    });
+
+    async function initializeCategories() {
+        const categoriesRef = dbFirestore.collection("cashflow_categories");
+        try {
+            const querySnapshot = await categoriesRef.orderBy("createdAt", "asc").get();
+            let typesMap = { INCOME: new Set(), EXPENSE: new Set(), SAVING: new Set() };
+            let batch = dbFirestore.batch();
+            let needsUpdate = false;
+
+            querySnapshot.forEach(doc => {
+                const data = doc.data();
+                let type = data.type || (["Alquiler", "Expensas", "Servicios", "Sueldos", "Impuestos"].includes(data.name) ? "EXPENSE" : "INCOME");
+                if (!data.type) { batch.update(doc.ref, { type: type }); needsUpdate = true; }
+                if (data.active !== false) {
+                    if (!categoriesMap[type].includes(data.name)) categoriesMap[type].push(data.name);
+                }
+            });
+
+            if (needsUpdate) await batch.commit();
+            ["INCOME", "EXPENSE", "SAVING"].forEach(t => { categoriesMap[t].sort(); updateCategorySelects(t); });
+            updateGlobalFilterCategory(); // Update filters
+        } catch (e) { console.error("Error loading categories", e); }
+    }
+
+    async function initializeEntities() {
+        entitiesMap = { INCOME: [], EXPENSE: [] };
+        try {
+            const snapshot = await dbFirestore.collection("cashflow_entities").orderBy("name").get();
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const type = data.type || "BOTH";
+                if (type === "CLIENT" || type === "BOTH") if (!entitiesMap.INCOME.includes(data.name)) entitiesMap.INCOME.push(data.name);
+                if (type === "PROVIDER" || type === "BOTH") if (!entitiesMap.EXPENSE.includes(data.name)) entitiesMap.EXPENSE.push(data.name);
+            });
+            updateEntityLists();
+        } catch (e) { console.error("Error loading entities", e); }
+    }
+
+    function initializeClients() {
+        const clientSelect = document.getElementById("agr-client-id");
+        if (!clientSelect) return;
+        dbFirestore.collection("clients").onSnapshot(snapshot => {
+            allClients = [];
+            clientSelect.innerHTML = '<option value="">Seleccione Cliente...</option>';
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                allClients.push({ id: doc.id, ...data });
+                clientSelect.innerHTML += `<option value="${doc.id}">${data.name}</option>`;
+            });
+            renderAgreementsTable(); // Update agreements table if needed
+        });
+    }
+
+    function initializeAccounts() {
+        dbFirestore.collection("cashflow_accounts").onSnapshot(snapshot => {
+            allAccounts = [];
+            snapshot.forEach(doc => allAccounts.push({ id: doc.id, ...doc.data() }));
+            updateAccountSelects();
+            renderAccountsTable();
+            if (typeof renderMobileAccounts === 'function') renderMobileAccounts();
+            renderAccountSummary(); // Account summary
+        });
+    }
+
+    function initializeAssets() {
+        dbFirestore.collection("cashflow_assets").onSnapshot(snapshot => {
+            allAssets = [];
+            snapshot.forEach(doc => allAssets.push({ id: doc.id, ...doc.data() }));
+            renderAssetsGrid();
+            applyFilters(); // Refresh totals
+        });
+    }
+
+    function initializeAssetTypes() {
+        dbFirestore.collection("cashflow_asset_types").onSnapshot(snapshot => {
+            let types = [];
+            snapshot.forEach(doc => types.push({ id: doc.id, ...doc.data() }));
+            updateAssetTypeSelect(types);
+            renderAssetTypesTable(types);
+        });
+    }
+
+    // --- Helper Functions ---
+    function updateCategorySelects(type) {
+        let selectId = type === "INCOME" ? "in-category" : (type === "EXPENSE" ? "ex-category" : "sav-category");
+        let select = document.getElementById(selectId);
+        if (select) {
+            select.innerHTML = '<option value="">Seleccione...</option>';
+            categoriesMap[type].forEach(cat => { select.innerHTML += `<option value="${cat}">${cat}</option>`; });
+        }
+        if (type === "INCOME") {
+            let agrSelect = document.getElementById("agr-category");
+            if (agrSelect) {
+                agrSelect.innerHTML = '<option value="">Seleccione...</option>';
+                categoriesMap.INCOME.forEach(cat => { agrSelect.innerHTML += `<option value="${cat}">${cat}</option>`; });
             }
-
-            me()}),console.log("Initializing Assets Module..."),E.collection("cashflow_assets").where("uid","==",p()).onSnapshot(e=>{C=[],e.forEach(e=>{C.push({id:e.id,...e.data()})}),console.log("Assets loaded:",C.length);{let s=document.getElementById("portfolio-grid");s&&(s.innerHTML="",0===C.length?s.innerHTML=`
-                <div class="col-12 text-center text-muted py-5">
-                    <i class="mdi mdi-briefcase-outline display-4"></i>
-                    <p class="mt-3">Aún no tienes activos registrados.</p>
-                    <button class="btn btn-sm btn-primary" onclick="window.document.getElementById('btn-new-asset').click()">Crear Primer Activo</button>
-                </div>
-            `:(C.forEach(e=>{var t=Number(e.currentValuation)||0,n=Number(e.investedAmount)||0,a=Number(e.targetAmount)||0;let r=0<a?n/a*100:100;100<r&&(r=100);var o=(e=>{switch(e){case"REAL_ESTATE":return"mdi mdi-office-building";case"CRYPTO":return"mdi mdi-bitcoin";case"STOCK":return"mdi mdi-trending-up";case"RESERVE_FUND":return"mdi mdi-safe";default:return"mdi mdi-briefcase"}})(e.type),i=document.createElement("div");i.className="col-md-6 col-xl-4",i.innerHTML=`
-                <div class="card shadow-sm h-100 border-start border-4 border-primary">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-3">
-                            <div class="d-flex align-items-center">
-                                <div class="avatar-sm me-3">
-                                    <span class="avatar-title rounded-circle bg-light text-primary font-size-20">
-                                        <i class="${o}"></i>
-                                    </span>
-                                </div>
-                                <div>
-                                    <h5 class="font-size-14 mb-1 text-truncate" style="max-width: 150px;" title="${e.name}">${e.name}</h5>
-                                    <span class="text-muted font-size-12">${e.type}</span>
-                                </div>
-                            </div>
-                            <div class="dropdown">
-                                <button class="btn btn-link font-size-16 shadow-none text-muted p-0" type="button" data-bs-toggle="dropdown">
-                                    <i class="mdi mdi-dots-horizontal"></i>
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    <li><a class="dropdown-item btn-edit-asset" href="javascript:void(0);" data-id="${e.id}"><i class="mdi mdi-pencil me-2"></i>Editar</a></li>
-                                    <li><a class="dropdown-item btn-delete-asset text-danger" href="javascript:void(0);" data-id="${e.id}"><i class="mdi mdi-trash-can me-2"></i>Eliminar</a></li>
-                                </ul>
-                            </div>
-                        </div>
-
-                        <div class="row text-center mt-3">
-                            <div class="col-6">
-                                <h5 class="font-size-14 mb-0">${$(t,e.currency)}</h5>
-                                <small class="text-muted">Valuación</small>
-                            </div>
-                            <div class="col-6 border-start">
-                                <h5 class="text-success font-size-14 mb-0">${$(n,e.currency)}</h5>
-                                <small class="text-muted">Invertido</small>
-                            </div>
-                        </div>
-
-                        <div class="mt-4">
-                            <div class="d-flex justify-content-between font-size-11 mb-1">
-                                <span>Progreso Inversión</span>
-                                <span>${r.toFixed(0)}%</span>
-                            </div>
-                            <div class="progress h-5px">
-                                <div class="progress-bar bg-primary" role="progressbar" style="width: ${r}%"></div>
-                            </div>
-                            <small class="text-muted d-block mt-1 text-end">Meta: ${0<a?$(a,e.currency):"N/A"}</small>
-                        </div>
-                    </div>
-                </div>
-            `,s.appendChild(i)}),s.querySelectorAll(".btn-edit-asset").forEach(e=>{e.addEventListener("click",()=>openAssetModal(e.dataset.id))}),s.querySelectorAll(".btn-delete-asset").forEach(e=>{e.addEventListener("click",()=>deleteAsset(e.dataset.id))})))}c()},e=>{console.error("Error loading assets (possible permissions issue):",e);e=document.getElementById("portfolio-grid");e&&(e.innerHTML='<div class="alert alert-danger">Error de permisos al cargar activos. Por favor contacte al administrador para actualizar las reglas de Firestore.</div>')}),E.collection("cashflow_asset_types").where("uid","==",p()).onSnapshot(e=>{if(n=[],e.forEach(e=>{n.push({id:e.id,...e.data()})}),0!==n.length){{let t=document.getElementById("asset-type");t&&(e=t.value,t.innerHTML='<option value="">Seleccione tipo...</option>',n.filter(e=>!1!==e.active).sort((e,t)=>e.name.localeCompare(t.name)).forEach(e=>{t.innerHTML+=`<option value="${e.name}">${e.name}</option>`}),e)&&(t.value=e)}{let t=document.getElementById("table-asset-types-list");t&&(t.innerHTML="",n.filter(e=>!1!==e.active).sort((e,t)=>e.name.localeCompare(t.name)).forEach(e=>{t.innerHTML+=`
-                    <tr>
-                        <td>${e.name}</td>
-                        <td class="text-end">
-                            <button class="btn btn-sm btn-soft-primary me-1" onclick="editAssetType('${e.id}', '${e.name}')"><i class="mdi mdi-pencil"></i></button>
-                            <button class="btn btn-sm btn-soft-danger" onclick="deleteAssetType('${e.id}', '${e.name}')"><i class="mdi mdi-trash-can-outline"></i></button>
-                        </td>
-                    </tr>
-                `}))}}else(async()=>{let n=E.batch();["Real Estate / Pozo","Fondo de Reserva / Colchón","Criptomonedas","Acciones / Bonos","Relojes / Lujo","Otro"].forEach(e=>{var t=E.collection("cashflow_asset_types").doc();n.set(t,{name:e,uid:p(),active:!0,createdAt:new Date})}),await n.commit(),console.log("Default asset types seeded.")})()},e=>{console.error("Error loading asset types (permissions):",e);e=document.getElementById("asset-type");e&&(e.innerHTML='<option value="">Error de permisos</option>'),document.getElementById("modal-asset").classList.contains("show")&&Swal.fire("Error de Permisos","No se pudieron cargar los tipos de activo. Asegúrate de haber desplegado las reglas de Firestore.","error")})):window.location.href="auth-login.html"}),new bootstrap.Modal(document.getElementById("modal-income"))),F=new bootstrap.Modal(document.getElementById("modal-expense")),P=new bootstrap.Modal(document.getElementById("modal-saving")),O=new bootstrap.Modal(document.getElementById("modal-transfer-unified")),V=new bootstrap.Modal(document.getElementById("modal-asset")),_=new bootstrap.Modal(document.getElementById("modal-investment")),z=new bootstrap.Modal(document.getElementById("modal-withdrawal")),G=new bootstrap.Modal(document.getElementById("modal-asset-transfer")),U=new bootstrap.Modal(document.getElementById("modal-manage-asset-types")),L=[],M=[],d={INCOME:[],EXPENSE:[],SAVING:[]},v={INCOME:[],EXPENSE:[]},D=[],C=[];let n=[],q=!1,X=!1,Y=!1,l={INCOME:{column:"date",direction:"desc"},EXPENSE:{column:"date",direction:"desc"},SAVING:{column:"date",direction:"desc"}},u=10,J=[],$=(e,t)=>new Intl.NumberFormat("es-AR",{style:"currency",currency:t||"ARS"}).format(e||0),p=()=>window.getEffectiveUID?window.getEffectiveUID():sessionStorage.getItem("effectiveUID")||g.currentUser.uid,k=e=>e?e.seconds?new Date(1e3*e.seconds):new Date(e):null;function m(e){let t="";if("INCOME"===e?t="in-category":"EXPENSE"===e?t="ex-category":"SAVING"===e&&(t="sav-category"),"INCOME"===e){let t=document.getElementById("agr-category");t&&(t.innerHTML='<option value="">Seleccione...</option>',d[e].forEach(e=>{t.innerHTML+=`<option value="${e}">${e}</option>`}))}let n=document.getElementById(t);n&&(n.innerHTML='<option value="">Seleccione...</option>',d[e].forEach(e=>{n.innerHTML+=`<option value="${e}">${e}</option>`}))}function W(){let t=document.getElementById("filter-category");var e;t&&(e=t.value,t.innerHTML='<option value="ALL">Todas</option>',[...new Set([...d.INCOME,...d.EXPENSE])].sort().forEach(e=>{t.innerHTML+=`<option value="${e}">${e}</option>`}),e)&&(t.value=e)}[{check:"in-recurring",container:"container-in-installments"},{check:"ex-recurring",container:"container-ex-installments"},{check:"sav-recurring",container:"container-sav-installments"}].forEach(e=>{let t=document.getElementById(e.check),n=document.getElementById(e.container);t&&n&&t.addEventListener("change",()=>{var e;n.style.display=t.checked?"block":"none",t.checked||(e=n.querySelector("input"))&&(e.value="")})}),document.addEventListener("click",async t=>{t=t.target.closest("button");if(t){if(t.classList.contains("btn-add-category")){var n=t.dataset.type;let e="";"INCOME"===n?e="container-new-category-in":"EXPENSE"===n?e="container-new-category-ex":"SAVING"===n&&(e="container-new-category-sav");var n=document.getElementById(e);n&&(a=n.querySelector(".input-new-cat"),n.style.display="block",a)&&a.focus()}if(t.classList.contains("btn-cancel-new-cat")&&(n=t.closest(".container-new-cat"))&&(n.style.display="none"),t.classList.contains("btn-save-new-cat")){var a=t.dataset.type,n=t.closest(".container-new-cat"),e=n.querySelector(".input-new-cat"),r=e.value.trim();if(!r)return;var o=t,i=o.innerHTML;try{o.innerHTML='<i class="bx bx-loader bx-spin"></i>',o.disabled=!0,await E.collection("cashflow_categories").add({name:r,type:a,active:!0,createdAt:new Date,createdBy:g.currentUser.uid}),d[a].push(r),d[a].sort(),m(a),W();var s="INCOME"===a?"in-category":"EXPENSE"===a?"ex-category":"sav-category",c=document.getElementById(s);c&&(c.value=r),n.style.display="none",e.value=""}catch(e){console.error(e),Swal.fire("Error","No se pudo guardar la categoría.","error")}finally{o.innerHTML=i,o.disabled=!1}}t.classList.contains("btn-manage-categories")&&(await K(Q=t.dataset.type),j.show())}});let j=new bootstrap.Modal(document.getElementById("modal-manage-categories")),Q="INCOME";async function K(n){let a=document.querySelector("#table-manage-categories tbody");a.innerHTML="<tr><td>Cargando...</td></tr>";var e=document.querySelector("#modal-manage-categories .modal-title");let t="Ingresos";"EXPENSE"===n?t="Gastos":"SAVING"===n&&(t="Ahorros"),e&&(e.textContent=`Gestionar Categorías (${t})`);try{var r=await E.collection("cashflow_categories").where("type","==",n).get();a.innerHTML="";let t=[];r.forEach(e=>{t.push({id:e.id,...e.data()})}),t.sort((e,t)=>{e=e.createdAt?e.createdAt.toDate?e.createdAt.toDate():new Date(e.createdAt):new Date(0);return(t.createdAt?t.createdAt.toDate?t.createdAt.toDate():new Date(t.createdAt):new Date(0))-e}),t.forEach(e=>{!1!==e.active&&(a.innerHTML+=`
-                    <tr>
-                        <td class="align-middle">${e.name}</td>
-                        <td class="text-end">
-                            <button class="btn btn-sm btn-soft-danger" onclick="softDeleteCategory('${e.id}', '${e.name}', '${n}')">
-                                <i class="mdi mdi-trash-can-outline"></i>
-                            </button>
-                        </td>
-                    </tr>
-                 `)}),""===a.innerHTML&&(a.innerHTML='<tr><td colspan="2" class="text-center text-muted">No hay categorías personalizadas para este tipo.</td></tr>')}catch(e){console.error(e),a.innerHTML="<tr><td>Error al cargar.</td></tr>"}}window.softDeleteCategory=async function(e,t,n){confirm(`¿Eliminar "${t}" del selector?`)&&(await E.collection("cashflow_categories").doc(e).update({active:!1}),d[n]=d[n].filter(e=>e!==t),m(n),K(n))};document.getElementById("form-transaction");var e=document.getElementById("btn-new-income"),a=document.getElementById("btn-new-expense"),r=document.getElementById("btn-new-saving"),o=(r&&r.classList.add("d-none"),document.getElementById("btn-transfer-saving")),e=(e&&e.addEventListener("click",()=>i("INCOME")),a&&a.addEventListener("click",()=>i("EXPENSE")),r&&r.addEventListener("click",()=>i("SAVING")),o&&o.addEventListener("click",async function(){let n=document.getElementById("trans-source"),t=document.getElementById("trans-dest"),e=document.getElementById("trans-amount"),a=(n.innerHTML='<option value="">Seleccione origen...</option>',t.innerHTML='<option value="">Seleccione destino...</option>',e.value="",L.filter(e=>"SAVING"===e.type&&"USED"!==e.status));0===a.length?Swal.fire("Atención","No tienes ahorros activos para transferir.","info"):(a.forEach(e=>{var t=$(e.amount,e.currency);n.innerHTML+=`<option value="${e.id}" data-currency="${e.currency}" data-amount="${e.amount}">${e.entityName} (${t})</option>`}),a.forEach(e=>{t.innerHTML+=`<option value="TRANS_TO_SAV_${e.id}">${e.entityName} (Existente)</option>`}),d.SAVING.forEach(e=>{t.innerHTML+=`<option value="TRANS_TO_CAT_${e}">Nueva meta: ${e}</option>`}),O.show())}),document.getElementById("form-transfer-saving")),a=(e&&e.addEventListener("submit",async function(t){t.preventDefault();let n=document.getElementById("trans-source").value,a=document.getElementById("trans-dest").value,r=parseFloat(document.getElementById("trans-amount").value),e=document.getElementById("btn-do-transfer");if(n&&a&&r){t=L.find(e=>e.id===n);if(r>t.amount)Swal.fire("Monto excedido","No puedes transferir más del saldo disponible en el origen.","error");else{e.disabled=!0,e.innerHTML='<i class="bx bx-loader bx-spin"></i>';try{var o=E.batch(),i=firebase.firestore.Timestamp.fromDate(new Date),s=E.collection("transactions").doc(),c=(o.set(s,{type:"SAVING",entityName:"Reducción por Transferencia: "+t.entityName,category:t.category,amount:-r,currency:t.currency,date:i,isInitial:!0,status:"ACTIVE",address:"Transferencia interna hacia: "+(a.includes("SAV_")?"otra meta":a.split("CAT_")[1]),createdAt:new Date,createdBy:g.currentUser.uid}),E.collection("transactions").doc());let e="",n="";if(a.startsWith("TRANS_TO_SAV_")){let t=a.replace("TRANS_TO_SAV_","");var d=L.find(e=>e.id===t);e=d.entityName,n=d.category}else e=a.replace("TRANS_TO_CAT_",""),n=e;o.set(c,{type:"SAVING",entityName:"Recibo por Transferencia: "+e,category:n,amount:r,currency:t.currency,date:i,isInitial:!0,status:"ACTIVE",address:"Transferencia interna desde: "+t.entityName,createdAt:new Date,createdBy:g.currentUser.uid}),await o.commit(),O.hide(),Swal.fire("Transferencia Exitosa","Monto reasignado correctamente.","success"),ee()}catch(e){console.error(e),Swal.fire("Error","Error al procesar: "+e.message,"error")}finally{e.disabled=!1,e.textContent="Confirmar Transferencia"}}}}),document.getElementById("trans-source"));function i(e,t=null){
-    // Close FAB Menu if open
-    const options = document.getElementById('mob-fab-options');
-    const mainBtn = document.getElementById('mob-fab-main');
-    if (options) {
-        options.classList.remove('show');
-        if (mainBtn) {
-            const icon = mainBtn.querySelector('i');
-            if (icon) icon.style.transform = 'rotate(0deg)';
         }
     }
 
-    "INCOME"===e?(document.getElementById("form-income").reset(),document.getElementById("in-id").value="",document.getElementById("in-date").valueAsDate=new Date,N.show()):"EXPENSE"===e?(document.getElementById("form-expense").reset(),document.getElementById("ex-id").value="",document.getElementById("ex-date").valueAsDate=new Date,F.show()):"SAVING"===e&&(document.getElementById("form-saving").reset(),document.getElementById("sav-id").value="",document.getElementById("sav-date").valueAsDate=new Date,t&&(document.getElementById("sav-id").value=t.id||"",document.getElementById("sav-name").value=t.entityName||"",document.getElementById("sav-amount").value=t.amount||0,document.getElementById("sav-target-amount").value=t.targetAmount||"",document.getElementById("sav-currency").value=t.currency||"ARS",document.getElementById("sav-category").value=t.category||"Fondo de Reserva",document.getElementById("sav-status").value=t.status||"ACTIVE",document.getElementById("sav-is-initial").checked=t.isInitial||!1,document.getElementById("sav-recurring").checked=t.isRecurring||!1,t.isRecurring&&(document.getElementById("container-sav-installments").style.display="block",document.getElementById("sav-installments").value=t.installmentsTotal||""),t.date&&(document.getElementById("sav-date").valueAsDate=k(t.date)),document.getElementById("sav-address").value=t.address||""),P.show())
-}
-window.i=i;
-a&&a.addEventListener("change",function(){var e=document.getElementById("trans-source"),e=e.options[e.selectedIndex],t=document.getElementById("trans-currency");e&&e.dataset.currency?t.value=e.dataset.currency:t.value=""});    /* Duplicated FAB Logic Removed */o=document.getElementById("mob-new-income"),e=document.getElementById("mob-new-expense");async function Z(e,t){e.preventDefault();var n="INCOME"===t?"in":"ex",e=e.target.querySelector('button[type="submit"]'),a=e.innerHTML;e.disabled=!0,e.innerHTML='<i class="bx bx-loader bx-spin"></i> Guardando...';try{var r=document.getElementById(n+"-id").value,o=document.getElementById(n+"-entity-name").value,i=o,s=t;if(i){var c="INCOME"===s?"CLIENT":"PROVIDER",d=s;if(!v[d].some(e=>e.toLowerCase()===i.toLowerCase()))try{await E.collection("cashflow_entities").add({name:i,type:c,createdAt:new Date,uid:p()}),v[d].push(i);var l,u="INCOME"===s?"list-entities-income":"list-entities-expense",m=document.getElementById(u);m&&((l=document.createElement("option")).value=i,m.appendChild(l)),console.log(`New entity ${i} saved as ${c}.`)}catch(e){console.error("Error auto-saving entity",e)}}await 0;var y={type:t,entityName:o,cuit:document.getElementById(n+"-cuit").value,address:document.getElementById(n+"-address").value,category:document.getElementById(n+"-category").value,status:document.getElementById(n+"-status").value,currency:document.getElementById(n+"-currency").value,accountId:document.getElementById(n+"-account").value,amount:parseFloat(document.getElementById(n+"-amount").value)||0,date:firebase.firestore.Timestamp.fromDate(document.getElementById(n+"-date").valueAsDate||new Date),isRecurring:document.getElementById(n+"-recurring").checked,installmentsTotal:parseInt(document.getElementById(n+"-installments").value)||null,installmentNumber:1,updatedAt:new Date};r?await E.collection("transactions").doc(r).update(y):(y.createdAt=new Date,y.createdBy=g.currentUser.uid,await E.collection("transactions").add(y)),("INCOME"===t?N:F).hide(),Swal.fire({toast:!0,position:"top-end",icon:"success",title:"Guardado correctamente.",showConfirmButton:!1,timer:3e3})}catch(e){console.error(e),Swal.fire("Error","No se pudo guardar el movimiento: "+e.message,"error")}finally{e.disabled=!1,e.innerHTML=a}}o&&o.addEventListener("click",()=>{i("INCOME")}),e&&e.addEventListener("click",()=>{i("EXPENSE")}),document.getElementById("btn-save-asset-type")?.addEventListener("click",async()=>{var e=document.getElementById("new-asset-type-name"),t=document.getElementById("manage-asset-type-id"),e=e.value.trim(),t=t.value;if(e)try{t?await E.collection("cashflow_asset_types").doc(t).update({name:e,updatedAt:new Date}):await E.collection("cashflow_asset_types").add({name:e,uid:p(),active:!0,createdAt:new Date}),cancelAssetTypeEdit()}catch(e){console.error(e),Swal.fire("Error","No se pudo guardar el tipo de activo.","error")}}),window.editAssetType=(e,t)=>{document.getElementById("manage-asset-type-id").value=e,document.getElementById("new-asset-type-name").value=t,document.getElementById("btn-save-asset-type-text").textContent="Actualizar",document.getElementById("btn-cancel-edit-asset-type").classList.remove("d-none")},window.cancelAssetTypeEdit=()=>{document.getElementById("manage-asset-type-id").value="",document.getElementById("new-asset-type-name").value="",document.getElementById("btn-save-asset-type-text").textContent="Guardar",document.getElementById("btn-cancel-edit-asset-type").classList.add("d-none")},document.getElementById("btn-cancel-edit-asset-type")?.addEventListener("click",cancelAssetTypeEdit),window.deleteAssetType=async(e,t)=>{t=(await Swal.fire({title:`¿Eliminar "${t}"?`,text:"Se quitará del listado, pero se mantendrá la referencia en activos creados previamente.",icon:"warning",showCancelButton:!0,confirmButtonText:"Sí, eliminar",cancelButtonText:"Cancelar"})).isConfirmed;t&&await E.collection("cashflow_asset_types").doc(e).update({active:!1,updatedAt:new Date})},document.getElementById("btn-manage-asset-types")?.addEventListener("click",()=>{cancelAssetTypeEdit(),U.show()}),document.getElementById("form-income").addEventListener("submit",e=>Z(e,"INCOME")),document.getElementById("form-expense").addEventListener("submit",e=>Z(e,"EXPENSE"));
-a=document.getElementById("form-saving");function ee(){E.collection("transactions").where("createdBy","==",p()).onSnapshot(e=>{L=[],e.forEach(e=>L.push({id:e.id,...e.data()})),(async a=>{if(!q&&!Y){q=!0;try{var r=a.filter(e=>e.isRecurring&&!e.parentRecurringId);let n=new Date;var o=new Date(n.getFullYear(),n.getMonth(),1);let e=0;for(let t of r){var i,s,c,d=k(t.date);if(!d)continue;o<=d||a.find(e=>e.parentRecurringId===t.id&&k(e.date).getMonth()===n.getMonth()&&k(e.date).getFullYear()===n.getFullYear())||(i=a.filter(e=>e.parentRecurringId===t.id).length,t.installmentsTotal&&i+1>=t.installmentsTotal)||(s=new Date(n.getFullYear(),n.getMonth(),1),delete(c={...t}).id,delete c.createdAt,c.isRecurring=!1,c.parentRecurringId=t.id,c.status="SAVING"===t.type?"ACTIVE":"PENDING",c.date=s,c.createdAt=new Date,c.description=`${t.address||""} (Recurrente Mes ${n.getMonth()+1})`,t.installmentsTotal&&(c.installmentNumber=i+2),"SAVING"===t.type&&(c.isInitial=!1),console.log("Generating recurring tx for",t.entityName,t.installmentsTotal?`(Cuota ${c.installmentNumber}/${t.installmentsTotal})`:""),await E.collection("transactions").add(c),e++)}0<e&&console.log(`Generated ${e} recurring transactions.`),Y=!0}catch(e){console.error("Error in checkRecurrences:",e)}finally{q=!1}}})(L),c()})}a&&a.addEventListener("submit",async function(e){e.preventDefault(),e.target;var t=(e=document.getElementById("btn-save-saving")).innerHTML;e.disabled=!0,e.innerHTML='<i class="bx bx-loader bx-spin"></i> Guardando...';try{var n=document.getElementById("sav-id").value,a={type:"SAVING",entityName:document.getElementById("sav-name").value,category:document.getElementById("sav-category").value,status:document.getElementById("sav-status").value,currency:document.getElementById("sav-currency").value,accountId:document.getElementById("sav-account").value,amount:parseFloat(document.getElementById("sav-amount").value)||0,targetAmount:parseFloat(document.getElementById("sav-target-amount").value)||0,isInitial:document.getElementById("sav-is-initial").checked,isRecurring:document.getElementById("sav-recurring").checked,date:firebase.firestore.Timestamp.fromDate(document.getElementById("sav-date").valueAsDate||new Date),address:document.getElementById("sav-address").value,installmentsTotal:parseInt(document.getElementById("sav-installments").value)||null,installmentNumber:1,updatedAt:new Date};n?await E.collection("transactions").doc(n).update(a):(a.createdAt=new Date,a.createdBy=g.currentUser.uid,await E.collection("transactions").add(a)),P.hide(),Swal.fire({toast:!0,position:"top-end",icon:"success",title:"Ahorro guardado.",showConfirmButton:!1,timer:3e3})}catch(e){console.error(e),Swal.fire("Error","No se pudo guardar el ahorro.","error")}finally{e.disabled=!1,e.innerHTML=t}});let y=document.getElementById("filter-year"),te=document.getElementById("filter-period"),ne=document.getElementById("filter-search"),ae=document.getElementById("filter-category"),re=document.getElementById("filter-only-recurring");r=document.getElementById("btn-apply-filters"),o=new Date;let s=o.getFullYear();e=(o.getMonth()+1).toString().padStart(2,"0");function c(){let e=[...L];var I=parseInt(y.value);let b=te.value,t=ne.value.toLowerCase(),n=ae.value,a=re.checked,r=(a&&(e=e.filter(e=>(!0===e.isRecurring||"true"===e.isRecurring)&&!e.parentRecurringId)),"ALL"!==n&&(e=e.filter(e=>e.category===n)),t&&(e=e.filter(e=>e.entityName.toLowerCase().includes(t)||e.address&&e.address.toLowerCase().includes(t))),parseInt(y.value||(new Date).getFullYear())),o=e=>{var e=k(e.date);return!(!e||e.getFullYear()!==r||"ALL"!==b&&!("YTD"===b?e<=new Date:(e=e.getMonth()+1,"Q1"===b?1<=e&&e<=3:"Q2"===b?4<=e&&e<=6:"Q3"===b?7<=e&&e<=9:"Q4"===b?10<=e&&e<=12:"S1"===b?1<=e&&e<=6:"S2"===b?7<=e&&e<=12:e===parseInt(b))))};var i=e.filter(e=>"SAVING"!==e.type&&(!!a||o(e))),w=e.filter(e=>"SAVING"===e.type&&(!!a||"ACTIVE"===e.status||o(e))),h=e.filter(e=>o(e)),s=(e,r)=>e.sort((e,t)=>{let n=e[r.column],a=t[r.column];return"date"===r.column&&(n=k(e.date).getTime(),a=k(t.date).getTime()),"string"==typeof n&&(n=n.toLowerCase()),"string"==typeof a&&(a=a.toLowerCase()),n<a?"asc"===r.direction?-1:1:n>a?"asc"===r.direction?1:-1:0}),c=s(i.filter(e=>"INCOME"===e.type),l.INCOME),i=s(i.filter(e=>"EXPENSE"===e.type),l.EXPENSE),s=s(w,l.SAVING);{var B=I,S=b;let e=(e,n)=>e.reduce((e,t)=>t.currency===n?e+(Number(t.amount)||0):e,0),t=(w=h).filter(e=>"INCOME"===e.type),n=w.filter(e=>"EXPENSE"===e.type),a=e(t,"ARS"),r=e(t,"USD"),o=e(t.filter(e=>"PAID"!==e.status),"ARS"),i=e(t.filter(e=>"PAID"!==e.status),"USD"),s={"01":"Enero","02":"Febrero","03":"Marzo","04":"Abril","05":"Mayo","06":"Junio","07":"Julio","08":"Agosto","09":"Septiembre",10:"Octubre",11:"Noviembre",12:"Diciembre"};if(s[S]){let t=B+"-"+S;D.forEach(e=>{e.invoices&&e.invoices[t]&&e.invoices[t].sent||!1===e.isActive||("ARS"===e.currency?(a+=e.amount||0,o+=e.amount||0):"USD"===e.currency&&(r+=e.amount||0,i+=e.amount||0))})}H("kpi-income-expected-ars",a),H("kpi-income-expected-usd",r),H("kpi-income-pending-ars",o),H("kpi-income-pending-usd",i);let c=e(n,"ARS"),d=e(n,"USD"),l=e(n.filter(e=>"PAID"!==e.status),"ARS"),u=e(n.filter(e=>"PAID"!==e.status),"USD"),m=new Date,y=new Date(parseInt(B),parseInt(S)-1,1),g=new Date(m.getFullYear(),m.getMonth(),1),v=(s[S]&&y>=g&&L.filter(e=>e.isRecurring&&!e.parentRecurringId&&"EXPENSE"===e.type).forEach(t=>{L.find(e=>e.parentRecurringId===t.id&&k(e.date).getMonth()===parseInt(S)-1&&k(e.date).getFullYear()===parseInt(B))||("ARS"===t.currency?(c+=t.amount||0,l+=t.amount||0):"USD"===t.currency&&(d+=t.amount||0,u+=t.amount||0))}),H("kpi-expense-expected-ars",c),H("kpi-expense-expected-usd",d),H("kpi-expense-pending-ars",l),H("kpi-expense-pending-usd",u),0),E=0,p=(M.forEach(e=>{var t=R(e.id);"ARS"===e.currency&&(v+=t),"USD"===e.currency&&(E+=t)}),H("kpi-balance-ars",v),H("kpi-balance-usd",E),0),f=0;C.forEach(e=>{var t=Number(e.currentValuation)||Number(e.investedAmount)||0;"ARS"===e.currency&&(p+=t),"USD"===e.currency&&(f+=t)}),H("kpi-invested-ars",p),H("kpi-invested-usd",f);var A,x,T,w=v+p,h=E+f,I=(H("kpi-net-worth-ars",w),H("kpi-net-worth-usd",h),e(t.filter(e=>"PAID"===e.status),"ARS")-e(n.filter(e=>"PAID"===e.status),"ARS")),N=e(t.filter(e=>"PAID"===e.status),"USD")-e(n.filter(e=>"PAID"===e.status),"USD");se(I,N,v,E),me(),null!==document.getElementById("mobile-view").offsetParent&&(I=document.getElementById("mob-total-balance"),N=document.getElementById("mob-total-income"),A=document.getElementById("mob-total-expense"),x=document.getElementById("mob-liquidity-ars"),T=document.getElementById("mob-total-usd"),I&&(I.textContent=$(w,"ARS")),N&&(N.textContent=$(a,"ARS")),A&&(A.textContent=$(c,"ARS")),x&&(x.textContent=$(v,"ARS")),T)&&(T.textContent="U$D "+new Intl.NumberFormat("es-AR").format(h))}J=c.concat(i).concat(s),u=10,function n(a){let t=document.querySelector("#table-income tbody");let r=document.querySelector("#table-expense tbody");t.innerHTML="";r.innerHTML="";let o=(t,e=!1)=>{let n=k(t.date),a=n?n.toLocaleDateString():"N/A",r=$(t.amount||0,t.currency||"ARS"),o="badge bg-warning text-dark",i="Pendiente";if("PAID"===t.status&&(o="badge bg-success",i="Cobrado/Pagado"),"USED"===t.status&&(o="badge bg-secondary",i="Usado"),e)return"";let s=M.find(e=>e.id===t.accountId),c=s?s.name:"-",d="PENDING"===t.status?`<button class="btn btn-sm btn-soft-success" onclick="toggleStatus('${t.id}', 'PAID')" title="Marcar como Completado"><i class="bx bx-check"></i></button>`:`<button class="btn btn-sm btn-soft-warning" onclick="toggleStatus('${t.id}', 'PENDING')" title="Marcar Pendiente"><i class="bx bx-undo"></i></button>`;return`
-                <tr>
-                    <td>${a}</td>
-                    <td>
-                        <h6 class="mb-0 font-size-14 text-truncate">${t.entityName}</h6>
-                        <small class="text-muted text-truncate">
-                            ${t.cuit||"-"} 
-                            ${t.installmentsTotal?` <span class="badge badge-soft-info ms-1" style="border: 1px solid #0ab39c;">Cuota ${t.installmentNumber||1}/${t.installmentsTotal}</span>`:""}
-                        </small>
-                    </td>
-                    <td><span class="badge badge-soft-primary">${t.category}</span></td>
-                    <td><span class="badge badge-soft-secondary">${c}</span></td>
-                    <td>${t.address||"-"}</td>
-                    <td>${"ARS"===t.currency?r:"-"}</td>
-                    <td>${"USD"===t.currency?r:"-"}</td>
-                    <td>${!0===t.isRecurring||"true"===t.isRecurring?'<i class="bx bx-revision text-primary"></i>':"-"}</td>
-                    <td><div class="${o}">${i}</div></td>
-                    <td>
-                        <div class="d-flex gap-2">
-                            ${d}
-                            <button class="btn btn-sm btn-soft-info" onclick="editTransaction('${t.id}')" title="Editar"><i class="mdi mdi-pencil"></i></button>
-                            <button class="btn btn-sm btn-soft-danger" onclick="deleteTransaction('${t.id}')"><i class="mdi mdi-trash-can"></i></button>
-                        </div>
-                    </td>
-                </tr>
-            `};a.filter(e=>"INCOME"===e.type).forEach(e=>{t.innerHTML+=o(e,!1)});a.filter(e=>"EXPENSE"===e.type).forEach(e=>{r.innerHTML+=o(e,!1)});let i=document.getElementById("mobile-transactions-list");if(i)if(i.innerHTML="",0===a.length)i.innerHTML='<div class="text-center p-5 text-muted">No hay movimientos en este periodo.</div>';else{let o=e=>{let t=e.toLowerCase();return t.includes("venta")||t.includes("honorario")?"bx-trending-up":t.includes("alquiler")?"bx-home":t.includes("servicio")||t.includes("impuesto")?"bx-receipt":t.includes("sueldo")?"bx-wallet":t.includes("comida")||t.includes("restaurante")?"bx-restaurant":t.includes("transporte")?"bx-car":"bx-dots-horizontal-rounded"},e=[...a].sort((e,t)=>k(t.date).getTime()-k(e.date).getTime()),t=e.slice(0,u);if(t.forEach(e=>{let t="INCOME"===e.type,n=t?"bg-success-subtle text-success":"bg-danger-subtle text-danger",a=t?"text-success":"text-danger",r=o(e.category);i.innerHTML+=`
-                    <div class="list-group-item d-flex align-items-center py-3" onclick="editTransaction('${e.id}')">
-                        <div class="avatar-sm flex-shrink-0 me-3">
-                            <span class="avatar-title rounded-circle ${n} font-size-18">
-                                <i class="bx ${r}"></i>
-                            </span>
-                        </div>
-                        <div class="flex-grow-1 overflow-hidden">
-                            <h5 class="font-size-14 mb-1 text-truncate">${e.entityName}</h5>
-                            <p class="text-muted font-size-12 mb-0">${e.category} • ${k(e.date).toLocaleDateString()}</p>
-                        </div>
-                        <div class="flex-shrink-0 text-end">
-                            <h5 class="font-size-14 mb-0 ${a}">${$(e.amount,e.currency)}</h5>
-                            <small class="text-muted">${"PAID"===e.status?"✅":"⏳"}</small>
-                        </div>
-                    </div>
-                `}),e.length>u){let e=document.createElement("button");e.className="btn btn-link w-100 py-3 text-primary border-top",e.innerHTML='Ver más movimientos <i class="mdi mdi-chevron-down ms-1"></i>',e.onclick=e=>{e.stopPropagation(),u+=10,n(a)},i.appendChild(e)}}}([...c,...i,...s]),ie(),oe()}[...y.options].some(e=>e.value==s)||((a=document.createElement("option")).value=s,a.textContent=s,y.appendChild(a)),y.value=s,te.value=e,r&&r.addEventListener("click",c),[y,te,ae,re].forEach(e=>e.addEventListener("change",c)),["table-income","table-expense","table-saving"].forEach(i=>{var e=document.getElementById(i);e&&e.querySelectorAll("th[data-sort]").forEach(o=>{o.style.cursor="pointer",o.addEventListener("click",()=>{var e=i.split("-")[1].toUpperCase(),t=o.dataset.sort,n=(l[e].column===t?l[e].direction="asc"===l[e].direction?"desc":"asc":(l[e].column=t,l[e].direction="asc"),i),a=t,r=l[e].direction;(n=(n=document.getElementById(n)).querySelectorAll("th[data-sort]")).forEach(e=>{var t;e.querySelectorAll(".sort-icon").forEach(e=>e.remove()),e.dataset.sort===a&&((t=document.createElement("i")).className=`mdi mdi-arrow-${"asc"===r?"up":"down"} ms-1 sort-icon`,e.appendChild(t))}),c()})})});{let t=(o=new Date).getFullYear();o=(o.getMonth()+1).toString().padStart(2,"0"),a=document.getElementById("filter-year"),e=document.getElementById("filter-period"),a&&e&&([...a.options].some(e=>e.value==t)||((r=document.createElement("option")).value=t,r.textContent=t,a.appendChild(r)),a.value=t,e.value=o)}function oe(){let r=document.querySelector("#table-agreements tbody"),c=(r.innerHTML="",document.getElementById("filter-period").value),d=document.getElementById("filter-year").value;let o=!!{"01":"Enero","02":"Febrero","03":"Marzo","04":"Abril","05":"Mayo","06":"Junio","07":"Julio","08":"Agosto","09":"Septiembre",10:"Octubre",11:"Noviembre",12:"Diciembre"}[c];0===D.length?r.innerHTML='<tr><td colspan="7" class="text-center text-muted">No hay acuerdos registrados.</td></tr>':D.forEach(s=>{var e=$(s.amount,s.currency);let t="";if(o){var n=d+"-"+c,a=s.invoices&&s.invoices[n]&&s.invoices[n].sent;t=`
-                    <div class="form-check form-switch mb-0">
-                        <input class="form-check-input" type="checkbox" id="list-invoice-${s.id}" ${a?"checked":""} onchange="toggleInvoiceSent('${s.id}', '${n}', this)">
-                        <label class="form-check-label text-muted small" for="list-invoice-${s.id}">${a?s.hasInvoice?"ENVIADA":"GENERADO":s.hasInvoice?"NO ENVIADA":"PENDIENTE"}</label>
-                    </div>
-                `}else{let o=0,i=0;s.invoices&&Object.keys(s.invoices).forEach(t=>{var[n,a]=t.split("-");if(n===d){var r,a=parseInt(a);let e=!1;"ALL"===c?e=!0:"YTD"===c?(r=new Date,new Date(parseInt(n),a-1,1)<=r&&(e=!0)):"Q1"===c?e=1<=a&&a<=3:"Q2"===c?e=4<=a&&a<=6:"Q3"===c?e=7<=a&&a<=9:"Q4"===c?e=10<=a&&a<=12:"S1"===c?e=1<=a&&a<=6:"S2"===c&&(e=7<=a&&a<=12),e&&s.invoices[t].sent&&(i++,o+=s.amount)}}),t=0<i?`<span class="badge bg-success-subtle text-success font-size-12 p-2">${i} Gen. (${$(o,s.currency)})</span>`:'<span class="text-muted small">-</span>'}r.innerHTML+=`
-                <tr>
-                    <td>
-                        <h6 class="mb-0 text-truncate font-size-14">${s.name}</h6>
-                        <small class="text-muted d-block d-lg-none">${s.description||"-"}</small>
-                    </td>
-                    <td class="d-none d-lg-table-cell">
-                        <small class="d-block text-muted">${s.description||"-"}</small>
-                        <small class="d-block code">${s.cuit||""}</small>
-                    </td>
-                    <td class="fw-bold">${e}</td>
-                    <td>${s.hasInvoice?s.biller||"-":'<span class="text-muted font-size-11 fst-italic">No Factura</span>'}</td>
-                    <td>${t}</td>
-                    <td>
-                        <button class="btn btn-sm btn-soft-primary" onclick="editAgreement('${s.id}')"><i class="mdi mdi-pencil"></i></button>
-                    </td>
-                </tr>
-            `})}function ie(){let o=document.getElementById("monthly-control-list");o.innerHTML="";var e=document.getElementById("filter-period").value,t=document.getElementById("filter-year").value,n={"01":"Enero","02":"Febrero","03":"Marzo","04":"Abril","05":"Mayo","06":"Junio","07":"Julio","08":"Agosto","09":"Septiembre",10:"Octubre",11:"Noviembre",12:"Diciembre"};let i="",a="";a=n[e]?(i=t+"-"+e,n[e]+" "+t):(t=((e=new Date).getMonth()+1).toString().padStart(2,"0"),i=e.getFullYear()+"-"+t,`${n[t]} ${e.getFullYear()} (Actual)`);n=D.filter(e=>"MONTHLY"===e.frequency);0===n.length?o.innerHTML='<tr><td colspan="6" class="text-center text-muted">No hay acuerdos mensuales activos.</td></tr>':(document.querySelector("#card-monthly-control .card-title").innerHTML='<i class="mdi mdi-playlist-check me-1"></i> Control de Facturación: '+a,n.forEach(e=>{var t=$(e.amount,e.currency);let n=!1;e.invoices&&e.invoices[i]&&e.invoices[i].sent&&(n=!0);var a=`
-                <div class="form-check form-switch mb-0">
-                    <input class="form-check-input" type="checkbox" id="ctrl-invoice-${e.id}" ${n?"checked":""} onchange="toggleInvoiceSent('${e.id}', '${i}', this)">
-                    <label class="form-check-label text-muted small" for="ctrl-invoice-${e.id}">${n?"GENERADO":"PENDIENTE"}</label>
-                </div>
-             `,r=e.hasInvoice?'<span class="badge bg-success-subtle text-success">Sí</span>':'<span class="badge bg-secondary-subtle text-secondary">No</span>';o.innerHTML+=`
-                <tr class="${n?"bg-success-subtle":""}">
-                    <td><strong>${e.name}</strong></td>
-                    <td><small class="text-muted coding">${e.cuit||"-"}</small></td>
-                    <td>${r}</td>
-                    <td class="fw-bold">${t}</td>
-                    <td>${e.biller||"-"}</td>
-                    <td>${a}</td>
-                </tr>
-             `}))}function se(e,t,n,a){var r=document.getElementById("surplus-assistant-container"),o=document.getElementById("surplus-msg"),i=document.getElementById("filter-period").value;if(100<e||0<t){n=Math.min(e,n),a=Math.min(t,a);if(n<=0&&a<=0)return void(r.style.display="none");n={"01":"Enero","02":"Febrero","03":"Marzo","04":"Abril","05":"Mayo","06":"Junio","07":"Julio","08":"Agosto","09":"Septiembre",10:"Octubre",11:"Noviembre",12:"Diciembre"}[i];if(n)return r.style.display="block",void(o.innerHTML=`Ganaste <strong>${$(e,"ARS")}</strong> / <strong>${$(t,"USD")}</strong> netos en <strong>${n}</strong>. ¿Deseas ahorrar una parte?`)}r.style.display="none"}function H(e,t){document.getElementById(e).textContent=new Intl.NumberFormat("es-AR").format(t)}window.openCapitalizeModal=async function(){var e=parseFloat(document.getElementById("kpi-balance-ars").textContent.replace(/[$.]/g,"").replace(",","."))||0,t=parseFloat(document.getElementById("kpi-balance-usd").textContent.replace(/[$.]/g,"").replace(",","."))||0,n=document.getElementById("filter-period").value,a=document.getElementById("filter-year").value,r={"01":"Enero","02":"Febrero","03":"Marzo","04":"Abril","05":"Mayo","06":"Junio","07":"Julio","08":"Agosto","09":"Septiembre",10:"Octubre",11:"Noviembre",12:"Diciembre"}[n],e=(await Swal.fire({title:"Capitalizar Excedente - "+r,html:`
-                <div class="text-start">
-                    <p class="text-muted small">Decide cuánto mover del saldo disponible actual a tus ahorros.</p>
-                    <div class="mb-3">
-                        <label class="form-label">Monto en Pesos (ARS) - Disponible: ${$(e,"ARS")}</label>
-                        <input id="swal-ars" class="form-control" type="number" step="0.01" value="${0<e?e:0}">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Monto en Dólares (USD) - Disponible: ${$(t,"USD")}</label>
-                        <input id="swal-usd" class="form-control" type="number" step="0.01" value="${0<t?t:0}">
-                    </div>
-                </div>
-            `,focusConfirm:!1,showCancelButton:!0,confirmButtonText:"Confirmar Ahorro",cancelButtonText:"Cancelar",preConfirm:()=>({ars:parseFloat(document.getElementById("swal-ars").value)||0,usd:parseFloat(document.getElementById("swal-usd").value)||0})})).value;e&&(async(e,t,a,r)=>{let o=new Date(a,parseInt(t),0),i=E.batch(),s=E.collection("transactions"),c=0,n=(e,t)=>{var n;e<=0||(n=s.doc(),i.set(n,{type:"SAVING",entityName:`Capitalización Excedente ${r} `+a,category:"Fondo de Reserva",status:"ACTIVE",currency:t,amount:e,date:firebase.firestore.Timestamp.fromDate(o),address:`Traspaso de saldo sobrante del periodo filtrado (${r} ${a}).`,createdAt:new Date,createdBy:g.currentUser.uid}),c++)};if(n(e.ars,"ARS"),n(e.usd,"USD"),0<c)try{await i.commit(),Swal.fire("¡Éxito!","Excedente capitalizado correctamente.","success")}catch(e){console.error(e),Swal.fire("Error","No se pudo realizar el traspaso.","error")}})(e,n,a,r)},window.editTransaction=function(t){var e=L.find(e=>e.id===t);e&&("INCOME"===e.type?(document.getElementById("form-income").reset(),document.getElementById("in-id").value=e.id,document.getElementById("in-entity-name").value=e.entityName||"",document.getElementById("in-cuit").value=e.cuit||"",document.getElementById("in-address").value=e.address||"",document.getElementById("in-category").value=e.category||"",document.getElementById("in-status").value=e.status||"PENDING",document.getElementById("in-currency").value=e.currency||"ARS",document.getElementById("in-account").value=e.accountId||"",document.getElementById("in-amount").value=e.amount||0,document.getElementById("in-date").valueAsDate=k(e.date),document.getElementById("in-recurring").checked=e.isRecurring||!1,e.isRecurring&&(document.getElementById("container-in-installments").style.display="block",document.getElementById("in-installments").value=e.installmentsTotal||""),N.show()):"EXPENSE"===e.type?(document.getElementById("form-expense").reset(),document.getElementById("ex-id").value=e.id,document.getElementById("ex-entity-name").value=e.entityName||"",document.getElementById("ex-cuit").value=e.cuit||"",document.getElementById("ex-address").value=e.address||"",document.getElementById("ex-category").value=e.category||"",document.getElementById("ex-status").value=e.status||"PENDING",document.getElementById("ex-currency").value=e.currency||"ARS",document.getElementById("ex-account").value=e.accountId||"",document.getElementById("ex-amount").value=e.amount||0,document.getElementById("ex-date").valueAsDate=k(e.date),document.getElementById("ex-recurring").checked=e.isRecurring||!1,e.isRecurring&&(document.getElementById("container-ex-installments").style.display="block",document.getElementById("ex-installments").value=e.installmentsTotal||""),F.show()):"SAVING"===e.type&&i("SAVING",e))},window.toggleStatus=function(e,t){E.collection("transactions").doc(e).update({status:t})},window.deleteTransaction=async function(t){var e=L.find(e=>e.id===t);if(e&&(await Swal.fire({title:"¿Eliminar?",text:"No podrás revertir esto.",icon:"warning",showCancelButton:!0,confirmButtonColor:"#f46a6a",confirmButtonText:"Sí, eliminar",cancelButtonText:"Cancelar"})).isConfirmed)try{var n,a,r,o,i=E.batch(),s=E.collection("transactions").doc(t);i.delete(s),"INVESTMENT"===e.type&&e.assetId?(n=E.collection("cashflow_assets").doc(e.assetId),i.update(n,{investedAmount:firebase.firestore.FieldValue.increment(-(e.assetAmount||e.amount))})):"WITHDRAWAL"===e.type&&e.assetId?(a=E.collection("cashflow_assets").doc(e.assetId),i.update(a,{investedAmount:firebase.firestore.FieldValue.increment(e.assetAmount||e.amount)})):"ASSET_TRANSFER"===e.type&&e.assetId&&e.assetDstId&&(r=E.collection("cashflow_assets").doc(e.assetId),o=E.collection("cashflow_assets").doc(e.assetDstId),i.update(r,{investedAmount:firebase.firestore.FieldValue.increment(e.amount)}),i.update(o,{investedAmount:firebase.firestore.FieldValue.increment(-(e.assetAmount||e.amount))})),await i.commit(),L=L.filter(function(el){return el.id!==t}),c(),Swal.fire({toast:!0,position:"top-end",icon:"success",title:"Eliminado correctamente.",showConfirmButton:!1,timer:2e3})}catch(e){console.error("Error al eliminar:",e),Swal.fire("Error","No se pudo eliminar: "+e.message,"error")}},window.editSaving=function(t){var e=L.find(e=>e.id===t);e&&i("SAVING",e)},window.convertSaving=async function(t){var e=L.find(e=>e.id===t);if(e){e=(await Swal.fire({title:"Mover a Gasto",text:"Ingresa el nombre del Proveedor/Entidad para este gasto:",input:"text",inputValue:e.entityName,showCancelButton:!0,confirmButtonText:"Convertir"})).value;if(e)try{await E.collection("transactions").doc(t).update({type:"EXPENSE",entityName:e,status:"PAID"}),Swal.fire("Éxito","Ahorro convertido en gasto correctamente.","success")}catch(e){console.error(e),Swal.fire("Error",e.message,"error")}}},window.useSavingForExpense=window.convertSaving;let f=new bootstrap.Modal(document.getElementById("agreement-modal")),ce=document.getElementById("form-agreement");async function de(){E.collection("cashflow_agreements").where("isActive","!=",!1).onSnapshot(e=>{D=[],e.forEach(e=>D.push({id:e.id,...e.data()})),oe(),ie(),(async()=>{X||console.log("Automatic agreement processing is disabled (Manual Mode).")})()})}g.currentUser&&de();r=document.getElementById("btn-new-agreement"),r&&r.addEventListener("click",()=>{ce.reset(),document.getElementById("agreement-id").value="",document.getElementById("agreement-modal-title").textContent="Nuevo Acuerdo",document.getElementById("btn-delete-agreement").classList.add("d-none"),document.getElementById("agr-last-update").textContent=(new Date).toISOString().split("T")[0],document.getElementById("agr-biller").value="Lucre",document.getElementById("div-biller").style.display="block",document.getElementById("agr-currency").value="ARS",document.getElementById("agr-frequency").value="MONTHLY",document.getElementById("agr-account").value="",document.getElementById("agr-hasInvoice").value="true",document.getElementById("agr-category").value="Honorarios",f.show()}),a=document.getElementById("agr-hasInvoice"),a&&a.addEventListener("change",e=>{var t=document.getElementById("div-biller"),n=document.getElementById("agr-biller");"true"===e.target.value?(t&&(t.style.display="block"),n&&(n.value="Lucre")):(t&&(t.style.display="none"),n&&(n.value=""))}),window.editAgreement=function(t){var e=D.find(e=>e.id===t);e&&(document.getElementById("agreement-id").value=t,document.getElementById("agreement-modal-title").textContent="Editar Acuerdo",document.getElementById("agr-name").value=e.name,document.getElementById("agr-cuit").value=e.cuit||"",document.getElementById("agr-hasInvoice").value=e.hasInvoice?"true":"false",e.hasInvoice?(document.getElementById("div-biller").style.display="block",document.getElementById("agr-biller").value=e.biller||"Lucre"):(document.getElementById("div-biller").style.display="none",document.getElementById("agr-biller").value=""),document.getElementById("agr-desc").value=e.description||"",document.getElementById("agr-frequency").value=e.frequency||"MONTHLY",document.getElementById("agr-currency").value=e.currency||"ARS",document.getElementById("agr-account").value=e.accountId||"",document.getElementById("agr-category").value=e.category||"Honorarios",document.getElementById("agr-amount").value=e.amount,document.getElementById("agr-last-update").textContent=e.lastUpdate||"-",document.getElementById("btn-delete-agreement").classList.remove("d-none"),f.show())},ce.addEventListener("submit",async e=>{e.preventDefault();var e=document.getElementById("agreement-id").value,t=document.getElementById("btn-save-agreement");t.disabled=!0,t.innerHTML='<i class="bx bx-loader bx-spin"></i>';try{var n={name:document.getElementById("agr-name").value,cuit:document.getElementById("agr-cuit").value,hasInvoice:"true"===document.getElementById("agr-hasInvoice").value,biller:document.getElementById("agr-biller").value,description:document.getElementById("agr-desc").value,frequency:document.getElementById("agr-frequency").value,currency:document.getElementById("agr-currency").value,accountId:document.getElementById("agr-account").value,category:document.getElementById("agr-category").value,amount:parseFloat(document.getElementById("agr-amount").value)||0,lastUpdate:document.getElementById("agr-last-update").textContent,isActive:!0,updatedAt:new Date};e?await E.collection("cashflow_agreements").doc(e).update(n):(n.createdAt=new Date,n.uid=p(),n.invoices={},await E.collection("cashflow_agreements").add(n)),f.hide(),Swal.fire("Guardado","El acuerdo se actualizó correctamente.","success")}catch(e){console.error(e),Swal.fire("Error","No se pudo guardar: "+e.message,"error")}finally{t.disabled=!1,t.textContent="Guardar Acuerdo"}}),e=document.getElementById("btn-delete-agreement"),e&&e.addEventListener("click",async()=>{let t=document.getElementById("agreement-id").value;t&&Swal.fire({title:"¿Archivar Acuerdo?",text:"No aparecerá en los listados activos.",icon:"warning",showCancelButton:!0,confirmButtonText:"Sí, archivar",cancelButtonText:"Cancelar"}).then(async e=>{e.isConfirmed&&(await E.collection("cashflow_agreements").doc(t).update({isActive:!1}),f.hide())})}),o=document.getElementById("btn-calc-update");o&&o.addEventListener("click",()=>{let e=document.getElementById("agr-amount");var t=document.getElementById("agr-calc-percent"),n=document.getElementById("agr-last-update"),a=parseFloat(e.value)||0,r=parseFloat(t.value)||0;0!==r&&(e.value=(a+a*(r/100)).toFixed(2),n.textContent=(new Date).toISOString().split("T")[0],e.classList.add("is-valid"),setTimeout(()=>e.classList.remove("is-valid"),2e3),t.value="")}),window.toggleInvoiceSent=async function(r,o,i){var t=i.checked,s=D.find(e=>e.id===r);if(s)try{var agrDocRef=E.collection("cashflow_agreements").doc(r);if(t){let t=s.currency,n=s.amount,a="",finalAccountId=s.accountId||null;var d="USD"===s.currency?"ARS":"USD",l=await Swal.fire({title:"Moneda de Cobro",text:`El acuerdo es de ${$(s.amount,s.currency)}. ¿En qué moneda se cobró?`,icon:"question",showDenyButton:!0,showCancelButton:!0,confirmButtonText:"Cobrar en "+s.currency,denyButtonText:"Convertir a "+d,cancelButtonText:"Cancelar"});if(l.isDismissed)i.checked=!1;else{if(l.isDenied){var u=(await Swal.fire({title:"Tipo de Cambio",text:`Ingrese la cotización para convertir de ${s.currency} a `+d,input:"number",inputAttributes:{min:0,step:.01},showCancelButton:!0,confirmButtonText:"Aplicar Conversión",inputValidator:e=>{if(!e||e<=0)return"Ingrese un valor válido"}})).value;if(!u)return void(i.checked=!1);var m=parseFloat(u);t=d,a="USD"===s.currency&&"ARS"===t?(n=s.amount*m,` [Conv. de USD a tasa ${m}]`):(n=s.amount/m,` [Conv. de ARS a tasa ${m}]`);var compatibleAccounts=M.filter(function(acc){return acc.currency===t&&acc.isActive!==false});if(compatibleAccounts.length>0){var accountOptionsHtml='<select id="swal-select-account" class="form-select mt-2">';compatibleAccounts.forEach(function(acc){accountOptionsHtml+='<option value="'+acc.id+'"'+(acc.id===s.accountId?' selected':'')+'>'+acc.name+' ('+acc.currency+')</option>'});accountOptionsHtml+='</select>';var accountResult=await Swal.fire({title:"¿A qué cuenta va el cobro?",html:'<p class="text-muted">La moneda de cobro es <strong>'+t+'</strong>. Seleccioná la cuenta destino:</p>'+accountOptionsHtml,showCancelButton:!0,confirmButtonText:"Confirmar Cuenta",cancelButtonText:"Cancelar",focusConfirm:!1,preConfirm:function(){return document.getElementById("swal-select-account").value}});if(!accountResult.value)return void(i.checked=!1);finalAccountId=accountResult.value}else{finalAccountId=null}}var y,g=await E.collection("transactions").where("agreementId","==",r).where("periodKey","==",o).get();let e;g.empty?(y={type:"INCOME",entityName:s.name+a,cuit:s.cuit,address:"Facturación Mensual Automática",category:s.category||"Honorarios",status:"PENDING",currency:t,accountId:finalAccountId,amount:n,date:firebase.firestore.Timestamp.fromDate((()=>{var[e,t]=o.split("-");return new Date(e,t-1,1,12,0,0)})()),isRecurring:!1,agreementId:r,periodKey:o,createdAt:new Date,createdBy:p()},e=await E.collection("transactions").add(y),L.push({id:e.id,...y})):(e=g.docs[0],console.log("Found existing transaction for agreement period, linking...",e.id),Swal.fire({toast:!0,position:"top-end",icon:"warning",title:"Ingreso ya existía. Vinculado.",showConfirmButton:!1,timer:3e3}));var v={};v["invoices."+o]={sent:!0,date:(new Date).toISOString().split("T")[0],incomeId:e.id},await agrDocRef.update(v),c(),Swal.fire({toast:!0,position:"top-end",icon:"success",title:"Ingreso generado y Factura marcada.",showConfirmButton:!1,timer:3e3})}}else{var e=s.invoices?s.invoices[o]:null;if(e&&e.incomeId){if(!(await Swal.fire({title:"¿Deshacer cobro?",text:"Esto eliminará el ingreso asociado a esta factura. ¿Estás seguro?",icon:"warning",showCancelButton:!0,confirmButtonText:"Sí, eliminar ingreso",cancelButtonText:"No, mantener"})).isConfirmed)return void(i.checked=!0);await E.collection("transactions").doc(e.incomeId).delete(),L=L.filter(function(tx){return tx.id!==e.incomeId})}var n={};n["invoices."+o]=firebase.firestore.FieldValue.delete(),await agrDocRef.update(n),c(),Swal.fire({toast:!0,position:"top-end",icon:"info",title:"Factura desmarcada.",showConfirmButton:!1,timer:2e3})}}catch(e){console.error(e),i.checked=!t,Swal.fire("Error",e.message,"error")}else console.error("Acuerdo no encontrado")};let le=new bootstrap.Modal(document.getElementById("modal-manage-accounts")),ue=document.getElementById("form-account");r=document.getElementById("btn-config-accounts");function me(){var e=document.getElementById("account-summary-container");let a=document.getElementById("account-summary-list");M&&0!==M.length?(e.style.display="block",a.innerHTML="",M.filter(e=>!1!==e.isActive).forEach(e=>{var t=R(e.id),n=document.createElement("tr");n.innerHTML=`
-                <td>
-                    <div class="d-flex align-items-center">
-                        <div class="avatar-xs me-2">
-                            <span class="avatar-title rounded-circle bg-soft-primary text-primary font-size-10">
-                                <i class="mdi mdi-bank"></i>
-                            </span>
-                        </div>
-                        <div>
-                            <h5 class="font-size-13 mb-0">${e.name}</h5>
-                            <small class="text-muted">${e.currency}</small>
-                        </div>
-                    </div>
-                </td>
-                <td class="text-end">
-                    <h5 class="font-size-14 mb-0 ${t<0?"text-danger":"text-success"}">${$(t,e.currency)}</h5>
-                    <small class="text-muted">Disponible</small>
-                </td>
-            `,a.appendChild(n)})):e.style.display="none"}function R(t){var e=M.find(e=>e.id===t);return e?(Number(e.initialBalance)||0)+(e=L.filter(e=>e.accountId===t&&"PAID"===e.status)).filter(e=>"INCOME"===e.type).reduce((e,t)=>e+(Number(t.amount)||0),0)-e.filter(e=>"EXPENSE"===e.type).reduce((e,t)=>e+(Number(t.amount)||0),0)-L.filter(e=>e.accountId===t&&"SAVING"===e.type&&"ACTIVE"===e.status&&!0!==e.isInitial).reduce((e,t)=>e+(Number(t.amount)||0),0)-e.filter(e=>"INVESTMENT"===e.type).reduce((e,t)=>e+(Number(t.amount)||0),0)+e.filter(e=>"WITHDRAWAL"===e.type).reduce((e,t)=>e+(Number(t.amount)||0),0):0}r&&r.addEventListener("click",()=>le.show()),ue.addEventListener("submit",async function(e){e.preventDefault();var e=document.getElementById("acc-id").value,t=document.getElementById("btn-save-account"),n=t.innerHTML,a={name:document.getElementById("acc-name").value,currency:document.getElementById("acc-currency").value,initialBalance:parseFloat(document.getElementById("acc-initial-balance").value)||0,updatedAt:new Date,isActive:!0};try{if(!g.currentUser)throw new Error("Usuario no autenticado");t.disabled=!0,t.innerHTML='<i class="bx bx-loader bx-spin"></i>',e?await E.collection("cashflow_accounts").doc(e).update(a):(a.uid=p(),a.createdAt=new Date,await E.collection("cashflow_accounts").add(a)),ue.reset(),document.getElementById("acc-id").value="",document.getElementById("title-account-form").textContent="Agregar Nueva Cuenta",Swal.fire({toast:!0,position:"top-end",icon:"success",title:"Cuenta guardada.",showConfirmButton:!1,timer:2e3})}catch(e){console.error(e),Swal.fire("Error","No se pudo guardar la cuenta.","error")}finally{t.disabled=!1,t.innerHTML=n}});let ye=document.getElementById("acc-trans-source"),I=document.getElementById("acc-source-balance-info");ye&&ye.addEventListener("change",()=>{let t=ye.value;var e,n;t?(e=M.find(e=>e.id===t))&&(n=R(t),I.innerHTML=`<i class="mdi mdi-information-outline me-1"></i> Disponible: <span class="text-primary fw-bold">${$(n,e.currency)}</span>`):I.innerHTML=""});a=document.getElementById("btn-transfer-saving");a&&a.addEventListener("click",()=>{I&&(I.innerHTML=""),O.show()});let ge=document.getElementById("form-account-transfer");ge.addEventListener("submit",async e=>{e.preventDefault();let t=document.getElementById("acc-trans-source").value,n=document.getElementById("acc-trans-dest").value;var a=parseFloat(document.getElementById("acc-trans-amount").value),r=document.getElementById("acc-trans-date").valueAsDate||new Date;if(t===n)Swal.fire("Error","La cuenta origen y destino no pueden ser la misma.","warning");else{var o=M.find(e=>e.id===t),i=M.find(e=>e.id===n);if(o&&i){var s=R(t);if(s<a)Swal.fire("Saldo Insuficiente",`La cuenta ${o.name} solo dispone de ${$(s,o.currency)}.`,"warning");else{s=e.target.querySelector('button[type="submit"]'),e=s.innerHTML;try{if(!g.currentUser)throw new Error("Usuario no autenticado");s.disabled=!0,s.innerHTML='<i class="bx bx-loader bx-spin"></i> Procesando...';var c="TRANS_"+Date.now(),d={type:"EXPENSE",entityName:"Transf. a "+i.name,category:"Transferencia Enviada",status:"PAID",currency:o.currency,accountId:t,amount:a,date:firebase.firestore.Timestamp.fromDate(r),transferId:c,createdAt:new Date,createdBy:p(),description:"Transferencia entre cuentas propias"},l={type:"INCOME",entityName:"Transf. de "+o.name,category:"Transferencia Recibida",status:"PAID",currency:i.currency,accountId:n,amount:a,date:firebase.firestore.Timestamp.fromDate(r),transferId:c,createdAt:new Date,createdBy:p(),description:"Transferencia entre cuentas propias"},u=E.batch();u.set(E.collection("transactions").doc(),d),u.set(E.collection("transactions").doc(),l),await u.commit(),O.hide(),ge.reset(),Swal.fire("Éxito","Transferencia realizada correctamente.","success")}catch(e){console.error(e),Swal.fire("Error","No se pudo realizar la transferencia.","error")}finally{s.disabled=!1,s.innerHTML=e}}}}});e=document.getElementById("btn-sync-agreements");e&&e.addEventListener("click",async()=>{var e=document.getElementById("btn-sync-agreements");if((await Swal.fire({title:"¿Sincronizar Acuerdos?",html:"Esto asignará la cuenta configurada actualmente en cada acuerdo a todos sus ingresos históricos que no tengan cuenta asignada.<br><br><b>¡Esto afectará los saldos de las cuentas!</b>",icon:"warning",showCancelButton:!0,confirmButtonText:"Sí, sincronizar",cancelButtonText:"Cancelar"})).isConfirmed){e.disabled=!0,e.innerHTML='<i class="bx bx-loader bx-spin"></i> Procesando...';try{let n=E.batch(),a=0;for(let t of D.filter(e=>e.accountId&&!1!==e.isActive))L.filter(e=>e.agreementId===t.id&&"INCOME"===e.type&&e.accountId!==t.accountId).forEach(e=>{e=E.collection("transactions").doc(e.id);n.update(e,{accountId:t.accountId}),a++});0<a?(490<a&&console.warn("Large batch update, implementing chunking not included in this snippet. Proceeding with risk or partial."),await n.commit(),Swal.fire("Sincronización Completa",`Se actualizaron ${a} transacciones.`,"success"),ee()):Swal.fire("Todo en orden","No se encontraron transacciones pendientes de actualizar.","info")}catch(e){console.error(e),Swal.fire("Error","Falló la sincronización: "+e.message,"error")}finally{e.disabled=!1,e.innerHTML='<i class="mdi mdi-refresh me-1"></i> Sync Acuerdos'}}}),window.openAssetModal=function(t=null){var e=document.getElementById("form-asset");e&&(e.reset(),document.getElementById("asset-id").value="",t&&(e=C.find(e=>e.id===t))&&(document.getElementById("asset-id").value=e.id,document.getElementById("asset-name").value=e.name,document.getElementById("asset-type").value=e.type,document.getElementById("asset-currency").value=e.currency,document.getElementById("asset-target").value=e.targetAmount,document.getElementById("asset-valuation").value=e.currentValuation,document.getElementById("asset-invested"))&&(document.getElementById("asset-invested").value=e.investedAmount),V.show())};o=document.getElementById("form-asset"),o&&o.addEventListener("submit",async e=>{e.preventDefault();var e=e.target.querySelector('button[type="submit"]'),t=e.innerHTML,n=document.getElementById("asset-id").value,a={name:document.getElementById("asset-name").value,type:document.getElementById("asset-type").value,currency:document.getElementById("asset-currency").value,targetAmount:parseFloat(document.getElementById("asset-target").value)||0,currentValuation:parseFloat(document.getElementById("asset-valuation").value)||0,investedAmount:parseFloat(document.getElementById("asset-invested").value)||0,updatedAt:new Date};try{e.disabled=!0,e.innerHTML='<i class="bx bx-loader bx-spin"></i>',n?await E.collection("cashflow_assets").doc(n).update(a):(a.uid=p(),a.createdAt=new Date,await E.collection("cashflow_assets").add(a)),V.hide(),Swal.fire("Guardado","Activo actualizado.","success")}catch(e){console.error(e),Swal.fire("Error","No se pudo guardar.","error")}finally{e.disabled=!1,e.innerHTML=t}}),r=document.getElementById("btn-new-asset"),r&&r.addEventListener("click",()=>openAssetModal()),a=document.getElementById("btn-new-investment");a&&a.addEventListener("click",()=>{{let t=document.getElementById("inv-account"),n=document.getElementById("inv-asset"),e=document.getElementById("inv-exchange-section");t&&n&&(t.innerHTML='<option value="">Seleccione cuenta...</option>',n.innerHTML='<option value="">Seleccione activo...</option>',M.filter(e=>!1!==e.isActive).forEach(e=>{t.innerHTML+=`<option value="${e.id}">${e.name} (${e.currency})</option>`}),C.forEach(e=>{n.innerHTML+=`<option value="${e.id}">${e.name} (${e.currency})</option>`}),e&&(e.style.display="none"),document.getElementById("form-investment").reset(),_.show())}});let ve=document.getElementById("inv-account"),Ee=document.getElementById("inv-asset"),pe=document.getElementById("inv-amount"),fe=document.getElementById("inv-exchange-rate"),Ie=document.getElementById("inv-final-asset-amount");e=()=>{let t=ve.value,n=Ee.value;var e,a,r=document.getElementById("inv-exchange-section");t&&n&&r&&(e=M.find(e=>e.id===t),a=C.find(e=>e.id===n),e&&a&&e.currency!==a.currency?(r.style.display="block",document.getElementById("inv-src-curr").innerText=e.currency,document.getElementById("inv-dst-curr").innerText=a.currency,be()):r.style.display="none")};let be=()=>{var e=parseFloat(pe.value)||0,t=parseFloat(fe.value)||0;Ie.value=0<e&&0<t?(e/t).toFixed(2):""};ve&&ve.addEventListener("change",e),Ee&&Ee.addEventListener("change",e),pe&&pe.addEventListener("input",be),fe&&fe.addEventListener("input",be);o=document.getElementById("form-investment"),o&&o.addEventListener("submit",async e=>{e.preventDefault();var e=e.target.querySelector('button[type="submit"]'),t=e.innerHTML;let n=document.getElementById("inv-account").value,a=document.getElementById("inv-asset").value;var r=parseFloat(document.getElementById("inv-amount").value)||0,o=document.getElementById("inv-date").value,i=parseFloat(document.getElementById("inv-exchange-rate").value)||0,s=parseFloat(document.getElementById("inv-final-asset-amount").value)||r;if(!n||!a||r<=0||!o)Swal.fire("Error","Complete los campos.","warning");else{var c=M.find(e=>e.id===n),d=C.find(e=>e.id===a);if(c&&d&&c.currency!==d.currency&&i<=0)Swal.fire("Error","Ingrese la tasa de cambio para la conversión.","warning");else try{e.disabled=!0,e.innerHTML='<i class="bx bx-loader bx-spin"></i>';var l={type:"INVESTMENT",accountId:n,assetId:a,amount:r,exchangeRate:0<i?i:1,assetAmount:s,date:firebase.firestore.Timestamp.fromDate(new Date(o)),category:"Inversión",status:"PAID",description:document.getElementById("inv-description").value||"Inversión",createdAt:new Date,createdBy:p()},u=(c&&(l.currency=c.currency),E.batch());u.set(E.collection("transactions").doc(),l),u.update(E.collection("cashflow_assets").doc(a),{investedAmount:firebase.firestore.FieldValue.increment(s),updatedAt:new Date}),await u.commit(),_.hide(),Swal.fire("Éxito","Inversión registrada.","success")}catch(e){console.error(e),Swal.fire("Error","No se pudo registrar.","error")}finally{e.disabled=!1,e.innerHTML=t}}}),window.deleteAsset=async function(e){if((await Swal.fire({title:"¿Eliminar Activo?",icon:"warning",showCancelButton:!0,confirmButtonText:"Sí, eliminar"})).isConfirmed)try{await E.collection("cashflow_assets").doc(e).delete(),Swal.fire("Eliminado","Activo borrado.","success")}catch(e){Swal.fire("Error","No se pudo eliminar.","error")}},r=document.getElementById("btn-new-withdrawal"),r&&r.addEventListener("click",()=>openWithdrawalModal()),a=document.getElementById("btn-new-asset-transfer");a&&a.addEventListener("click",()=>openAssetTransferModal());let b=document.getElementById("with-account"),w=document.getElementById("with-asset"),h=document.getElementById("with-amount"),B=document.getElementById("with-exchange-rate"),we=document.getElementById("with-final-account-amount"),S=document.getElementById("trans-asset-src"),A=document.getElementById("trans-asset-dst"),x=document.getElementById("trans-amount"),T=document.getElementById("trans-exchange-rate"),he=document.getElementById("trans-final-amount");window.openWithdrawalModal=function(){b&&w&&(b.innerHTML='<option value="">Seleccione cuenta...</option>',w.innerHTML='<option value="">Seleccione activo...</option>',M.filter(e=>!1!==e.isActive).forEach(e=>{b.innerHTML+=`<option value="${e.id}">${e.name} (${e.currency})</option>`}),C.forEach(e=>{w.innerHTML+=`<option value="${e.id}">${e.name} (${e.currency})</option>`}),document.getElementById("with-asset-balance").textContent="",document.getElementById("with-exchange-section").style.display="none",document.getElementById("form-withdrawal").reset(),z.show())};let Be=()=>{let t=b.value,n=w.value;var e,a,r=document.getElementById("with-exchange-section");t&&n&&r&&(e=M.find(e=>e.id===t),a=C.find(e=>e.id===n),e&&a&&e.currency!==a.currency?(r.style.display="block",document.getElementById("with-src-curr").innerText=a.currency,document.getElementById("with-dst-curr").innerText=e.currency,Se()):r.style.display="none")},Se=()=>{var e=parseFloat(h.value)||0,t=parseFloat(B.value)||0;we.value=0<e&&0<t?(e*t).toFixed(2):""};b&&b.addEventListener("change",Be),w&&w.addEventListener("change",()=>{let t=w.value;var e,n=document.getElementById("with-asset-balance");t&&n&&(e=C.find(e=>e.id===t),n.textContent=e?"Saldo disponible: "+$(e.investedAmount||0,e.currency):"",Be())}),h&&h.addEventListener("input",Se),B&&B.addEventListener("input",Se);e=document.getElementById("form-withdrawal");e&&e.addEventListener("submit",async e=>{e.preventDefault();var e=e.target.querySelector('button[type="submit"]'),t=e.innerHTML;let n=b.value,a=w.value;var r=parseFloat(h.value)||0,o=document.getElementById("with-date").value,i=parseFloat(B.value)||0,s=parseFloat(we.value)||r;if(!n||!a||r<=0||!o)Swal.fire("Error","Complete los campos.","warning");else{var c=M.find(e=>e.id===n),d=C.find(e=>e.id===a);if(!d||r>(d.investedAmount||0))Swal.fire("Error","El monto a retirar excede el saldo disponible en este activo.","error");else if(c&&d&&c.currency!==d.currency&&i<=0)Swal.fire("Error","Ingrese la tasa de cambio.","warning");else try{e.disabled=!0,e.innerHTML='<i class="bx bx-loader bx-spin"></i>';var l={type:"WITHDRAWAL",accountId:n,assetId:a,amount:s,exchangeRate:0<i?i:1,assetAmount:r,date:firebase.firestore.Timestamp.fromDate(new Date(o)),category:"Retiro Inversión",status:"PAID",description:document.getElementById("with-description").value||"Retiro de activo",createdAt:new Date,createdBy:p()},u=(c&&(l.currency=c.currency),E.batch());u.set(E.collection("transactions").doc(),l),u.update(E.collection("cashflow_assets").doc(a),{investedAmount:firebase.firestore.FieldValue.increment(-r),updatedAt:new Date}),await u.commit(),z.hide(),Swal.fire("Éxito","Retiro registrado.","success")}catch(e){console.error(e),Swal.fire("Error","No se pudo realizar el retiro.","error")}finally{e.disabled=!1,e.innerHTML=t}}}),window.openAssetTransferModal=function(){S&&A&&(S.innerHTML='<option value="">Activo Origen...</option>',A.innerHTML='<option value="">Activo Destino...</option>',C.forEach(e=>{e=`<option value="${e.id}">${e.name} (${e.currency})</option>`;S.innerHTML+=e,A.innerHTML+=e}),document.getElementById("trans-asset-src-balance").textContent="",document.getElementById("trans-exchange-section").style.display="none",document.getElementById("form-asset-transfer").reset(),G.show())};let Ae=()=>{let t=S.value,n=A.value;var e,a,r=document.getElementById("trans-exchange-section");t&&n&&r&&(e=C.find(e=>e.id===t),a=C.find(e=>e.id===n),e&&a&&e.currency!==a.currency?(r.style.display="block",document.getElementById("trans-src-curr").innerText=e.currency,document.getElementById("trans-dst-curr").innerText=a.currency,xe()):r.style.display="none")},xe=()=>{var e=parseFloat(x.value)||0,t=parseFloat(T.value)||0;he.value=0<e&&0<t?(e*t).toFixed(2):""};S&&S.addEventListener("change",()=>{let t=S.value;var e,n=document.getElementById("trans-asset-src-balance");t&&n&&(e=C.find(e=>e.id===t),n.textContent=e?"Saldo disponible: "+$(e.investedAmount||0,e.currency):"",Ae())}),A&&A.addEventListener("change",Ae),x&&x.addEventListener("input",xe),T&&T.addEventListener("input",xe);o=document.getElementById("form-asset-transfer");o&&o.addEventListener("submit",async e=>{e.preventDefault();var e=e.target.querySelector('button[type="submit"]'),t=e.innerHTML;let n=S.value,a=A.value;var r=parseFloat(x.value)||0,o=document.getElementById("trans-date").value,i=parseFloat(T.value)||0,s=parseFloat(he.value)||r;if(!n||!a||r<=0||!o||n===a)Swal.fire("Error","Complete los campos correctamente. Origen y destino deben ser diferentes.","warning");else{var c=C.find(e=>e.id===n),d=C.find(e=>e.id===a);if(!c||r>(c.investedAmount||0))Swal.fire("Error","Monto insuficiente en el activo de origen.","error");else if(c&&d&&c.currency!==d.currency&&i<=0)Swal.fire("Error","Ingrese la tasa de cambio.","warning");else try{e.disabled=!0,e.innerHTML='<i class="bx bx-loader bx-spin"></i>';var l={type:"ASSET_TRANSFER",assetId:n,assetDstId:a,amount:r,exchangeRate:0<i?i:1,assetAmount:s,date:firebase.firestore.Timestamp.fromDate(new Date(o)),category:"Transferencia Activos",status:"PAID",description:document.getElementById("trans-description").value||"Transferencia entre activos",createdAt:new Date,createdBy:p(),currency:c.currency},u=E.batch();u.set(E.collection("transactions").doc(),l),u.update(E.collection("cashflow_assets").doc(n),{investedAmount:firebase.firestore.FieldValue.increment(-r),updatedAt:new Date}),u.update(E.collection("cashflow_assets").doc(a),{investedAmount:firebase.firestore.FieldValue.increment(s),updatedAt:new Date}),await u.commit(),G.hide(),Swal.fire("Éxito","Transferencia realizada.","success")}catch(e){console.error(e),Swal.fire("Error","No se pudo realizar la transferencia.","error")}finally{e.disabled=!1,e.innerHTML=t}}});
-    
-    // Mobile Filter Logic
-    var mobFilter = document.getElementById("mob-month-filter");
-    if(mobFilter) {
-        var now = new Date();
-        var currentMonth = now.getMonth() + 1;
-        var currentMonthStr = currentMonth.toString().padStart(2, '0');
-        mobFilter.value = currentMonthStr; 
-        
-        mobFilter.addEventListener("change", function() {
-            var selectedValue = this.value;
-            var d = new Date();
-            var y = d.getFullYear();
-            
-            var fp = document.getElementById("filter-period");
-            var fy = document.getElementById("filter-year");
+    function updateGlobalFilterCategory() {
+        let filterCat = document.getElementById("filter-category");
+        if (filterCat) {
+            let current = filterCat.value;
+            filterCat.innerHTML = '<option value="ALL">Todas</option>';
+            [...new Set([...categoriesMap.INCOME, ...categoriesMap.EXPENSE])].sort().forEach(cat => {
+                filterCat.innerHTML += `<option value="${cat}">${cat}</option>`;
+            });
+            filterCat.value = current;
+        }
+    }
 
-            if(fp) {
-                if(selectedValue === 'ALL') {
-                    fp.value = 'ALL';
-                } else {
-                     fp.value = selectedValue;
-                }
-                // Trigger change event to fire existing listeners (c())
-                fp.dispatchEvent(new Event('change')); 
+    function updateEntityLists() {
+        const inList = document.getElementById("list-entities-income");
+        const exList = document.getElementById("list-entities-expense");
+        if (inList) inList.innerHTML = "";
+        if (exList) exList.innerHTML = "";
+        entitiesMap.INCOME.forEach(name => { if (inList) inList.innerHTML += `<option value="${name}">${name}</option>`; });
+        entitiesMap.EXPENSE.forEach(name => { if (exList) exList.innerHTML += `<option value="${name}">${name}</option>`; });
+    }
+
+    function updateAccountSelects() {
+        const selects = document.querySelectorAll(".select-account");
+        const activeAccounts = allAccounts.filter(a => a.isActive !== false);
+        selects.forEach(select => {
+            const current = select.value;
+            select.innerHTML = '<option value="">Seleccione cuenta...</option>';
+            activeAccounts.forEach(acc => {
+                select.innerHTML += `<option value="${acc.id}">${acc.name} (${acc.currency})</option>`;
+            });
+            select.value = current;
+        });
+    }
+
+    // --- Transactions Management ---
+    function initTransactionsListener() {
+        dbFirestore.collection("transactions").onSnapshot(snapshot => {
+            allTransactions = [];
+            snapshot.forEach(doc => allTransactions.push({ id: doc.id, ...doc.data() }));
+            checkRecurrences(allTransactions);
+            applyFilters(); // Refresh filters and calculations
+        });
+    }
+
+    async function checkRecurrences(allTx) {
+        if (isRecurrenceChecking || initialRecurrenceCheckDone) return;
+        isRecurrenceChecking = true;
+        try {
+            const recurs = allTx.filter(t => t.isRecurring && !t.parentRecurringId);
+            const now = new Date();
+            const firstOfCurrentMonth = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
+            let generated = 0;
+
+            for (let parent of recurs) {
+                const parentDate = parseFirestoreDate(parent.date);
+                if (!parentDate) continue;
+                
+                // Compare months accurately using UTC
+                const parentMonth = parentDate.getUTCMonth();
+                const parentYear = parentDate.getUTCFullYear();
+                const currentMonth = now.getUTCMonth();
+                const currentYear = now.getUTCFullYear();
+
+                if (parentYear > currentYear || (parentYear === currentYear && parentMonth >= currentMonth)) continue;
+
+                // Check if already generated for this month
+                const alreadyDone = allTx.find(t => t.parentRecurringId === parent.id && parseFirestoreDate(t.date).getUTCMonth() === currentMonth && parseFirestoreDate(t.date).getUTCFullYear() === currentYear);
+                if (alreadyDone) continue;
+
+                // Check installments
+                const count = allTx.filter(t => t.parentRecurringId === parent.id).length;
+                if (parent.installmentsTotal && count + 1 >= parent.installmentsTotal) continue;
+
+                const newTx = { ...parent };
+                delete newTx.id;
+                delete newTx.createdAt;
+                newTx.isRecurring = false;
+                newTx.parentRecurringId = parent.id;
+                newTx.status = parent.type === "SAVING" ? "ACTIVE" : "PENDING";
+                newTx.date = firebase.firestore.Timestamp.fromDate(firstOfCurrentMonth);
+                newTx.createdAt = new Date();
+                newTx.description = `${parent.address || ""} (Recurrente ${currentMonth + 1}/${currentYear})`;
+                if (parent.installmentsTotal) newTx.installmentNumber = count + 2;
+                
+                await dbFirestore.collection("transactions").add(newTx);
+                generated++;
             }
-            if(fy) fy.value = y; 
+            if (generated > 0) console.log(`Generated ${generated} recurring transactions.`);
+            initialRecurrenceCheckDone = true;
+        } catch (e) { console.error("Error checking recurrences", e); }
+        finally { isRecurrenceChecking = false; }
+    }
+
+    function applyFilters() {
+        const year = parseInt(document.getElementById("filter-year").value);
+        const period = document.getElementById("filter-period").value;
+        const category = document.getElementById("filter-category").value;
+        const accountId = document.getElementById("filter-account").value;
+        const status = document.getElementById("filter-status").value;
+        const search = document.getElementById("filter-search").value.toLowerCase();
+        
+        const filtered = allTransactions.filter(tx => {
+            const date = parseFirestoreDate(tx.date);
+            if (!date) return false;
+            
+            // UTC Filtering
+            if (date.getFullYear() !== year) return false;
+            
+            let periodMatch = true;
+            const monthVal = date.getMonth() + 1;
+            if (period !== "ALL") {
+                if (period === "YTD") periodMatch = date.getTime() <= Date.now();
+                else if (period === "Q1") periodMatch = monthVal >= 1 && monthVal <= 3;
+                else if (period === "Q2") periodMatch = monthVal >= 4 && monthVal <= 6;
+                else if (period === "Q3") periodMatch = monthVal >= 7 && monthVal <= 9;
+                else if (period === "Q4") periodMatch = monthVal >= 10 && monthVal <= 12;
+                else if (period === "S1") periodMatch = monthVal >= 1 && monthVal <= 6;
+                else if (period === "S2") periodMatch = monthVal >= 7 && monthVal <= 12;
+                else periodMatch = monthVal === parseInt(period);
+            }
+
+            const catMatch = category === "ALL" || tx.category === category;
+            const accMatch = accountId === "ALL" || tx.accountId === accountId;
+            const statusMatch = status === "ALL" || tx.status === status;
+            
+            const entityName = (tx.entityName || "").toLowerCase();
+            const address = (tx.address || "").toLowerCase();
+            const searchMatch = !search || entityName.includes(search) || address.includes(search);
+
+            return periodMatch && catMatch && accMatch && statusMatch && searchMatch;
         });
 
-        var fp = document.getElementById("filter-period");
-        if(fp) {
-            fp.addEventListener("change", function() {
-                 if(this.value !== 'ALL' && this.value !== mobFilter.value) {
-                    mobFilter.value = this.value;
-                 }
+        updateKPIs(filtered, year, period);
+        renderTransactionsTable(filtered);
+        renderMobileTransactions(filtered);
+    }
+
+    function updateKPIs(filtered, year, period) {
+        let totalIncArs = 0, totalIncUsd = 0, pendIncArs = 0, pendIncUsd = 0;
+        let totalExpArs = 0, totalExpUsd = 0, pendExpArs = 0, pendExpUsd = 0;
+
+        filtered.forEach(tx => {
+            if (tx.type === "INCOME") {
+                if (tx.currency === "ARS") { totalIncArs += tx.amount; if (tx.status !== "PAID") pendIncArs += tx.amount; }
+                else { totalIncUsd += tx.amount; if (tx.status !== "PAID") pendIncUsd += tx.amount; }
+            } else if (tx.type === "EXPENSE") {
+                if (tx.currency === "ARS") { totalExpArs += tx.amount; if (tx.status !== "PAID") pendExpArs += tx.amount; }
+                else { totalExpUsd += tx.amount; if (tx.status !== "PAID") pendExpUsd += tx.amount; }
+            }
+        });
+
+        if (/^\d{2}$/.test(period)) {
+            const periodKey = `${year}-${period}`;
+            allAgreements.forEach(agr => {
+                if (!agr.isActive) return;
+                if (agr.frequency === "MONTHLY" && (!agr.invoices || !agr.invoices[periodKey] || !agr.invoices[periodKey].sent)) {
+                    if (agr.currency === "ARS") { totalIncArs += agr.amount; pendIncArs += agr.amount; }
+                    else { totalIncUsd += agr.amount; pendIncUsd += agr.amount; }
+                }
             });
-             // Trigger initial load sync
-             setTimeout(function(){ fp.dispatchEvent(new Event('change')); }, 500);
+        }
+
+        // Summary Blocks Formatting
+        const setSum = (id, val, cur) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+        
+        setSum("kpi-income-ars", `${formatCurrency(totalIncArs - pendIncArs, "ARS")} / ${formatCurrency(totalIncArs, "ARS")}`);
+        setSum("kpi-income-usd", `${formatCurrency(totalIncUsd - pendIncUsd, "USD")} / ${formatCurrency(totalIncUsd, "USD")}`);
+        setSum("kpi-expense-ars", `${formatCurrency(totalExpArs - pendExpArs, "ARS")} / ${formatCurrency(totalExpArs, "ARS")}`);
+        setSum("kpi-expense-usd", `${formatCurrency(totalExpUsd - pendExpUsd, "USD")} / ${formatCurrency(totalExpUsd, "USD")}`);
+
+        let liqArs = 0, liqUsd = 0;
+        allAccounts.forEach(acc => {
+            const bal = getAccountBalance(acc.id);
+            if (acc.currency === "ARS") liqArs += bal; else liqUsd += bal;
+        });
+
+        let investedArs = 0, investedUsd = 0;
+        allAssets.forEach(asset => {
+            if (asset.currency === "ARS") investedArs += asset.valuation || 0;
+            else investedUsd += asset.valuation || 0;
+        });
+
+        updateKPICard("kpi-invested-ars", investedArs);
+        updateKPICard("kpi-invested-usd", investedUsd);
+        updateKPICard("kpi-net-ars", liqArs);
+        updateKPICard("kpi-net-usd", liqUsd);
+        updateKPICard("kpi-net-worth-ars", liqArs + investedArs);
+        updateKPICard("kpi-net-worth-usd", liqUsd + investedUsd);
+
+        updateSurplusAssistant(totalIncArs - totalExpArs, totalIncUsd - totalExpUsd, liqArs, liqUsd);
+    }
+
+    function renderTransactionsTable(list) {
+        const inBody = document.querySelector("#table-income tbody");
+        const exBody = document.querySelector("#table-expense tbody");
+        if (!inBody || !exBody) return;
+        inBody.innerHTML = ""; exBody.innerHTML = "";
+
+        list.forEach(tx => {
+            const dateObj = parseFirestoreDate(tx.date);
+            const dateStr = dateObj?.toLocaleDateString("es-AR", { timeZone: "UTC" }) || "-";
+            const amountStr = formatCurrency(tx.amount, tx.currency);
+            
+            // Mora Alert Logic (>15 days pending)
+            let moraHtml = "";
+            if (tx.status !== "PAID" && dateObj) {
+                const diff = (new Date() - dateObj) / (1000 * 60 * 60 * 24);
+                if (diff > 15) {
+                    const color = diff > 30 ? "text-danger" : "text-warning";
+                    moraHtml = `<i class="mdi mdi-alert-circle ${color} ms-1" title="Atrasado ${Math.floor(diff)} días"></i>`;
+                }
+            }
+
+            const statusClass = tx.status === "PAID" ? "badge bg-success" : (tx.status === "INVOICED" ? "badge bg-info" : "badge bg-warning text-dark");
+            const statusLabel = tx.status === "PAID" ? "Pagado" : (tx.status === "INVOICED" ? "Facturado" : "Pendiente");
+            const accName = allAccounts.find(a => a.id === tx.accountId)?.name || "-";
+            
+            const actions = `
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-soft-${tx.status === 'PAID' ? 'warning' : 'success'}" onclick="toggleStatus('${tx.id}', '${tx.status === 'PAID' ? 'PENDING' : 'PAID'}')">
+                        <i class="bx ${tx.status === 'PAID' ? 'bx-undo' : 'bx-check'}"></i>
+                    </button>
+                    <button class="btn btn-sm btn-soft-info" onclick="editTransaction('${tx.id}')"><i class="mdi mdi-pencil"></i></button>
+                    <button class="btn btn-sm btn-soft-danger" onclick="deleteTransaction('${tx.id}')"><i class="mdi mdi-trash-can"></i></button>
+                </div>
+            `;
+
+            const row = `
+                <tr>
+                    <td>${dateStr}${moraHtml}</td>
+                    <td>
+                        <h6 class="mb-0 font-size-14">${tx.entityName || "Sin Nombre"}</h6>
+                        <small class="text-muted">${tx.cuit || "-"}</small>
+                    </td>
+                    <td><span class="badge badge-soft-primary">${tx.category || "General"}</span></td>
+                    <td><span class="badge badge-soft-secondary">${accName}</span></td>
+                    <td>${tx.address || "-"}</td>
+                    <td>${tx.currency === "ARS" ? amountStr : "-"}</td>
+                    <td>${tx.currency === "USD" ? amountStr : "-"}</td>
+                    <td>${tx.isRecurring ? '<i class="bx bx-revision text-primary" title="Recurrente"></i>' : "-"}</td>
+                    <td><span class="${statusClass}">${statusLabel}</span></td>
+                    <td>${actions}</td>
+                </tr>
+            `;
+
+            if (tx.type === "INCOME") inBody.innerHTML += row;
+            else if (tx.type === "EXPENSE") exBody.innerHTML += row;
+        });
+    }
+
+    function renderMobileTransactions(list) {
+        const container = document.getElementById("mobile-transactions-list");
+        if (!container) return;
+        container.innerHTML = "";
+
+        if (list.length === 0) {
+            container.innerHTML = '<div class="text-center p-4 text-muted">Sin movimientos.</div>';
+            return;
+        }
+
+        const sorted = [...list].sort((a,b) => parseFirestoreDate(b.date) - parseFirestoreDate(a.date)).slice(0, mobileListLimit);
+        sorted.forEach(tx => {
+            const isInc = tx.type === "INCOME";
+            const colorClass = isInc ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger";
+            const amountColor = isInc ? "text-success" : "text-danger";
+            const icon = isInc ? "bx-trending-up" : "bx-trending-down";
+
+            container.innerHTML += `
+                <div class="list-group-item d-flex align-items-center py-3" onclick="editTransaction('${tx.id}')">
+                    <div class="avatar-sm me-3 flex-shrink-0">
+                        <span class="avatar-title rounded-circle ${colorClass} font-size-18">
+                            <i class="bx ${icon}"></i>
+                        </span>
+                    </div>
+                    <div class="flex-grow-1 overflow-hidden">
+                        <h5 class="font-size-14 mb-1 text-truncate">${tx.entityName || "Sin Nombre"}</h5>
+                        <p class="text-muted font-size-12 mb-0">${tx.category || "General"} • ${parseFirestoreDate(tx.date)?.toLocaleDateString() || "-"}</p>
+                    </div>
+                    <div class="text-end flex-shrink-0">
+                        <h5 class="font-size-14 mb-0 ${amountColor}">${formatCurrency(tx.amount, tx.currency)}</h5>
+                        <small class="text-muted">${tx.status === "PAID" ? "✅" : "⏳"}</small>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    // --- Transactions Actions ---
+    window.toggleStatus = async function(id, newStatus) {
+        try {
+            await dbFirestore.collection("transactions").doc(id).update({ status: newStatus });
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Estado actualizado', showConfirmButton: false, timer: 1500 });
+        } catch (e) { console.error("Error updating status", e); }
+    };
+
+    window.editTransaction = function(id) {
+        const tx = allTransactions.find(t => t.id === id);
+        if (!tx) return;
+
+        if (tx.type === "INCOME") {
+            document.getElementById("form-income").reset();
+            document.getElementById("in-id").value = tx.id;
+            document.getElementById("in-entity-name").value = tx.entityName;
+            document.getElementById("in-category").value = tx.category;
+            document.getElementById("in-amount").value = tx.amount;
+            document.getElementById("in-currency").value = tx.currency;
+            document.getElementById("in-account").value = tx.accountId;
+            document.getElementById("in-status").value = tx.status || "PENDING";
+            document.getElementById("in-date").valueAsDate = parseFirestoreDate(tx.date);
+            document.getElementById("in-recurring").checked = tx.isRecurring;
+            document.getElementById("container-in-installments").style.display = tx.isRecurring ? "block" : "none";
+            document.getElementById("in-installments").value = tx.installmentsTotal || "";
+            modalIncome.show();
+        } else if (tx.type === "EXPENSE") {
+            document.getElementById("form-expense").reset();
+            document.getElementById("ex-id").value = tx.id;
+            document.getElementById("ex-entity-name").value = tx.entityName;
+            document.getElementById("ex-category").value = tx.category;
+            document.getElementById("ex-amount").value = tx.amount;
+            document.getElementById("ex-currency").value = tx.currency;
+            document.getElementById("ex-account").value = tx.accountId;
+            document.getElementById("ex-status").value = tx.status || "PENDING";
+            document.getElementById("ex-date").valueAsDate = parseFirestoreDate(tx.date);
+            document.getElementById("ex-recurring").checked = tx.isRecurring;
+            document.getElementById("container-ex-installments").style.display = tx.isRecurring ? "block" : "none";
+            document.getElementById("ex-installments").value = tx.installmentsTotal || "";
+            modalExpense.show();
+        }
+    };
+
+    window.deleteTransaction = async function(id) {
+        const result = await Swal.fire({
+            title: '¿Eliminar transacción?',
+            text: "No podrás revertir esto.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#f46a6a',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                await dbFirestore.collection("transactions").doc(id).delete();
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Eliminado correctamentee', showConfirmButton: false, timer: 1500 });
+            } catch (e) { console.error("Error deleting tx", e); }
+        }
+    };
+
+    // --- Save Logic Z ---
+    async function saveTransaction(e, type) {
+        e.preventDefault();
+        const prefix = type === "INCOME" ? "in" : (type === "EXPENSE" ? "ex" : "sav");
+        const form = e.target;
+        const btn = form.querySelector('button[type="submit"]');
+        const originalText = btn.innerHTML;
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bx bx-loader bx-spin"></i> Guardando...';
+
+        try {
+            const id = document.getElementById(prefix + "-id").value;
+            const entityName = document.getElementById(prefix + "-entity-name") ? document.getElementById(prefix + "-entity-name").value : "";
+            
+            if (entityName && type !== "SAVING") {
+                const entityType = type === "INCOME" ? "CLIENT" : "PROVIDER";
+                if (!entitiesMap[type].includes(entityName)) {
+                    await dbFirestore.collection("cashflow_entities").add({ name: entityName, type: entityType, createdAt: new Date(), uid: getEffectiveUID() });
+                    entitiesMap[type].push(entityName);
+                    updateEntityLists();
+                }
+                if (type === "INCOME") {
+                    const exists = allClients.find(c => c.name.toLowerCase() === entityName.toLowerCase());
+                    if (!exists) {
+                        await dbFirestore.collection("clients").add({ name: entityName, uid: getEffectiveUID(), createdAt: new Date() });
+                    }
+                }
+            }
+
+            let data = {};
+            if (type === "SAVING") {
+                data = {
+                    type: "SAVING",
+                    entityName: document.getElementById("sav-category").value + " (" + document.getElementById("sav-currency").value + ")",
+                    category: document.getElementById("sav-category").value,
+                    amount: parseFloat(document.getElementById("sav-amount").value) || 0,
+                    targetAmount: parseFloat(document.getElementById("sav-target-amount").value) || null,
+                    currency: document.getElementById("sav-currency").value,
+                    accountId: document.getElementById("sav-account").value,
+                    status: document.getElementById("sav-status").value,
+                    date: firebase.firestore.Timestamp.fromDate(document.getElementById("sav-date").valueAsDate || new Date()),
+                    address: document.getElementById("sav-address").value,
+                    isRecurring: document.getElementById("sav-recurring").checked,
+                    installmentsTotal: parseInt(document.getElementById("sav-installments").value) || null,
+                    isInitialCapital: document.getElementById("sav-is-initial").checked,
+                    updatedAt: new Date()
+                };
+            } else {
+                data = {
+                    type: type,
+                    entityName: entityName,
+                    cuit: document.getElementById(prefix + "-cuit")?.value || "",
+                    address: document.getElementById(prefix + "-address")?.value || "",
+                    category: document.getElementById(prefix + "-category").value,
+                    amount: parseFloat(document.getElementById(prefix + "-amount").value) || 0,
+                    currency: document.getElementById(prefix + "-currency").value,
+                    accountId: document.getElementById(prefix + "-account").value,
+                    status: document.getElementById(prefix + "-status").value,
+                    date: firebase.firestore.Timestamp.fromDate(document.getElementById(prefix + "-date").valueAsDate || new Date()),
+                    isRecurring: document.getElementById(prefix + "-recurring").checked,
+                    installmentsTotal: parseInt(document.getElementById(prefix + "-installments")?.value) || null,
+                    updatedAt: new Date()
+                };
+            }
+
+            if (id) {
+                await dbFirestore.collection("transactions").doc(id).update(data);
+            } else {
+                // Balance Warning for Savings
+                if (type === "SAVING" && !data.isInitialCapital) {
+                    const currentBalance = getAccountBalance(data.accountId);
+                    if (data.amount > currentBalance) {
+                        const confirm = await Swal.fire({
+                            title: 'Saldo Insuficiente',
+                            text: `El monto (${formatCurrency(data.amount, data.currency)}) supera el saldo disponible (${formatCurrency(currentBalance, data.currency)}). ¿Continuar igual?`,
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonText: 'Sí, guardar',
+                            cancelButtonText: 'Corregir'
+                        });
+                        if (!confirm.isConfirmed) throw new Error("Acción cancelada por el usuario.");
+                    }
+                }
+
+                data.createdAt = new Date();
+                data.createdBy = getEffectiveUID();
+                await dbFirestore.collection("transactions").add(data);
+            }
+
+            if (type === "INCOME") modalIncome.hide();
+            else if (type === "EXPENSE") modalExpense.hide();
+            else modalSaving.hide();
+
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Guardado correctamente', showConfirmButton: false, timer: 3000 });
+        } catch (e) {
+            console.error("Error saving tx", e);
+            Swal.fire("Error", "No se pudo guardar: " + e.message, "error");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
         }
     }
 
-    // Mobile Accounts Logic
-    function renderMobileAccounts() {
+    document.getElementById("form-income")?.addEventListener("submit", e => saveTransaction(e, "INCOME"));
+    document.getElementById("form-expense")?.addEventListener("submit", e => saveTransaction(e, "EXPENSE"));
+    document.getElementById("form-saving")?.addEventListener("submit", e => saveTransaction(e, "SAVING"));
+
+    // --- Modal Helpers ---
+    window.openNewTransactionModal = function(type) {
+        if (type === "INCOME") {
+            document.getElementById("form-income").reset();
+            document.getElementById("in-id").value = "";
+            document.getElementById("in-date").valueAsDate = new Date();
+            modalIncome.show();
+        } else if (type === "EXPENSE") {
+            document.getElementById("form-expense").reset();
+            document.getElementById("ex-id").value = "";
+            document.getElementById("ex-date").valueAsDate = new Date();
+            modalExpense.show();
+        } else if (type === "SAVING") {
+            document.getElementById("form-saving").reset();
+            document.getElementById("sav-id").value = "";
+            document.getElementById("sav-date").valueAsDate = new Date();
+            modalSaving.show();
+        }
+        if (window.innerWidth < 992) toggleFabMenu();
+    };
+
+    // --- Save Agreement ---
+    async function saveAgreement(e) {
+        e.preventDefault();
+        const btn = document.getElementById("btn-save-agreement");
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bx bx-loader bx-spin"></i> Guardando...';
+
         try {
-            console.log("Rendering Mobile Accounts...", M.length);
-            var container = document.getElementById("mobile-accounts-list");
-            var totalDisplay = document.getElementById("mob-accounts-total-balance");
-            if(!container) {
-                console.warn("Mobile accounts container not found");
-                return;
+            const id = document.getElementById("agreement-id").value;
+            const clientId = document.getElementById("agr-client-id").value;
+            const client = allClients.find(c => c.id === clientId);
+            
+            const data = {
+                clientId: clientId,
+                name: client ? client.name : "",
+                category: document.getElementById("agr-category").value,
+                biller: document.getElementById("agr-biller").value,
+                description: document.getElementById("agr-desc").value,
+                frequency: document.getElementById("agr-frequency").value,
+                accountId: document.getElementById("agr-account").value,
+                currency: document.getElementById("agr-currency").value,
+                amount: parseFloat(document.getElementById("agr-amount").value) || 0,
+                hasInvoice: document.getElementById("agr-hasInvoice").value === "true",
+                updatedAt: new Date()
+            };
+
+            if (id) {
+                await dbFirestore.collection("cashflow_agreements").doc(id).update(data);
+            } else {
+                data.isActive = true;
+                data.createdAt = new Date();
+                data.uid = getEffectiveUID();
+                data.invoices = {};
+                await dbFirestore.collection("cashflow_agreements").add(data);
             }
 
-            container.innerHTML = "";
-            
-            if (M.length === 0) {
-                 container.innerHTML = '<div class="text-center p-4 text-muted">No hay cuentas registradas.</div>';
-                 if(totalDisplay) totalDisplay.textContent = "$ 0";
-                 return;
-            }
+            modalAgreement.hide();
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Acuerdo guardado', showConfirmButton: false, timer: 3000 });
+        } catch (err) {
+            console.error("Error saving agreement", err);
+            Swal.fire("Error", "No se pudo guardar el acuerdo.", "error");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
 
-            var totalArs = 0;
-            var totalUsd = 0;
-            
-            M.filter(acc => acc.isActive !== false).forEach(acc => {
-                var balance = R(acc.id);
-                if(acc.currency === 'ARS') totalArs += balance;
-                if(acc.currency === 'USD') totalUsd += balance;
-                
-                // Calc equivalent for total? For now just sum ARS for the big number or handling differently.
-                // Let's rely on the individual cards for clarity.
+    document.getElementById("form-agreement")?.addEventListener("submit", saveAgreement);
 
-                var card = document.createElement("div");
-                card.className = "card shadow-sm border-0 rounded-4";
-                card.innerHTML = `
+    window.editAgreement = function(id) {
+        const agr = allAgreements.find(a => a.id === id);
+        if (!agr) return;
+
+        document.getElementById("form-agreement").reset();
+        document.getElementById("agreement-id").value = agr.id;
+        document.getElementById("agr-client-id").value = agr.clientId || "";
+        document.getElementById("agr-category").value = agr.category || "";
+        document.getElementById("agr-biller").value = agr.biller || "Lucre";
+        document.getElementById("agr-desc").value = agr.description || "";
+        document.getElementById("agr-frequency").value = agr.frequency || "MONTHLY";
+        document.getElementById("agr-account").value = agr.accountId || "";
+        document.getElementById("agr-currency").value = agr.currency || "ARS";
+        document.getElementById("agr-amount").value = agr.amount || 0;
+        document.getElementById("agr-hasInvoice").value = agr.hasInvoice ? "true" : "false";
+        document.getElementById("agr-last-update").textContent = agr.updatedAt ? parseFirestoreDate(agr.updatedAt).toLocaleString() : "-";
+        
+        modalAgreement.show();
+    };
+
+    // --- Agreements Management ---
+    function initAgreementsListener() {
+        if (isAgreementChecking) return;
+        dbFirestore.collection("cashflow_agreements").where("isActive", "!=", false).onSnapshot(snapshot => {
+            allAgreements = [];
+            snapshot.forEach(doc => allAgreements.push({ id: doc.id, ...doc.data() }));
+            renderAgreementsTable(); // Table
+            renderMonthlyControl(); // Monthly grid summary
+        });
+    }
+
+    function renderMonthlyControl() {
+        const list = document.getElementById("monthly-control-list");
+        if (!list) return;
+
+        const year = document.getElementById("filter-year").value;
+        const period = document.getElementById("filter-period").value;
+        if (!/^\d{2}$/.test(period)) {
+            list.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Seleccione un mes para ver control.</td></tr>';
+            return;
+        }
+
+        const periodKey = `${year}-${period}`;
+        const activeAgreements = allAgreements.filter(a => a.isActive !== false && a.hasInvoice !== false);
+        
+        list.innerHTML = "";
+        let totalContractedArs = 0, totalContractedUsd = 0;
+        let totalInvoicedArs = 0, totalInvoicedUsd = 0;
+
+        if (activeAgreements.length === 0) {
+            list.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No hay acuerdos facturables.</td></tr>';
+        }
+
+        activeAgreements.forEach(agr => {
+            const client = allClients.find(c => c.id === agr.clientId);
+            const name = client ? client.name : (agr.clientId ? "⚠️ " + agr.name : agr.name);
+            const inv = agr.invoices && agr.invoices[periodKey];
+            const isSent = inv && inv.sent;
+
+            if (agr.currency === "ARS") totalContractedArs += agr.amount; else totalContractedUsd += agr.amount;
+            if (isSent) { if (agr.currency === "ARS") totalInvoicedArs += agr.amount; else totalInvoicedUsd += agr.amount; }
+
+            list.innerHTML += `
+                <tr>
+                    <td><h6 class="mb-0 font-size-13">${name}</h6></td>
+                    <td><small class="text-muted">${agr.cuit || "-"}</small></td>
+                    <td><span class="badge badge-soft-info">${agr.biller || "Lucre"}</span></td>
+                    <td>${formatCurrency(agr.amount, agr.currency)}</td>
+                    <td>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" ${isSent ? 'checked' : ''} onchange="toggleInvoiceSent('${agr.id}', '${periodKey}', this)">
+                            <label class="form-check-label small">${isSent ? 'FACTURADO' : 'PENDIENTE'}</label>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+
+        // Update Summary Badges
+        document.getElementById("summary-agr-contracted").textContent = formatCurrency(totalContractedArs, "ARS") + (totalContractedUsd > 0 ? " + " + formatCurrency(totalContractedUsd, "USD") : "");
+        document.getElementById("summary-agr-invoiced").textContent = formatCurrency(totalInvoicedArs, "ARS") + (totalInvoicedUsd > 0 ? " + " + formatCurrency(totalInvoicedUsd, "USD") : "");
+    }
+
+    function renderMobileAccounts() {
+        const container = document.getElementById("mobile-accounts-horizontal");
+        if (!container) return;
+        container.innerHTML = "";
+
+        allAccounts.filter(a => a.isActive !== false).forEach(acc => {
+            const bal = getAccountBalance(acc.id);
+            container.innerHTML += `
+                <div class="card border-0 shadow-sm rounded-4 me-3" style="min-width: 140px; background: #fff;">
                     <div class="card-body p-3">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <div class="d-flex align-items-center">
-                                <div class="avatar-sm me-3">
-                                    <span class="avatar-title rounded-circle bg-soft-primary text-primary font-size-18">
-                                        <i class="mdi mdi-bank"></i>
-                                    </span>
-                                </div>
-                                <div>
-                                    <h5 class="font-size-14 mb-0 text-dark fw-bold">${acc.name}</h5>
-                                    <small class="text-muted">${acc.currency}</small>
-                                </div>
+                        <small class="text-muted d-block text-truncate mb-1">${acc.name}</small>
+                        <h5 class="mb-0 font-size-15 ${bal < 0 ? 'text-danger' : 'text-primary'}" style="white-space:nowrap">${formatCurrency(bal, acc.currency)}</h5>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    function renderAgreementsTable() {
+        const body = document.querySelector("#table-agreements tbody");
+        if (!body) return;
+        body.innerHTML = "";
+
+        const period = document.getElementById("filter-period").value;
+        const year = document.getElementById("filter-year").value;
+        const showArchived = document.getElementById("switch-show-archived-agreements")?.checked || false;
+
+        const list = showArchived ? allAgreements : allAgreements.filter(a => a.isActive !== false);
+
+        if (list.length === 0) {
+            body.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No hay acuerdos.</td></tr>';
+            return;
+        }
+
+        list.forEach(agr => {
+            const client = allClients.find(c => c.id === agr.clientId);
+            const clientName = client ? client.name : (agr.clientId ? "⚠️ " + agr.name : agr.name);
+            const amountStr = formatCurrency(agr.amount, agr.currency);
+            
+            const periodKey = `${year}-${period}`;
+            const invStatus = agr.invoices && agr.invoices[periodKey] && agr.invoices[periodKey].sent;
+            const statusHtml = /^\d{2}$/.test(period) ? `
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" ${invStatus ? "checked" : ""} onchange="toggleInvoiceSent('${agr.id}', '${periodKey}', this)">
+                    <label class="form-check-label small">${invStatus ? "COBRADO" : "PENDIENTE"}</label>
+                </div>
+            ` : "-";
+
+            body.innerHTML += `
+                <tr class="${!agr.isActive ? 'opacity-50' : ''}">
+                    <td>${clientName}</td>
+                    <td><span class="badge badge-soft-primary">${agr.category || "Honorarios"}</span></td>
+                    <td>${agr.frequency || "MONTHLY"}</td>
+                    <td>${amountStr}</td>
+                    <td>${statusHtml}</td>
+                    <td>
+                        <button class="btn btn-sm btn-soft-info" onclick="editAgreement('${agr.id}')"><i class="mdi mdi-pencil"></i></button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    window.toggleInvoiceSent = async function(id, periodKey, el) {
+        const isSent = el.checked;
+        const agr = allAgreements.find(a => a.id === id);
+        if (!agr) return;
+
+        try {
+            if (isSent) {
+                // Logic for 3-state or simple marking
+                // For simplicity here, just mark as sent and create income if needed
+                const incomeData = {
+                    type: "INCOME",
+                    entityName: agr.name + " (" + periodKey + ")",
+                    category: agr.category || "Honorarios",
+                    amount: agr.amount,
+                    currency: agr.currency,
+                    accountId: agr.accountId || "",
+                    status: "PAID",
+                    date: firebase.firestore.Timestamp.fromDate(new Date()),
+                    agreementId: id,
+                    periodKey: periodKey,
+                    createdAt: new Date(),
+                    createdBy: getEffectiveUID()
+                };
+                const doc = await dbFirestore.collection("transactions").add(incomeData);
+                
+                const update = {};
+                update[`invoices.${periodKey}`] = { sent: true, date: new Date().toISOString().split("T")[0], incomeId: doc.id };
+                await dbFirestore.collection("cashflow_agreements").doc(id).update(update);
+            } else {
+                const inv = agr.invoices[periodKey];
+                if (inv && inv.incomeId) await dbFirestore.collection("transactions").doc(inv.incomeId).delete();
+                const update = {};
+                update[`invoices.${periodKey}`] = firebase.firestore.FieldValue.delete();
+                await dbFirestore.collection("cashflow_agreements").doc(id).update(update);
+            }
+        } catch (e) {
+            console.error("Error toggling invoice", e);
+            el.checked = !isSent;
+        }
+    };
+
+    // --- Account Summary & Logic ---
+    function renderAccountSummary() {
+        const container = document.getElementById("account-summary-list");
+        if (!container) return;
+        container.innerHTML = "";
+
+        allAccounts.filter(a => a.isActive !== false).forEach(acc => {
+            const bal = getAccountBalance(acc.id);
+            container.innerHTML += `
+                <tr>
+                    <td>${acc.name}</td>
+                    <td>${acc.currency}</td>
+                    <td class="${bal < 0 ? 'text-danger' : ''}">${formatCurrency(bal, acc.currency)}</td>
+                </tr>
+            `;
+        });
+    }
+
+    function getAccountBalance(accId) {
+        const acc = allAccounts.find(a => a.id === accId);
+        if (!acc) return 0;
+        let bal = parseFloat(acc.initialBalance) || 0;
+        allTransactions.filter(tx => tx.accountId === accId && tx.status === "PAID").forEach(tx => {
+            if (tx.type === "INCOME") bal += tx.amount;
+            else if (tx.type === "EXPENSE") bal -= tx.amount;
+        });
+        return bal;
+    }
+
+    function updateKPICard(id, val) {
+        const el = document.getElementById(id);
+        if (el) {
+            const currency = id.includes("-usd") ? "USD" : "ARS";
+            el.textContent = formatCurrency(val, currency);
+        }
+    }
+
+    // --- Surplus Assistant updateSurplusAssistant ---
+    function updateSurplusAssistant(netArs, netUsd, liqArs, liqUsd) {
+        const container = document.getElementById("surplus-assistant-container");
+        if (!container) return;
+
+        if (netArs <= 0 && netUsd <= 0) {
+            container.style.display = "none";
+            return;
+        }
+
+        container.style.display = "block";
+        let html = `
+            <div class="alert alert-info border-0 d-flex align-items-center mb-0">
+                <div class="flex-grow-1">
+                    <h5 class="font-size-14 text-info mb-1"><i class="mdi mdi-robot-astray me-2"></i>Asistente de Excedente</h5>
+                    <p class="text-muted font-size-12 mb-0">Tienes un excedente neto proyectado. ¿Deseas capitalizarlo?</p>
+                </div>
+                <div class="flex-shrink-0">
+                    <button class="btn btn-primary btn-sm" onclick="openSurplusModal(${netArs}, ${netUsd})">Capitalizar</button>
+                </div>
+            </div>
+        `;
+        container.innerHTML = html;
+    }
+
+    window.openSurplusModal = async function(ars, usd) {
+        let html = '<div class="text-start">';
+        if (ars > 0) html += `
+            <div class="mb-3">
+                <label class="form-label">ARS a Guardar (Max: ${formatCurrency(ars, "ARS")})</label>
+                <input id="swal-ars" class="form-control" type="number" value="${ars}" max="${ars}">
+            </div>`;
+        if (usd > 0) html += `
+            <div class="mb-3">
+                <label class="form-label">USD a Guardar (Max: ${formatCurrency(usd, "USD")})</label>
+                <input id="swal-usd" class="form-control" type="number" value="${usd}" max="${usd}">
+            </div>`;
+        html += '</div>';
+
+        const { value: vals } = await Swal.fire({
+            title: 'Capitalizar Excedente',
+            html: html,
+            showCancelButton: true,
+            confirmButtonText: 'Guardar Ahorro',
+            preConfirm: () => ({
+                ars: parseFloat(document.getElementById("swal-ars")?.value) || 0,
+                usd: parseFloat(document.getElementById("swal-usd")?.value) || 0
+            })
+        });
+
+        if (vals) {
+            const batch = dbFirestore.batch();
+            const year = document.getElementById("filter-year").value;
+            const period = document.getElementById("filter-period").value;
+            const date = new Date(year, parseInt(period), 0); // Last day of month
+
+            const save = (amt, curr) => {
+                if (amt <= 0) return;
+                const ref = dbFirestore.collection("transactions").doc();
+                batch.set(ref, {
+                    type: "SAVING",
+                    entityName: "Capitalización Excedente " + period + "/" + year,
+                    category: "Fondo de Reserva",
+                    amount: amt,
+                    currency: curr,
+                    status: "ACTIVE",
+                    date: firebase.firestore.Timestamp.fromDate(date),
+                    createdAt: new Date(),
+                    createdBy: getEffectiveUID()
+                });
+            };
+
+            save(vals.ars, "ARS");
+            save(vals.usd, "USD");
+            await batch.commit();
+            Swal.fire("Éxito", "Excedente capitalizado", "success");
+        }
+    };
+
+    // --- Entity Modal Quick Add ---
+    // (Removed original btn-quick-add-client logic to use form-client-quick below)
+
+    // --- Mobile FAB Logic ---
+    window.toggleFabMenu = function() {
+        const fabOptions = document.getElementById("mob-fab-options");
+        const fabMain = document.getElementById("mob-fab-main");
+        if (fabOptions && fabMain) {
+            fabOptions.classList.toggle("show");
+            const icon = fabMain.querySelector("i");
+            if (icon) {
+                if (fabOptions.classList.contains("show")) {
+                    icon.style.transform = "rotate(45deg)";
+                } else {
+                    icon.style.transform = "rotate(0deg)";
+                }
+            }
+        }
+    };
+
+    // --- Client Quick Add Form ---
+    document.getElementById("form-client-quick")?.addEventListener("submit", async function(e) {
+        e.preventDefault();
+        const btn = this.querySelector('button[type="submit"]');
+        const name = document.getElementById("client-name-quick").value.trim();
+        const phone = document.getElementById("client-phone-quick").value.trim();
+        const type = document.getElementById("client-type-quick").value;
+
+        if (!name) return;
+        btn.disabled = true;
+
+        try {
+            await dbFirestore.collection("clients").add({
+                name: name,
+                phone: phone,
+                type: type,
+                uid: getEffectiveUID(),
+                createdAt: new Date()
+            });
+            
+            const modalEl = document.getElementById("newClientModal");
+            const modalIdx = bootstrap.Modal.getInstance(modalEl);
+            if (modalIdx) modalIdx.hide();
+            
+            Swal.fire("Éxito", `Cliente ${name} creado correctamente.`, "success");
+            this.reset();
+        } catch (err) {
+            console.error("Error quick creating client", err);
+            Swal.fire("Error", "No se pudo crear el cliente.", "error");
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
+    // --- Global Event Listeners ---
+    ["filter-year", "filter-period", "filter-category", "filter-account", "filter-status"].forEach(id => {
+        document.getElementById(id)?.addEventListener("change", applyFilters);
+    });
+    document.getElementById("filter-search")?.addEventListener("input", applyFilters);
+    document.getElementById("filter-only-recurring")?.addEventListener("change", applyFilters);
+    document.getElementById("switch-show-archived-agreements")?.addEventListener("change", renderAgreementsTable);
+
+    // --- Agreement Price Calc ---
+    document.getElementById("btn-calc-update")?.addEventListener("click", () => {
+        const percent = parseFloat(document.getElementById("agr-calc-percent").value);
+        if (isNaN(percent)) return;
+        const current = parseFloat(document.getElementById("agr-amount").value) || 0;
+        const newValue = current * (1 + (percent / 100));
+        document.getElementById("agr-amount").value = newValue.toFixed(2);
+    });
+
+    function renderAccountsTable() {
+        const body = document.querySelector("#table-accounts tbody");
+        if (!body) return;
+        body.innerHTML = "";
+        allAccounts.forEach(acc => {
+            const bal = getAccountBalance(acc.id);
+            body.innerHTML += `
+                <tr>
+                    <td>${acc.name}</td>
+                    <td>${acc.currency}</td>
+                    <td>${formatCurrency(bal, acc.currency)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-soft-info border-0" onclick="editAccount('${acc.id}')"><i class="mdi mdi-pencil font-size-13"></i></button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    function renderAssetsGrid() {
+        const container = document.getElementById("portfolio-grid");
+        if (!container) return;
+        container.innerHTML = "";
+        if (allAssets.length === 0) {
+            container.innerHTML = '<div class="col-12 text-center text-muted py-5"><p>No hay activos registrados.</p></div>';
+            return;
+        }
+        allAssets.forEach(asset => {
+            container.innerHTML += `
+                <div class="col-xl-3 col-sm-6 mb-3">
+                    <div class="card h-100 border-start border-4 border-primary">
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between">
+                                <h6 class="text-muted font-size-11 text-uppercase mb-2">${asset.type || 'Inversión'}</h6>
+                                <i class="mdi mdi-dots-vertical cursor-pointer" onclick="editAsset('${asset.id}')"></i>
                             </div>
-                            <div class="text-end">
-                                <h5 class="font-size-16 mb-0 ${balance < 0 ? 'text-danger' : 'text-success'} fw-bold">
-                                    ${$(balance, acc.currency)}
-                                </h5>
-                                <small class="text-muted font-size-11">Disponible</small>
+                            <h5 class="font-size-14 text-truncate mb-1">${asset.name}</h5>
+                            <h4 class="mb-0 text-primary">${formatCurrency(asset.valuation || 0, asset.currency)}</h4>
+                            <div class="mt-2">
+                                <small class="text-muted">Costo: ${formatCurrency(asset.cost || 0, asset.currency)}</small>
                             </div>
                         </div>
-                        <button class="btn btn-primary w-100 rounded-pill btn-sm btn-mobile-transfer" 
-                            data-id="${acc.id}" 
-                            data-name="${acc.name}">
-                            Transferir
-                        </button>
                     </div>
-                `;
-                container.appendChild(card);
-            });
+                </div>
+            `;
+        });
+    }
 
-            if(totalDisplay) totalDisplay.textContent = $(totalArs, "ARS");
-            var totalDisplayUsd = document.getElementById("mob-accounts-total-balance-usd");
-            if(totalDisplayUsd) totalDisplayUsd.textContent = $(totalUsd, "USD");
-            
-            // Re-attach listeners for new buttons
-            container.querySelectorAll(".btn-mobile-transfer").forEach(btn => {
-                btn.addEventListener("click", (e) => {
-                    var accId = e.target.dataset.id;
-                    
-                    // Open Transfer Modal (Unified)
-                    if(O) {
-                        O.show();
-                        setTimeout(() => {
-                            var sourceSelect = document.getElementById("acc-trans-source");
-                            if(sourceSelect) {
-                                sourceSelect.value = accId;
-                                sourceSelect.dispatchEvent(new Event('change')); // To trigger balance update logic
-                            }
-                        }, 200);
-                    }
-                });
-            });
-        } catch(e) {
-            console.error("Error rendering mobile accounts:", e);
-            var container = document.getElementById("mobile-accounts-list");
-            if(container) container.innerHTML = '<div class="alert alert-danger">Error al cargar cuentas.</div>';
+    function updateAssetTypeSelect(types) {
+        const select = document.getElementById("asset-type");
+        if (select) {
+            select.innerHTML = '<option value="">Seleccione tipo...</option>';
+            types.forEach(t => select.innerHTML += `<option value="${t.name}">${t.name}</option>`);
         }
     }
 
-    // Initialize Mobile Accounts on Load
-    setTimeout(renderMobileAccounts, 1000);
-
-    // Override original hooks to include mobile update
-    var original_ie = typeof ie === 'function' ? ie : function(){};
-    ie = function() {
-        original_ie();
-        renderMobileAccounts();
-    };
+    function renderAssetTypesTable(types) {
+        const body = document.querySelector("#table-asset-types tbody");
+        if (body) {
+            body.innerHTML = "";
+            types.forEach(t => body.innerHTML += `<tr><td>${t.name}</td><td><button class="btn btn-sm btn-danger border-0" onclick="deleteAssetType('${t.id}')"><i class="mdi mdi-delete"></i></button></td></tr>`);
+        }
+    }
 
 
-    var original_me = typeof me === 'function' ? me : function(){};
-    me = function() {
-        original_me();
-        renderMobileAccounts();
-    };
 
-    // Explicit FAB Logic with Event Listener REMOVED (Handled by app.js global toggleFabMenu)
+    // Windows global functions for missing render calls
+    window.editAccount = (id) => console.log("Edit Account", id); // To be implemented
+    window.editAsset = (id) => console.log("Edit Asset", id); // To be implemented
+    window.deleteAssetType = (id) => console.log("Delete Asset Type", id);
+
 });
