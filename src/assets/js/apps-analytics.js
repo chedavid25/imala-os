@@ -497,9 +497,12 @@ function calculateOperativeKPIs(periodData, isMobile) {
         if (tx.currency !== filterCurrency) return; // Strict currency filtering
 
         let amount = parseFloat(tx.amount) || 0;
-        if (tx.type === 'INCOME') income += amount;
-        else if (tx.type === 'EXPENSE' && tx.category !== 'INVESTMENT') {
-            // Filter out transfers and account names from expenses
+        
+        // UNIFICATION: We use PAID status for these specific KPIs to match Cashflow "Balance del Periodo"
+        if (tx.type === 'INCOME' && tx.status === 'PAID') {
+            income += amount;
+        } else if (tx.type === 'EXPENSE' && tx.category !== 'INVESTMENT' && tx.status === 'PAID') {
+            // Filter out transfers and account names from expenses (already paid)
             const categoryUpper = (tx.category || "").toUpperCase();
             const isTransfer = categoryUpper.includes("TRANSFERENCIA");
             const isAccountName = accountsData.some(acc => (acc.name || "").toUpperCase() === categoryUpper);
@@ -508,9 +511,9 @@ function calculateOperativeKPIs(periodData, isMobile) {
                 expenses += amount;
             }
         }
-        else if (tx.type === 'SAVING') savings += amount;
     });
 
+    // Savings margin remains over income
     const profit = income - expenses;
     const savingsRate = income > 0 ? (profit / income) * 100 : 0;
 
@@ -583,15 +586,22 @@ function renderOperativeDashboard(yearTx, periodData, isMobile) {
     const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
     const incomeByMonth = new Array(12).fill(0);
     const expenseByMonth = new Array(12).fill(0);
-    const prevYearIncome = new Array(12).fill(0);
 
     yearTx.forEach(tx => {
         if (tx.currency !== filterCurrency) return;
         const m = tx.dateObj.getMonth();
         let amount = parseFloat(tx.amount) || 0;
 
-        if (tx.type === 'INCOME') incomeByMonth[m] += amount;
-        else if (tx.type === 'EXPENSE' && tx.category !== 'INVESTMENT') expenseByMonth[m] += amount;
+        // Use PAID status for trend charts to reflect cash flow
+        if (tx.type === 'INCOME' && tx.status === 'PAID') incomeByMonth[m] += amount;
+        else if (tx.type === 'EXPENSE' && tx.category !== 'INVESTMENT' && tx.status === 'PAID') {
+            const cat = tx.category || '';
+            const isTransfer = cat.toUpperCase().includes("TRANSFERENCIA");
+            const isAccountName = accountsData.some(acc => (acc.name || "").toUpperCase() === cat.toUpperCase());
+            if (!isTransfer && !isAccountName) {
+                expenseByMonth[m] += amount;
+            }
+        }
     });
 
     // Charts Config
@@ -633,8 +643,8 @@ function renderIncomeTrend(yearTx) {
         const m = tx.dateObj.getMonth();
         let amount = parseFloat(tx.amount) || 0;
 
-        if (tx.type === 'INCOME') incomeTrend[m] += amount;
-        else if (tx.type === 'EXPENSE' && tx.category !== 'INVESTMENT') {
+        if (tx.type === 'INCOME' && tx.status === 'PAID') incomeTrend[m] += amount;
+        else if (tx.type === 'EXPENSE' && tx.category !== 'INVESTMENT' && tx.status === 'PAID') {
             // Re-apply common expense filters
             const cat = tx.category || '';
             const isTransfer = cat.toUpperCase().includes("TRANSFERENCIA");

@@ -1296,17 +1296,51 @@ document.addEventListener('DOMContentLoaded', function () {
         const pIncome = currentFilteredData.filter(t => t.type === 'INCOME');
         const pExpense = currentFilteredData.filter(t => t.type === 'EXPENSE');
 
+        const incExpARS = getSum(pIncome, 'ARS');
+        const incExpUSD = getSum(pIncome, 'USD');
+        const incPaidARS = getSum(pIncome.filter(t => t.status === 'PAID'), 'ARS');
+        const incPaidUSD = getSum(pIncome.filter(t => t.status === 'PAID'), 'USD');
+
+        const expExpARS = getSum(pExpense, 'ARS');
+        const expExpUSD = getSum(pExpense, 'USD');
+        const expPaidARS = getSum(pExpense.filter(t => t.status === 'PAID'), 'ARS');
+        const expPaidUSD = getSum(pExpense.filter(t => t.status === 'PAID'), 'USD');
+
+        const incPendingARS = incExpARS - incPaidARS;
+        const expPendingARS = expExpARS - expPaidARS;
+
         // Facturación Esperada
-        updateKPI('kpi-income-expected-ars', getSum(pIncome, 'ARS'));
-        updateKPI('kpi-income-expected-usd', getSum(pIncome, 'USD'));
-        updateKPI('kpi-income-pending-ars', getSum(pIncome.filter(t => t.status !== 'PAID'), 'ARS'));
-        updateKPI('kpi-income-pending-usd', getSum(pIncome.filter(t => t.status !== 'PAID'), 'USD'));
+        updateKPI('kpi-income-expected-ars', incExpARS);
+        updateKPI('kpi-income-expected-usd', incExpUSD);
+        updateKPI('kpi-income-pending-ars', incPendingARS);
 
         // Gastos Esperados
-        updateKPI('kpi-expense-expected-ars', getSum(pExpense, 'ARS'));
-        updateKPI('kpi-expense-expected-usd', getSum(pExpense, 'USD'));
-        updateKPI('kpi-expense-pending-ars', getSum(pExpense.filter(t => t.status !== 'PAID'), 'ARS'));
-        updateKPI('kpi-expense-pending-usd', getSum(pExpense.filter(t => t.status !== 'PAID'), 'USD'));
+        updateKPI('kpi-expense-expected-ars', expExpARS);
+        updateKPI('kpi-expense-expected-usd', expExpUSD);
+        updateKPI('kpi-expense-pending-ars', expPendingARS);
+
+        // CALCULATE PERCENTAGES (ARS as base for progress)
+        const incomePct = incExpARS > 0 ? Math.round((incPaidARS / incExpARS) * 100) : (incExpUSD > 0 ? Math.round((incPaidUSD / incExpUSD) * 100) : 0);
+        const expensePct = expExpARS > 0 ? Math.round((expPaidARS / expExpARS) * 100) : (expExpUSD > 0 ? Math.round((expPaidUSD / expExpUSD) * 100) : 0);
+
+        // Update Progress Bars & Badges
+        document.getElementById('kpi-income-pct').textContent = `${incomePct}%`;
+        document.getElementById('kpi-income-progress').style.width = `${Math.min(incomePct, 100)}%`;
+        document.getElementById('kpi-expense-pct').textContent = `${expensePct}%`;
+        document.getElementById('kpi-expense-progress').style.width = `${Math.min(expensePct, 100)}%`;
+
+        // --- NEW: NET RESULT (Balance del Periodo) ---
+        const netResultARS = incPaidARS - expPaidARS;
+        const netResultUSD = incPaidUSD - expPaidUSD;
+        
+        updateKPI('kpi-net-result-ars', netResultARS);
+        updateKPI('kpi-net-result-usd', netResultUSD);
+
+        const arsContainer = document.getElementById('kpi-net-result-ars-container');
+        const usdContainer = document.getElementById('kpi-net-result-usd-container');
+        
+        if (netResultARS >= 0) { arsContainer.className = 'mb-2 fw-extrabold text-success'; } else { arsContainer.className = 'mb-2 fw-extrabold text-danger'; }
+        if (netResultUSD >= 0) { usdContainer.className = 'mb-0 fw-bold text-success'; } else { usdContainer.className = 'mb-0 fw-bold text-danger'; }
 
         // --- 2. GLOBAL WEALTH KPIs (Header) ---
         // A. LIQUIDITY (From Accounts)
@@ -1358,21 +1392,25 @@ document.addEventListener('DOMContentLoaded', function () {
         const period = document.getElementById('filter-period').value;
         
         // Show only if there is a surplus in the CURRENT MONTH and we have LIQUID CASH available
-        if (monthlyARS > 100 || monthlyUSD > 0) {
-            const arsToSave = Math.min(monthlyARS, availableARS);
-            const usdToSave = Math.min(monthlyUSD, availableUSD);
+        const hasArsSurplus = monthlyARS > 100 && availableARS > 0;
+        const hasUsdSurplus = monthlyUSD > 0 && availableUSD > 0;
 
-            if (arsToSave <= 0 && usdToSave <= 0) {
-                 container.style.display = 'none';
-                 return;
-            }
-
+        if (hasArsSurplus || hasUsdSurplus) {
             const monthMap = { '01': 'Enero', '02': 'Febrero', '03': 'Marzo', '04': 'Abril', '05': 'Mayo', '06': 'Junio', '07': 'Julio', '08': 'Agosto', '09': 'Septiembre', '10': 'Octubre', '11': 'Noviembre', '12': 'Diciembre' };
             const monthName = monthMap[period];
             
             if (monthName) {
                 container.style.display = 'block';
-                msg.innerHTML = `Ganaste <strong>${formatCurrency(monthlyARS, 'ARS')}</strong> / <strong>${formatCurrency(monthlyUSD, 'USD')}</strong> netos en <strong>${monthName}</strong>. ¿Deseas ahorrar una parte?`;
+                let surplusText = '';
+                if (hasArsSurplus && hasUsdSurplus) {
+                    surplusText = `Ganaste <strong>${formatCurrency(monthlyARS, 'ARS')}</strong> / <strong>${formatCurrency(monthlyUSD, 'USD')}</strong> netos`;
+                } else if (hasArsSurplus) {
+                    surplusText = `Ganaste <strong>${formatCurrency(monthlyARS, 'ARS')}</strong> netos`;
+                } else {
+                    surplusText = `Ganaste <strong>${formatCurrency(monthlyUSD, 'USD')}</strong> netos`;
+                }
+                
+                msg.innerHTML = `${surplusText} en <strong>${monthName}</strong>. ¿Deseas ahorrar una parte?`;
                 return;
             }
         }
@@ -1388,19 +1426,25 @@ document.addEventListener('DOMContentLoaded', function () {
         const monthMap = { '01': 'Enero', '02': 'Febrero', '03': 'Marzo', '04': 'Abril', '05': 'Mayo', '06': 'Junio', '07': 'Julio', '08': 'Agosto', '09': 'Septiembre', '10': 'Octubre', '11': 'Noviembre', '12': 'Diciembre' };
         const monthName = monthMap[period];
 
+        const arsHtml = ars > 0 ? `
+                    <div class="mb-3">
+                        <label class="form-label">Monto en Pesos (ARS) - Disponible: ${formatCurrency(ars, 'ARS')}</label>
+                        <input id="swal-ars" class="form-control" type="number" step="0.01" value="${ars}">
+                    </div>` : '<input id="swal-ars" type="hidden" value="0">';
+
+        const usdHtml = usd > 0 ? `
+                    <div class="mb-3">
+                        <label class="form-label">Monto en Dólares (USD) - Disponible: ${formatCurrency(usd, 'USD')}</label>
+                        <input id="swal-usd" class="form-control" type="number" step="0.01" value="${usd}">
+                    </div>` : '<input id="swal-usd" type="hidden" value="0">';
+
         const { value: formValues } = await Swal.fire({
             title: `Capitalizar Excedente - ${monthName}`,
             html: `
                 <div class="text-start">
                     <p class="text-muted small">Decide cuánto mover del saldo disponible actual a tus ahorros.</p>
-                    <div class="mb-3">
-                        <label class="form-label">Monto en Pesos (ARS) - Disponible: ${formatCurrency(ars, 'ARS')}</label>
-                        <input id="swal-ars" class="form-control" type="number" step="0.01" value="${ars > 0 ? ars : 0}">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Monto en Dólares (USD) - Disponible: ${formatCurrency(usd, 'USD')}</label>
-                        <input id="swal-usd" class="form-control" type="number" step="0.01" value="${usd > 0 ? usd : 0}">
-                    </div>
+                    ${arsHtml}
+                    ${usdHtml}
                 </div>
             `,
             focusConfirm: false,
@@ -1408,10 +1452,23 @@ document.addEventListener('DOMContentLoaded', function () {
             confirmButtonText: 'Confirmar Ahorro',
             cancelButtonText: 'Cancelar',
             preConfirm: () => {
-                return {
-                    ars: parseFloat(document.getElementById('swal-ars').value) || 0,
-                    usd: parseFloat(document.getElementById('swal-usd').value) || 0
+                const arsVal = parseFloat(document.getElementById('swal-ars').value) || 0;
+                const usdVal = parseFloat(document.getElementById('swal-usd').value) || 0;
+
+                if (arsVal > ars) {
+                    Swal.showValidationMessage(`El monto en ARS no puede exceder los ${formatCurrency(ars, 'ARS')}`);
+                    return false;
                 }
+                if (usdVal > usd) {
+                    Swal.showValidationMessage(`El monto en USD no puede exceder los ${formatCurrency(usd, 'USD')}`);
+                    return false;
+                }
+                if (arsVal <= 0 && usdVal <= 0) {
+                    Swal.showValidationMessage(`Debe capitalizar al menos algún monto positivo`);
+                    return false;
+                }
+
+                return { ars: arsVal, usd: usdVal };
             }
         });
 
@@ -1841,34 +1898,78 @@ document.addEventListener('DOMContentLoaded', function () {
                  }
 
                  if (result.isDenied) {
-                     const { value: rate } = await Swal.fire({
-                         title: 'Tipo de Cambio',
-                         text: `Ingrese la cotización para convertir de ${agreement.currency} a ${otherCurrency}`,
-                         input: 'number',
-                         inputAttributes: { min: 0, step: 0.01 },
-                         showCancelButton: true,
-                         confirmButtonText: 'Aplicar Conversión',
-                         inputValidator: (value) => {
-                             if (!value || value <= 0) return 'Ingrese un valor válido';
-                         }
-                     });
+                    const { value: rate } = await Swal.fire({
+                        title: 'Tipo de Cambio',
+                        text: `Ingrese la cotización para convertir de ${agreement.currency} a ${otherCurrency}`,
+                        input: 'number',
+                        inputAttributes: { min: 0, step: 0.01 },
+                        showCancelButton: true,
+                        confirmButtonText: 'Siguiente',
+                        inputValidator: (value) => {
+                            if (!value || value <= 0) return 'Ingrese un valor válido';
+                        }
+                    });
 
-                     if (!rate) {
-                         checkbox.checked = false;
-                         return;
-                     }
+                    if (!rate) {
+                        checkbox.checked = false;
+                        return;
+                    }
 
-                     const conversionRate = parseFloat(rate);
-                     finalCurrency = otherCurrency;
-                     
-                     if (agreement.currency === 'USD' && finalCurrency === 'ARS') {
-                         finalAmount = agreement.amount * conversionRate;
-                         conversionNote = ` [Conv. de USD a tasa ${conversionRate}]`;
-                     } else {
-                         finalAmount = agreement.amount / conversionRate;
-                         conversionNote = ` [Conv. de ARS a tasa ${conversionRate}]`;
-                     }
-                 }
+                    // NEW: Ask for Target Account in the new currency
+                    const targetAccounts = accountsData.filter(a => a.currency === otherCurrency && a.isActive !== false);
+                    let accountOptions = {};
+                    targetAccounts.forEach(acc => {
+                        accountOptions[acc.id] = acc.name;
+                    });
+
+                    if (targetAccounts.length > 0) {
+                        const { value: selectedAccId } = await Swal.fire({
+                            title: 'Seleccionar Cuenta de Destino',
+                            text: `Elija la cuenta en ${otherCurrency} donde se acreditará el ingreso:`,
+                            input: 'select',
+                            inputOptions: accountOptions,
+                            inputPlaceholder: 'Seleccione una cuenta...',
+                            showCancelButton: true,
+                            confirmButtonText: 'Aplicar Conversión',
+                            inputValidator: (value) => {
+                                if (!value) return 'Debe seleccionar una cuenta';
+                            }
+                        });
+
+                        if (!selectedAccId) {
+                            checkbox.checked = false;
+                            return;
+                        }
+                        
+                        // Override agreement account with selected one
+                        agreement.accountId = selectedAccId;
+                    } else {
+                        const confirmNoAcc = await Swal.fire({
+                            title: 'Sin cuentas en ' + otherCurrency,
+                            text: `No tienes cuentas configuradas en ${otherCurrency}. ¿Deseas continuar sin asignar una cuenta? (El saldo no se verá afectado)`,
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonText: 'Sí, continuar',
+                            cancelButtonText: 'Cancelar'
+                        });
+
+                        if (!confirmNoAcc.isConfirmed) {
+                            checkbox.checked = false;
+                            return;
+                        }
+                        agreement.accountId = null;
+                    }
+
+                    const conversionRate = parseFloat(rate);
+                    finalCurrency = otherCurrency;
+                    
+                    if (agreement.currency === 'USD' && finalCurrency === 'ARS') {
+                        finalAmount = agreement.amount * conversionRate;
+                        conversionNote = ` [Conv. de USD a tasa ${conversionRate}]`;
+                    } else {
+                        finalAmount = agreement.amount / conversionRate;
+                    }
+                }
 
 
                  // IDEMPOTENCY CHECK: Ensure we don't have a transaction for this period already
@@ -1900,24 +2001,29 @@ document.addEventListener('DOMContentLoaded', function () {
                      });
                      
                  } else {
-                     // Generate Income Transaction
-                     const newTx = {
-                          type: 'INCOME',
-                          entityName: agreement.name + conversionNote,
-                          cuit: agreement.cuit,
-                          address: 'Facturación Mensual Automática', 
-                          category: 'Honorarios', 
-                          status: 'PAID',
-                          currency: finalCurrency,
-                          accountId: agreement.accountId || null,
-                          amount: finalAmount,
-                          date: firebase.firestore.Timestamp.fromDate(new Date()), 
-                          isRecurring: false, 
-                          agreementId: agreementId,
-                          periodKey: periodKey,
-                          createdAt: new Date(),
-                          createdBy: getUIDSafe()
-                     };
+                     // FIX: Calculate date based on periodKey (YYYY-MM)
+                    // Use the 1st day of that month to ensure it falls in the correct period
+                    const [yearPart, monthPart] = periodKey.split('-');
+                    const txDate = new Date(parseInt(yearPart), parseInt(monthPart) - 1, 1);
+
+                    // Generate Income Transaction
+                    const newTx = {
+                         type: 'INCOME',
+                         entityName: agreement.name + conversionNote,
+                         cuit: agreement.cuit,
+                         address: 'Facturación Mensual Automática', 
+                         category: 'Honorarios', 
+                         status: 'PAID',
+                         currency: finalCurrency,
+                         accountId: agreement.accountId || null,
+                         amount: finalAmount,
+                         date: firebase.firestore.Timestamp.fromDate(txDate), 
+                         isRecurring: false, 
+                         agreementId: agreementId,
+                         periodKey: periodKey,
+                         createdAt: new Date(),
+                         createdBy: getUIDSafe()
+                    };
                      
                      docRef = await db.collection('transactions').add(newTx);
                  }

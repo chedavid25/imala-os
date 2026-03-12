@@ -42,7 +42,14 @@
                 padding-right: 0 !important; 
             }
         </style>
-    </head>
+        <style>
+        .italic { font-style: italic; }
+        .card-h-100 { height: 100%; }
+        .avatar-title { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+        .bg-success-subtle { background-color: rgba(42, 181, 125, 0.1) !important; }
+        .bg-danger-subtle { background-color: rgba(244, 102, 102, 0.1) !important; }
+    </style>
+</head>
 
     <body>
 
@@ -263,86 +270,86 @@
                         </div>
                         <!-- end page title -->
 
-                        <!-- KPIs Cards Row (Triple Balance Layout) -->
+                        <!-- KPIs Cards Row (Visión Global) -->
                         <div class="row">
-                        <!-- KPIs Cards Row (Liquidity vs Assets) -->
-                        <div class="row">
-                            <!-- LIQUIDEZ (Caja) -->
-                            <div class="col-md-4 mb-4">
-                                <div class="card bg-primary text-white shadow-lg h-100">
-                                    <div class="card-body">
-                                        <div class="d-flex align-items-center mb-3">
-                                            <div class="avatar-xs me-3">
-                                                <span class="avatar-title rounded-circle bg-white bg-opacity-25 text-white font-size-18">
-                                                    <i class="mdi mdi-wallet-outline"></i>
-                                                </span>
-                                            </div>
-                                            <h5 class="font-size-14 text-white mb-0">Liquidez (Caja Operativa)</h5>
-                                        </div>
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <h4 class="text-white mb-0 mt-2">
-                                                    <span id="kpi-balance-ars">0</span> <small class="font-size-12">ARS</small>
-                                                </h4>
-                                                <h4 class="text-white mb-0 mt-1">
-                                                    <span id="kpi-balance-usd">0</span> <small class="font-size-12">USD</small>
-                                                </h4>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
 
-                            <!-- INVERSIONES (Activos) -->
-                            <div class="col-md-4 mb-4">
-                                <div class="card bg-success text-white shadow-lg h-100">
-                                    <div class="card-body">
+                            <!-- PATRIMONIO NETO (PROTAGONISTA) -->
+                            <div class="col-md-6 mb-4">
+                                <div class="card border-0 shadow-lg h-100 overflow-hidden" style="border-top: 4px solid #1c1e21 !important; background: linear-gradient(135deg, #1c1e21 0%, #343a40 100%);">
+                                    <div class="card-body p-4">
                                         <div class="d-flex align-items-center mb-3">
-                                            <div class="avatar-xs me-3">
-                                                <span class="avatar-title rounded-circle bg-white bg-opacity-25 text-white font-size-18">
-                                                    <i class="mdi mdi-briefcase-variant-outline"></i>
-                                                </span>
-                                            </div>
-                                            <h5 class="font-size-14 text-white mb-0">Patrimonio Invertido</h5>
-                                        </div>
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <h4 class="text-white mb-0 mt-2">
-                                                    <span id="kpi-invested-ars">0</span> <small class="font-size-12">ARS</small>
-                                                </h4>
-                                                <h4 class="text-white mb-0 mt-1">
-                                                    <span id="kpi-invested-usd">0</span> <small class="font-size-12">USD</small>
-                                                </h4>
-                                            </div>
-                                        </div>
-                                        <p class="text-white-50 mb-0 font-size-11 mt-2">Valuación de Activos</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- PATRIMONIO NETO -->
-                            <div class="col-md-4 mb-4">
-                                <div class="card bg-dark text-white shadow-lg h-100">
-                                    <div class="card-body">
-                                        <div class="d-flex align-items-center mb-3">
-                                            <div class="avatar-xs me-3">
-                                                <span class="avatar-title rounded-circle bg-white bg-opacity-25 text-white font-size-18">
+                                            <div class="avatar-sm me-3">
+                                                <span class="avatar-title rounded-circle bg-white bg-opacity-10 text-white font-size-24">
                                                     <i class="mdi mdi-safe"></i>
                                                 </span>
                                             </div>
-                                            <h5 class="font-size-14 text-white mb-0">Patrimonio Neto Total</h5>
-                                        </div>
-                                        <div class="d-flex justify-content-between align-items-center">
                                             <div>
-                                                <h4 class="text-warning mb-0 mt-2">
-                                                    <span id="kpi-net-worth-ars">0</span> <small class="font-size-12">ARS</small>
-                                                </h4>
-                                                <h4 class="text-warning mb-0 mt-1">
-                                                    <span id="kpi-net-worth-usd">0</span> <small class="font-size-12">USD</small>
-                                                </h4>
+                                                <h5 class="font-size-16 mb-1 text-white fw-bold">Patrimonio Neto Total</h5>
+                                                <p class="text-white-50 mb-0 font-size-12">Liquidez + Inversiones Activas</p>
                                             </div>
                                         </div>
-                                        <p class="text-white-50 mb-0 font-size-11 mt-2">Liquidez + Inversiones</p>
+                                        <div class="row align-items-center mt-3">
+                                            <div class="col-12">
+                                                <h2 class="mb-2 text-warning fw-extrabold display-6">
+                                                    <span id="kpi-net-worth-ars">0</span> <small class="text-white-50 font-size-14 fw-normal">ARS</small>
+                                                </h2>
+                                                <h3 class="mb-0 text-white fw-bold">
+                                                    <span id="kpi-net-worth-usd">0</span> <small class="text-white-50 font-size-14 fw-normal">USD</small>
+                                                </h3>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SALDO DISPONIBLE (Secundario) -->
+                            <div class="col-md-3 mb-4">
+                                <div class="card border-0 shadow-sm h-100 overflow-hidden" style="border-top: 4px solid #5156be !important;">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center mb-3">
+                                            <div class="avatar-xs me-3">
+                                                <span class="avatar-title rounded-circle bg-primary bg-opacity-10 text-primary font-size-18">
+                                                    <i class="mdi mdi-cash-multiple"></i>
+                                                </span>
+                                            </div>
+                                            <h5 class="font-size-13 mb-0 text-muted fw-semibold">Disponibilidad</h5>
+                                        </div>
+                                        <div class="row align-items-center">
+                                            <div class="col-12">
+                                                <h4 class="mb-1 text-primary fw-bold font-size-18">
+                                                    <span id="kpi-balance-ars">0</span> <small class="text-muted font-size-11 fw-normal">ARS</small>
+                                                </h4>
+                                                <h5 class="mb-0 text-primary fw-bold font-size-16">
+                                                    <span id="kpi-balance-usd">0</span> <small class="text-muted font-size-11 fw-normal">USD</small>
+                                                </h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- INVERSIONES (Secundario) -->
+                            <div class="col-md-3 mb-4">
+                                <div class="card border-0 shadow-sm h-100 overflow-hidden" style="border-top: 4px solid #2ab57d !important;">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center mb-3">
+                                            <div class="avatar-xs me-3">
+                                                <span class="avatar-title rounded-circle bg-success bg-opacity-10 text-success font-size-18">
+                                                    <i class="mdi mdi-chart-line"></i>
+                                                </span>
+                                            </div>
+                                            <h5 class="font-size-13 mb-0 text-muted fw-semibold">Invertido</h5>
+                                        </div>
+                                        <div class="row align-items-center">
+                                            <div class="col-12">
+                                                <h4 class="mb-1 text-success fw-bold font-size-18">
+                                                    <span id="kpi-invested-ars">0</span> <small class="text-muted font-size-11 fw-normal">ARS</small>
+                                                </h4>
+                                                <h5 class="mb-0 text-success fw-bold font-size-16">
+                                                    <span id="kpi-invested-usd">0</span> <small class="text-muted font-size-11 fw-normal">USD</small>
+                                                </h5>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -374,86 +381,99 @@
 
                         <!-- KPIs Cards Row -->
                         <div class="row">
-                            <div class="col-xl-3 col-md-6">
-                                <div class="card card-h-100">
+                            <!-- INGRESOS (Con Pendiente) -->
+                            <div class="col-xl-4 col-md-6">
+                                <div class="card card-h-100 border-0 shadow-sm">
                                     <div class="card-body">
-                                        <div class="d-flex align-items-center">
+                                        <div class="d-flex align-items-center mb-3">
                                             <div class="flex-grow-1">
-                                                <span class="text-muted mb-3 lh-1 d-block text-truncate">Facturación Esperada</span>
-                                                <h4 class="mb-3">
-                                                    <span class="counter-value" data-target="0" id="kpi-income-expected-ars">0</span> <small class="text-muted font-size-14">ARS</small>
+                                                <span class="text-muted mb-1 lh-1 d-block text-truncate fw-semibold">Ingresos del Periodo</span>
+                                            </div>
+                                            <div class="flex-shrink-0">
+                                                <i class="mdi mdi-trending-up text-success font-size-20"></i>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-end">
+                                            <div>
+                                                <h4 class="mb-1 fw-bold">
+                                                    <span id="kpi-income-expected-ars">0</span> <small class="text-muted font-size-12 fw-normal">ARS</small>
                                                 </h4>
-                                                <h5 class="mb-0 text-muted">
-                                                    <span class="counter-value" data-target="0" id="kpi-income-expected-usd">0</span> <small class="font-size-12">USD</small>
+                                                <h5 class="mb-0 text-muted fw-normal">
+                                                    <span id="kpi-income-expected-usd">0</span> <small class="font-size-11 fw-normal">USD</small>
                                                 </h5>
                                             </div>
-                                            <div class="flex-shrink-0 text-end dash-widget">
-                                                <div id="mini-chart1" data-colors='["#34c38f"]' class="apex-charts"></div>
+                                            <div class="text-end">
+                                                <span class="badge bg-success-subtle text-success font-size-11 fw-bold" id="kpi-income-pct">0%</span>
+                                                <div class="mt-1">
+                                                    <small class="text-warning fw-bold font-size-10">Pdt: <span id="kpi-income-pending-ars">0</span></small>
+                                                </div>
                                             </div>
+                                        </div>
+                                        <div class="progress mt-3" style="height: 5px;">
+                                            <div class="progress-bar bg-success" role="progressbar" id="kpi-income-progress" style="width: 0%"></div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="col-xl-3 col-md-6">
-                                <div class="card card-h-100">
+                            <!-- GASTOS (Con Pendiente) -->
+                            <div class="col-xl-4 col-md-6">
+                                <div class="card card-h-100 border-0 shadow-sm">
                                     <div class="card-body">
-                                        <div class="d-flex align-items-center">
+                                        <div class="d-flex align-items-center mb-3">
                                             <div class="flex-grow-1">
-                                                <span class="text-muted mb-3 lh-1 d-block text-truncate">Pendiente de Cobro</span>
-                                                <h4 class="mb-3 text-warning">
-                                                    <span class="counter-value" data-target="0" id="kpi-income-pending-ars">0</span> <small class="text-muted font-size-14">ARS</small>
+                                                <span class="text-muted mb-1 lh-1 d-block text-truncate fw-semibold">Gastos del Periodo</span>
+                                            </div>
+                                            <div class="flex-shrink-0">
+                                                <i class="mdi mdi-trending-down text-danger font-size-20"></i>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-end">
+                                            <div>
+                                                <h4 class="mb-1 fw-bold">
+                                                    <span id="kpi-expense-expected-ars">0</span> <small class="text-muted font-size-12 fw-normal">ARS</small>
                                                 </h4>
-                                                 <h5 class="mb-0 text-muted">
-                                                    <span class="counter-value" data-target="0" id="kpi-income-pending-usd">0</span> <small class="font-size-12">USD</small>
+                                                <h5 class="mb-0 text-muted fw-normal">
+                                                    <span id="kpi-expense-expected-usd">0</span> <small class="font-size-11 fw-normal">USD</small>
                                                 </h5>
                                             </div>
-                                            <div class="flex-shrink-0 text-end dash-widget">
-                                                 <i data-feather="alert-circle" class="text-warning icon-lg"></i>
+                                            <div class="text-end">
+                                                <span class="badge bg-danger-subtle text-danger font-size-11 fw-bold" id="kpi-expense-pct">0%</span>
+                                                <div class="mt-1">
+                                                    <small class="text-danger fw-bold font-size-10">Pdt: <span id="kpi-expense-pending-ars">0</span></small>
+                                                </div>
                                             </div>
+                                        </div>
+                                        <div class="progress mt-3" style="height: 5px;">
+                                            <div class="progress-bar bg-danger" role="progressbar" id="kpi-expense-progress" style="width: 0%"></div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="col-xl-3 col-md-6">
-                                <div class="card card-h-100">
+                            <!-- RESULTADO NETO (Cobrado - Pagado) -->
+                            <div class="col-xl-4 col-md-12">
+                                <div class="card card-h-100 border-0 shadow-sm" style="background: #fdfdfd; border-left: 4px solid #5156be !important;">
                                     <div class="card-body">
-                                        <div class="d-flex align-items-center">
+                                        <div class="d-flex align-items-center mb-3">
                                             <div class="flex-grow-1">
-                                                <span class="text-muted mb-3 lh-1 d-block text-truncate">Gastos Esperados</span>
-                                                <h4 class="mb-3">
-                                                    <span class="counter-value" data-target="0" id="kpi-expense-expected-ars">0</span> <small class="text-muted font-size-14">ARS</small>
-                                                </h4>
-                                                 <h5 class="mb-0 text-muted">
-                                                    <span class="counter-value" data-target="0" id="kpi-expense-expected-usd">0</span> <small class="font-size-12">USD</small>
-                                                </h5>
+                                                <span class="text-muted mb-1 lh-1 d-block text-truncate fw-bold">Balance del Periodo</span>
                                             </div>
-                                            <div class="flex-shrink-0 text-end dash-widget">
-                                                <i data-feather="trending-down" class="text-danger icon-lg"></i>
+                                            <div class="flex-shrink-0">
+                                                <i class="mdi mdi-scale-balance text-primary font-size-20"></i>
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-xl-3 col-md-6">
-                                <div class="card card-h-100">
-                                    <div class="card-body">
-                                        <div class="d-flex align-items-center">
-                                            <div class="flex-grow-1">
-                                                <span class="text-muted mb-3 lh-1 d-block text-truncate">Gastos Pendientes</span>
-                                                <h4 class="mb-3 text-danger">
-                                                    <span class="counter-value" data-target="0" id="kpi-expense-pending-ars">0</span> <small class="text-muted font-size-14">ARS</small>
+                                        <div class="row align-items-center mt-2">
+                                            <div class="col-12">
+                                                <h4 class="mb-2 fw-extrabold" id="kpi-net-result-ars-container">
+                                                    <span id="kpi-net-result-ars">0</span> <small class="text-muted font-size-12 fw-normal">ARS</small>
                                                 </h4>
-                                                <h5 class="mb-0 text-muted">
-                                                    <span class="counter-value" data-target="0" id="kpi-expense-pending-usd">0</span> <small class="font-size-12">USD</small>
+                                                <h5 class="mb-0 fw-bold" id="kpi-net-result-usd-container">
+                                                    <span id="kpi-net-result-usd">0</span> <small class="text-muted font-size-12 fw-normal">USD</small>
                                                 </h5>
                                             </div>
-                                            <div class="flex-shrink-0 text-end dash-widget">
-                                                <i data-feather="alert-triangle" class="text-danger icon-lg"></i>
-                                            </div>
                                         </div>
+                                        <p class="text-muted mb-0 font-size-10 mt-3"><i class="mdi mdi-help-circle-outline me-1"></i>Calculado sobre movimientos Cobrados / Pagados.</p>
                                     </div>
                                 </div>
                             </div>
@@ -561,6 +581,12 @@
                                                     <span class="d-none d-sm-block">Acuerdos</span>
                                                 </a>
                                             </li>
+                                            <li class="nav-item">
+                                                <a class="nav-link" data-bs-toggle="tab" href="#tab-accounts" role="tab">
+                                                    <span class="d-block d-sm-none"><i class="mdi mdi-bank"></i></span>
+                                                    <span class="d-none d-sm-block">Cuentas</span>
+                                                </a>
+                                            </li>
                                         </ul>
 
                                         <!-- Tab panes -->
@@ -589,6 +615,7 @@
                                                     </table>
                                                 </div>
                                             </div>
+                                            
 
                                             <!-- EXPENSES -->
                                             <div class="tab-pane" id="tab-expense" role="tabpanel">
@@ -613,6 +640,7 @@
                                                     </table>
                                                 </div>
                                             </div>
+                                            
 
 
                                             <!-- ASSETS / PORTFOLIO -->
@@ -682,6 +710,27 @@
                                                     </table>
                                                 </div>
                                             </div>
+                                            <!-- ACCOUNTS (Saldos por Cuenta) -->
+                                            <div class="tab-pane" id="tab-accounts" role="tabpanel">
+                                                <div class="row" id="account-summary-container" style="display:none;">
+                                                    <div class="col-12">
+                                                        <div class="card border-0 shadow-none">
+                                                            <div class="card-header bg-transparent border-bottom py-2">
+                                                                <h6 class="card-title mb-0 font-size-15 text-primary"><i class="mdi mdi-bank me-1"></i> Resumen de Saldos por Cuenta</h6>
+                                                            </div>
+                                                            <div class="card-body p-0">
+                                                                <div class="table-responsive">
+                                                                    <table class="table table-nowrap mb-0 align-middle">
+                                                                        <tbody id="account-summary-list">
+                                                                            <!-- Dynamic -->
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
 
                                     </div>
@@ -689,25 +738,7 @@
                             </div>
                         </div>
                         
-                        <!-- Account Summary Row -->
-                        <div class="row mb-4" id="account-summary-container" style="display:none;">
-                            <div class="col-12">
-                                <div class="card border border-soft-secondary shadow-none">
-                                    <div class="card-header bg-transparent border-bottom py-2">
-                                        <h6 class="card-title mb-0 font-size-13 text-muted">Resumen de Saldos por Cuenta</h6>
-                                    </div>
-                                    <div class="card-body p-0">
-                                        <div class="table-responsive">
-                                            <table class="table table-sm table-nowrap mb-0 align-middle">
-                                                <tbody id="account-summary-list">
-                                                    <!-- Dynamic -->
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        
 
                     </div> 
                 </div>
